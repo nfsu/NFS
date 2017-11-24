@@ -47,7 +47,7 @@ You also need to add the following code to MagicNumber and SectionLength; so the
 		template<> constexpr static u32 get<NARC> = 0x4352414E;
 		template<> constexpr static u32 get<BTNF> = 0x464E5442;
 //In SectionSize
-  template<> constexpr static u32 get<GMIF> = 8;
+  		template<> constexpr static u32 get<GMIF> = 8;
 		template<> constexpr static u32 get<BTAF> = 12;
 		template<> constexpr static u32 get<BTNF> = 8;
 ```
