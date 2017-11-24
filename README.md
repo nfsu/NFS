@@ -6,7 +6,7 @@ As a kid I loved modifying existing roms for my personal use, but tools were/are
 Down below you can see a simply use of the NFS API.
 ### Reading resources
 ```cpp
-  NCLR nclr;
+  	NCLR nclr;
 	NType::readGenericResource(&nclr, offset(buf, NCLR_off));
 
 	NCGR ncgr;
@@ -18,13 +18,13 @@ Down below you can see a simply use of the NFS API.
 NType::readGenericResource is a function that is built to read a GenericResource; which is the base of all Nintendo resources.
 ### Converting resources
 ```cpp
-  NArchieve arch;
+  	NArchieve arch;
 	NType::convert(narc, &arch);
 ```
 NType::convert is created to wrap around existing resources; it could convert a NCLR (palette) to a 2D texture, a NARC to NArchieve and more.
 ### Adding a resource type
 ```cpp
-  //File allocation table
+  	//File allocation table
 	struct BTAF : GenericSection {
 		u32 files;						//Count of files in archive
 	};
