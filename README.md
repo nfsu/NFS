@@ -92,6 +92,8 @@ Texture2D convertToRGBA8(PaletteTexture2D pt2d) {
 ```
 This function is called 'runPixelShader', which can be applied to any kind of object (default is Texture2D). It will expect width and height in the struct and will loop through all indices in the 'image'. In our case, you can use it to convert a PaletteTexture2D to a Texture2D; since it just reads the tilemap and finds it in the palette.
 RunPixelShader will however return a new texture and will put it into RGBA8 format.
+### Running the example
+Source.cpp is what I use to test if parts of the API work, however, I can't supply all dependencies. It is illegal to upload roms, so if you want to test it out, you have to obtain a rom first. Afterwards, you can use something like nitro explorer to find offsets of palettes, images, animations, models or other things you might use. All important things in Source.cpp have been suffixed by '//TODO: !!!', so please fix those before running.
 ## Special thanks
 Thanks to /LagMeester4000 for creating magic templates that are used all the time in this API. Typelists are used from his repo at [/LagMeester4000/TypeList](https://github.com/LagMeester4000/TypeList).
 ## Nintendo policies
