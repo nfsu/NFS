@@ -1,6 +1,7 @@
 #include "Types.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "API/stbi/stbi_write.h"
 
 void deleteBuffer(Buffer *b) {
 	if (b->data != NULL) {
@@ -153,6 +154,164 @@ bool writeBuffer(Buffer b, std::string path) {
 	printf("Successfully wrote %u bytes to file (%s)\n", b.size, path.c_str());
 
 	return true;
+}
+
+bool writeTexture(Texture2D t, std::string path) {
+	
+	bool conversion = t.stride != 4, result = true;
+
+	if (conversion) 
+		t = convertToRGBA8(t);
+
+	if (!stbi_write_png(path.c_str(), t.width, t.height, t.stride, t.data, t.width * t.stride)) {
+		printf("Couldn't write texture at \"%s\"\n", path.c_str());
+		result = false;
+	}
+
+	if (conversion)
+		deleteTexture(&t);
+
+	return result;
+}
+
+
+bool isLittleEndian() {
+	u16 x = 1;
+	return ((u8*)&x)[0] = 1;
+}
+
+u32 fetchData(Texture2D t, u32 i, u32 j) {
+
+	if (t.size == 0 || t.data == nullptr || t.stride > 4) return 0;
+
+	u32 tiles = t.tt & 0xF0;
+	bool tiled = tiles != 0;
+	bool fourBit = (t.tt & 0xF00) == B4;
+
+	u32 index = (j * t.width + i);
+
+	if (tiles == TILED8) {
+		u32 tx = i / 8;
+		u32 ty = j / 8;
+		u32 tix = i % 8;
+		u32 tiy = j % 8;
+
+		u32 pt = ty * (t.width / 8) + tx;
+		u32 pit = tiy * 8 + tix;
+		index = pt * 64 + pit;
+	}
+
+	u8 *dat = t.data + index * t.stride / (fourBit ? 2 : 1);
+	u32 at = 0;
+
+	for (u32 i = 0; i < t.stride; ++i)
+		at |= dat[i] << i * 8;
+
+	if (fourBit)
+		if (index % 2 == 0)
+			at &= 0xF;
+		else
+			at = (at & 0xF0) >> 4;
+
+	return at;
+}
+
+bool storeData(Texture2D t, u32 i, u32 j, u32 val) {
+
+	if (t.data == nullptr || t.size == 0 || i >= t.width || j >= t.height) return false;
+
+	u32 tiles = t.tt & 0xF0;
+	bool tiled = tiles != 0;
+	bool fourBit = (t.tt & 0xF00) == B4;
+
+	u32 index = (j * t.width + i);
+
+	if (tiles == TILED8) {
+		u32 tx = i / 8;
+		u32 ty = j / 8;
+		u32 tix = i % 8;
+		u32 tiy = j % 8;
+
+		u32 pt = ty * (t.width / 8) + tx;
+		u32 pit = tiy * 8 + tix;
+		index = pt * 64 + pit;
+	}
+
+	u8 *dat = t.data + index * t.stride / (fourBit ? 2 : 1);
+
+	if (fourBit) {
+		if (index % 2 == 0)
+			*dat = (*dat & 0xF0) | (val & 0xF);
+		else
+			*dat = (*dat & 0xF) | ((val & 0xF) << 4);
+	} else 
+		for (u32 i = 0; i < t.stride; ++i)
+			dat[i] = ((u8*)&val)[i];
+
+	return true;
+}
+
+u32 getPixel(Texture2D t, u32 i, u32 j) {
+	u32 dat = fetchData(t, i, j);
+
+	if ((t.tt & 0xF) == BGR5) {
+		u32 b = ((dat & 0x001F) >>  0) / 31.f * 255;
+		u32 g = ((dat & 0x03E0) >>  5) / 31.f * 255;
+		u32 r = ((dat & 0x7C00) >> 10) / 31.f * 255;
+		dat = (0xFF << 24) | (r << 16) | (g << 8) | b;
+	}
+
+	return dat;
+}
+
+
+bool setPixel(Texture2D t, u32 i, u32 j, u32 val) {
+
+	if ((t.tt & 0xF) == BGR5) {
+		u32 b = (u32)ceil(((val & 0xFF0000) >> 16) / 255 * 31.f);
+		u32 g = (u32)ceil(((val & 0x00FF00) >>  8) / 255 * 31.f);
+		u32 r = (u32)ceil(((val & 0x0000FF) >>  0) / 255 * 31.f);
+		val = b | (g << 5) | (r << 10);
+	}
+
+	return storeData(t, i, j, val);
+}
+
+Texture2D newTexture1(u32 width, u32 height, u32 stride, TextureType tt) {
+	Texture2D t = { width * height * stride, width, height, stride, tt, (u8*)malloc(width * height * stride) };
+	memset(t.data, 0, t.size);
+	return t;
+}
+
+Texture2D newTexture2(u8 *ptr, u32 width, u32 height, u32 stride, TextureType tt) {
+	return { width * height * stride, width, height, stride, tt, ptr };
+}
+
+
+Texture2D convertToRGBA8(Texture2D t) {
+	return runPixelShader(getPixel, t);
+}
+
+Texture2D convertToRGBA8(PaletteTexture2D pt2d) {
+	return runPixelShader<PaletteTexture2D>([](PaletteTexture2D t, u32 i, u32 j) -> u32 { 
+		u32 sample = getPixel(t.tilemap, i, j);
+		u32 x = sample & 0xF;
+		u32 y = (sample & 0xF0) >> 4;
+		return getPixel(t.palette, x, y);
+	}, pt2d);
+}
+
+void deleteTexture(Texture2D *t) {
+	if (t->data != nullptr) {
+		free(t->data);
+		memset(t, 0, sizeof(*t));
+	}
+}
+
+void printTexture(Texture2D t, bool printContents) {
+	printf("Texture with width %u, height %u, stride %u, type %u and %u bytes of data\n", t.width, t.height, t.stride, t.tt, t.size);
+	if (printContents)
+		printBuffer({t.data, t.size});
 }
 
 //Texture2D convertToT2D2(PTT2D t) {

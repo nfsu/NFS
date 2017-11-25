@@ -19,6 +19,15 @@
     <Filter Include="Header Files\API\LM4000">
       <UniqueIdentifier>{a8790ad2-1d6f-422b-8ea1-bcf8bb75948b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\API\stbi">
+      <UniqueIdentifier>{3acfe182-b068-4adb-b07e-3234968514bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\API">
+      <UniqueIdentifier>{e848b248-eb59-4fce-80b1-d714defac34e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\API\stbi">
+      <UniqueIdentifier>{d75c8426-a7c4-4faf-9c0f-b2bb2c0b57c6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp">
@@ -29,6 +38,9 @@
     </ClCompile>
     <ClCompile Include="NTypes2.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="API\stbi\stbi_write.c">
+      <Filter>Source Files\API\stbi</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -61,6 +73,9 @@
     </ClInclude>
     <ClInclude Include="API\LM4000_TypeList\TypeStruct.h">
       <Filter>Header Files\API\LM4000</Filter>
+    </ClInclude>
+    <ClInclude Include="API\stbi\stbi_write.h">
+      <Filter>Header Files\API\stbi</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

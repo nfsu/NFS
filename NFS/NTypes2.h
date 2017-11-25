@@ -97,7 +97,7 @@ namespace nfs {
 	typedef GenericResource<BTAF, BTNF, GMIF> NARC;
 
 	//Physical archive
-	typedef Archieve<GenericResourceBase> NArchieve;
+	typedef Archieve<GenericResourceBase*> NArchieve;
 
 	///MagicNumbers
 
@@ -123,7 +123,7 @@ namespace nfs {
 	struct SectionLength {
 
 		template<typename T> constexpr static u32 get = 0x0;
-		template<> constexpr static u32 get<TTLP> = 32;
+		template<> constexpr static u32 get<TTLP> = 24;
 		template<> constexpr static u32 get<PMCP> = 16;
 		template<> constexpr static u32 get<RAHC> = 32;
 		template<> constexpr static u32 get<SOPC> = 16;
@@ -237,11 +237,9 @@ namespace nfs {
 				goto end;
 			}
 
-			GenericResource<args...> *ptr = (GenericResource<args...>*)wh;
-
 			u32 off = 0, offId = 0;
 
-			if (!SectionLoop<GenericResource<args...>, args...>::read(ptr, off, offId, offset(from, size), gh->sections)) {
+			if (!SectionLoop<GenericResource<args...>, args...>::read(wh, off, offId, offset(from, size), gh->sections)) {
 				error = "Invalid section";
 				goto end;
 			}
@@ -262,7 +260,7 @@ namespace nfs {
 		template<> static bool convert(NARC source, NArchieve *archieve) {
 
 			BTAF &btaf = source.contents.front;
-			std::vector<ArchieveObject<GenericResourceBase>> arcobj(btaf.files);
+			std::vector<ArchieveObject<GenericResourceBase*>> arcobj(btaf.files);
 
 			if (btaf.data.size != btaf.files * 8) {
 				printf("Couldn't convert NARC to Archieve; invalid file info\n");
@@ -270,7 +268,7 @@ namespace nfs {
 			}
 
 			for (u32 i = 0; i < arcobj.size(); ++i) {
-				ArchieveObject<GenericResourceBase> &elem = arcobj[i];
+				ArchieveObject<GenericResourceBase*> &elem = arcobj[i];
 
 				elem.id = i;
 				elem.offset = getUInt(offset(btaf.data, i * 8));
@@ -283,6 +281,36 @@ namespace nfs {
 			*archieve = NArchieve(arcobj, source.contents.back.back.front.size);
 
 			return true;
+		}
+
+		template<> static bool convert(NCLR source, Texture2D *tex) {
+			tex->width = source.contents.front.c_colors;
+			tex->size = source.contents.front.dataSize;
+			tex->stride = 2;
+			tex->tt = BGR5;
+			tex->height = tex->size / tex->stride / tex->width;
+			tex->data = source.contents.front.data.data;
+			return true;
+		}
+
+
+		template<> static bool convert(NCGR source, Texture2D *tex) {
+			bool fourBit = source.contents.front.tileDepth == BD_FOUR;
+			
+			tex->width = source.contents.front.tileWidth * 8;
+			tex->height = source.contents.front.tileHeight * 8;
+			tex->size = tex->width * tex->height / (fourBit ? 2 : 1);
+			tex->tt = fourBit ? TILED8_B4 : TILED8;
+			tex->stride = 1;
+			tex->data = source.contents.front.data.data;
+			return true;
+		}
+
+		template<typename T, typename ...args>
+		static T *castResource(GenericResource<args...> *wh) {
+			if (wh->header.magicNumber == MagicNumber::get<T>)
+				return (T*)wh;
+			return nullptr;
 		}
 
 	};
