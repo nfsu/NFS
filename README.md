@@ -75,7 +75,8 @@ Textures aren't that easy in NFS; palettes are always used and sometimes, they e
 ```cpp
 	Texture2D tex2 = convertToRGBA8({ tex.width, tex.height, palette, tex });
 	writeTexture(tex2, "Final0.png");
-	deleteTexture(&tex2);```
+	deleteTexture(&tex2);
+```
 Don't forget to delete the texture; as it uses a new malloc, because most of the time, the format is different from the source to the target. 
 ### Writing image filters
 If you'd want to add a new image filter, I've created a helpful function, which can be used as the following:
