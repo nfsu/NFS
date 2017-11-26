@@ -218,6 +218,7 @@
     <ClCompile Include="NHelper.cpp" />
     <ClCompile Include="NTypes2.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="API\LM4000_TypeList\Checks.h" />
@@ -231,6 +232,7 @@
     <ClInclude Include="Generic.h" />
     <ClInclude Include="NTypes2.h" />
     <ClInclude Include="NHelper.h" />
+    <ClInclude Include="Timer.h" />
     <ClInclude Include="Types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

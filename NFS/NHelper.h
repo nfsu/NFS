@@ -1,5 +1,6 @@
 #pragma once
 #include "NTypes2.h"
+#include "API/LM4000_TypeList/TypeStruct.h"
 
 namespace nfs {
 
@@ -12,6 +13,10 @@ namespace nfs {
 
 		static bool writeNCGR(Buffer buf, u32 paletteOff, u32 textureOff, std::string path);
 		static bool writeNCSR(Buffer buf, u32 paletteOff, u32 tilemapOff, u32 mapOff, std::string path);
+
+	private:
+
+		static const bool logTimes;
 	};
 
 }

@@ -1,6 +1,13 @@
 #pragma once
+#include "Helper.h"
 #include "Checks.h"
 #include <memory>
+
+#include <unordered_map>
+#include <typeinfo>
+#include <string>
+
+#include <type_traits>
 
 namespace lag
 {
@@ -35,6 +42,9 @@ namespace lag
 		//runtime function to get a type at an index (much slower than the compile time version)
 		template<typename T>
 		T &getAt(unsigned int index);
+
+		template<template<typename> typename F, typename ... Args>
+		void runFuncFor(std::string className, Args ... args);
 	};
 
 	template<typename Front>
@@ -73,9 +83,15 @@ namespace lag
 		template<typename T>
 		T &getAt(unsigned int index)
 		{
-			if (index == 0)
+			return *(T*)&front;
+		}
+
+		template<template<typename> typename F, typename ... Args>
+		void runFuncFor(std::string className, Args ... args)
+		{
+			if (className == helper::removeBullshit(typeid(Front).name()))
 			{
-				return *(T*)&front;
+				F<Front>{}((void*)&front, args...);
 			}
 		}
 	};
@@ -220,29 +236,71 @@ namespace lag
 		return *((T*)(getAtT((void*)this)));
 	}
 
-	//template<unsigned int C, typename Func, typename ... Types>
-	//struct _TypeStructLoop
-	//{
-	//	static void func(TypeStruct<Types...> &t, Func &f)
-	//	{
-	//		//Func(access_type<C>(t));
-	//		f.func(access_type<C>(t));
-	//		_TypeStructLoop<C + 1, Func, Types...>::func(t);
-	//	}
-	//};
-	//
-	//template<typename Func, typename ... Types>
-	//struct _TypeStructLoop<SizeTypes<Types...>, Func, Types...>
-	//{
-	//	static void func(TypeStruct<Types...> &t, Func &f) {}
-	//};
-	//
-	//// Func == 
-	//// template<typename T>
-	//// void func(T &t) {}
-	//template<typename Func, typename ... Types>
-	//void loop_type_struct(TypeStruct<Types...> &t, Func f)
-	//{
-	//	_TypeStructLoop<0, Func, Types...>::func(t, f);
-	//}
+	
+
+	//type erasure any func
+	template<typename ... Args>
+	using any_fp = void(void*, Args...);
+
+	template<template<typename> typename F, typename TSType, typename T, typename ... Args>
+	void any_fp_function(void *ts, Args ... args)
+	{
+		using ActualTSType = std::remove_reference_t<TSType>;
+		ActualTSType *tscast = (ActualTSType*)ts;
+		F<T>{}((T*)&tscast->getType<T>(), args...);
+	}
+
+	/*
+	Basic struct with function
+	template<typename T>
+	struct Func
+	{
+		void operator()(T *ptr, int some)
+		{}
+	};
+	*/
+
+	template<typename ... Args>
+	using MapType = std::unordered_map<std::string, any_fp<Args...>*>;
+
+	template<typename ... Types>
+	struct MakeAnyFpMap;
+
+	template<typename First, typename ... Types>
+	struct MakeAnyFpMap<First, Types...>
+	{
+		template<template<typename> typename F, typename MapT, typename ... Args, typename ... TypeListTypes>//NOTE : finish this function, then the one below
+		static void func(MapT &map, TypeStruct<TypeListTypes...> *ts)
+		{
+			map[helper::removeBullshit(typeid(First).name())] = &any_fp_function<F, decltype(*ts), First, Args...>;
+			MakeAnyFpMap<Types...>::func<F, MapT, Args...>(map, ts);
+		}
+	};
+
+	template<typename First>
+	struct MakeAnyFpMap<First>
+	{
+		template<template<typename> typename F, typename MapT, typename ... Args, typename ... TypeListTypes>
+		static void func(MapT &map, TypeStruct<TypeListTypes...> *ts)
+		{
+			map[helper::removeBullshit(typeid(First).name())] = &any_fp_function<F, decltype(*ts), First, Args...>;
+		}
+	};
+
+	template<template<typename> typename F, typename ... Args, typename ... TypeListTypes>
+	MapType<Args...> make_any_fp_map(TypeStruct<TypeListTypes...> *ts)
+	{
+		MapType<Args...> ret;
+		MakeAnyFpMap<TypeListTypes...>::func<F, MapType<Args...>, Args...>(ret, ts);
+		return ret;
+	}
+
+	template<typename Front, typename ...Back>
+	template<template<typename> typename F, typename ...Args>
+	inline void TypeStruct<Front, Back...>::runFuncFor(std::string className, Args ... args)
+	{
+		const static MapType<Args...> funcMap = make_any_fp_map<F, Args...>(this);
+		void(*funcPtr)(void*, Args...) = funcMap.at(className);
+		funcPtr((void*)this, args...);
+	}
 }
