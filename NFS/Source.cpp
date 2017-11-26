@@ -10,7 +10,8 @@ void test1(Buffer buf) {
 	u32 NCGR_off = 0x5EB0E1C;
 	u32 NARC_off = 0x5EA2600;
 
-	NARC narc;
+	NARC narc = NARC();
+	//auto m = getArchiveFpMap<NFactory, void*, Buffer>(ArchiveTypes());
 	runArchiveFunction<NFactory>(MagicNumber::get<NARC>, ArchiveTypes(), (void*)&narc, offset(buf, NARC_off));
 
 	//NType::readGenericResource(&narc, offset(buf, NARC_off));
