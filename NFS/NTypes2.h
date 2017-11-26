@@ -306,6 +306,17 @@ namespace nfs {
 			return true;
 		}
 
+
+		template<> static bool convert(NCSR source, Texture2D *tex) {
+			tex->width = source.contents.front.screenWidth / 8;
+			tex->height = source.contents.front.screenHeight / 8;
+			tex->size = tex->width * tex->height * 2;
+			tex->tt = NORMAL;
+			tex->stride = 2;
+			tex->data = source.contents.front.data.data;
+			return true;
+		}
+
 		template<typename T, typename ...args>
 		static T *castResource(GenericResource<args...> *wh) {
 			if (wh->header.magicNumber == MagicNumber::get<T>)

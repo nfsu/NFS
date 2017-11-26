@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+NFS/Debug
+.vs
+enc_temp_folder

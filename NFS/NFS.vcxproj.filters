@@ -42,6 +42,9 @@
     <ClCompile Include="API\stbi\stbi_write.c">
       <Filter>Source Files\API\stbi</Filter>
     </ClCompile>
+    <ClCompile Include="NHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Archieve.h">
@@ -76,6 +79,9 @@
     </ClInclude>
     <ClInclude Include="API\stbi\stbi_write.h">
       <Filter>Header Files\API\stbi</Filter>
+    </ClInclude>
+    <ClInclude Include="NHelper.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

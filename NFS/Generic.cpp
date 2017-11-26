@@ -42,6 +42,11 @@ Buffer offset(Buffer b, u32 off) {
 	return res;
 }
 
+u32 getTile(Texture2D t) {
+	u32 tiles = t.tt & 0xF0;
+	return tiles == 0 ? 0 : 8;
+}
+
 bool setUInt(Buffer b, u32 offset, u32 value) {
 	if (b.size < offset + 4) return false;
 
@@ -289,16 +294,58 @@ Texture2D newTexture2(u8 *ptr, u32 width, u32 height, u32 stride, TextureType tt
 
 
 Texture2D convertToRGBA8(Texture2D t) {
-	return runPixelShader(getPixel, t);
+	return runPixelShader(getPixel, t, t.width, t.height);
 }
 
-Texture2D convertToRGBA8(PaletteTexture2D pt2d) {
+Texture2D convertPT2D(PaletteTexture2D pt2d) {
 	return runPixelShader<PaletteTexture2D>([](PaletteTexture2D t, u32 i, u32 j) -> u32 { 
 		u32 sample = getPixel(t.tilemap, i, j);
 		u32 x = sample & 0xF;
 		u32 y = (sample & 0xF0) >> 4;
 		return getPixel(t.palette, x, y);
-	}, pt2d);
+	}, pt2d, pt2d.tilemap.width, pt2d.tilemap.height);
+}
+
+Texture2D convertTT2D(TiledTexture2D tt2d) {
+	
+	const u32 tc = getTile(tt2d.tilemap);
+
+	return runPixelShader<TiledTexture2D>([](TiledTexture2D t, u32 i, u32 j) -> u32 {
+
+		const u32 tc = getTile(t.tilemap);
+		const u32 &tw = t.map.width;
+		const u32 &th = t.map.height;
+
+		u32 mx = i / tc;							//X index in map
+		u32 my = j / tc;							//Y index in map
+
+		u32 tx = i % tc;							//X index in tile
+		u32 ty = j % tc;							//Y index in tile
+
+		u32 ptd = getPixel(t.map, mx, my);			//Data of map tile
+		u32 ptt = (ptd & 0x0C00) >> 10;				//Translate
+		u32 ptp = (ptd & 0xF000) >> 12;				//Palette
+		u32 ptm = (ptd & 0x03FF) >>  0;				//Position in tilemap
+
+		u32 ptmx = ptm % tw;						//X tile position in tilemap
+		u32 ptmy = ptm / tw;						//Y tile position in tilemap
+
+		if (ptt & 0b10)
+			ty = (tc - 1) - ty;
+
+		if (ptt & 0b1)
+			tx = (tc - 1) - tx;
+
+		u32 tmx = ptmx * tc + tx;					//X position in tilemap
+		u32 tmy = ptmy * tc + ty;					//Y position in tilemap
+
+		u32 tms = getPixel(t.tilemap, tmx, tmy);	//Tilemap sample
+		u32 tmsx = tms % t.palette.width;
+		u32 tmsy = tms / t.palette.width;
+
+		return getPixel(t.palette, tmsx, ptp | tmsy);
+
+	}, tt2d, tt2d.map.width * tc, tt2d.map.height * tc);
 }
 
 void deleteTexture(Texture2D *t) {

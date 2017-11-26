@@ -75,7 +75,7 @@ namespace lag
 		{
 			if (index == 0)
 			{
-				return (void*)&front;
+				return *(T*)&front;
 			}
 		}
 	};

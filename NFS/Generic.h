@@ -34,7 +34,7 @@ typedef enum {
 	B4 = 0x100,
 
 	TILED8_B4 = TILED8 | B4
-} TextureType;	//TextureType is a 16-bit mask that indicates: format at 1,2,4,8, fetch filter at 16,32,64,128 and layout at 256,512,1024,256
+} TextureType;	//TextureType is a 16-bit mask that indicates: format at 0xF, fetch filter at 0xF0 and layout at 0xF00
 
 //Texture2D holds texture data and texture info
 typedef struct {
@@ -45,9 +45,13 @@ typedef struct {
 
 //PaletteTexture2D holds a palette and image
 typedef struct {
-	u32 width, height;
 	Texture2D palette, tilemap;
 } PaletteTexture2D;
+
+//TiledTexture2D holds a palette, tilemap and map
+typedef struct {
+	Texture2D palette, tilemap, map;
+} TiledTexture2D;
 
 ///Create functions
 Buffer newBuffer1(u32 size);																		//Create new empty buffer
@@ -72,19 +76,20 @@ u32 fetchData(Texture2D t, u32 i, u32 j);									//Gets the pixel data without 
 u32 getPixel(Texture2D t, u32 i, u32 j);									//Gets the pixel (with appropriate filters and stuff applied)
 
 //Returns a new texture with the result of the 'pixel shader'
-template<class T = Texture2D> Texture2D runPixelShader(u32(*func)(T, u32, u32), T t) {
+template<class T = Texture2D> Texture2D runPixelShader(u32(*func)(T, u32, u32), T t, u32 width, u32 height) {
 
-	Texture2D res = { t.width * t.height * 4, t.width, t.height, 4, NORMAL, (u8*)malloc(t.width * t.height * 4) };
+	Texture2D res = { width * height * 4, width, height, 4, NORMAL, (u8*)malloc(width * height * 4) };
 
-	for (u32 i = 0; i < t.width; ++i)
-		for (u32 j = 0; j < t.height; ++j)
-			((u32*)res.data)[j * t.width + i] = func(t, i, j);
+	for (u32 i = 0; i < width; ++i)
+		for (u32 j = 0; j < height; ++j)
+			((u32*)res.data)[j * width + i] = func(t, i, j);
 
 	return res;
 }
 
 Texture2D convertToRGBA8(Texture2D t);										//Pixel shader for converting texture into a readable format
-Texture2D convertToRGBA8(PaletteTexture2D pt2d);							//^^ convertToRGBA8({width, height, palette, texture})
+Texture2D convertPT2D(PaletteTexture2D pt2d);							//^^ convertToRGBA8({width, height, palette, texture})
+Texture2D convertTT2D(TiledTexture2D pt2d);								//^^ convertToRGBA8({width, height, palette, tilemap, map})
 
 ///Setters
 bool setUInt(Buffer b, u32 offset, u32 value);
@@ -96,6 +101,7 @@ void clearBuffer(Buffer b);
 
 ///Helper functions
 Buffer offset(Buffer b, u32 off);
+u32 getTile(Texture2D t);													//Returns how the tiles are structured (8x8, 32x32, 1x1, etc)
 
 ///Read functions
 Buffer readFile(std::string str);
