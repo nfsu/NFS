@@ -2,6 +2,7 @@
 #include "Types.h"
 #include <type_traits>
 #include <typeinfo>
+#include <unordered_map>
 #include "API/LM4000_TypeList/TypeStruct.h"
 
 #ifdef __X64__
@@ -99,8 +100,52 @@ namespace nfs {
 	//Physical archive
 	typedef Archieve<GenericResourceBase*> NArchieve;
 
-	///MagicNumbers
+	///LM4000 archieve magic
 
+	//TypeList with all the archive types
+	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR> ArchiveTypes;
+
+	//function type
+	template<typename ... Args>
+	using archive_func = void(Args...);
+
+	//map return type
+	template<typename ... Args>
+	using archive_fp_map = std::unordered_map<u32, archive_func<Args...>*>;
+
+	//archive functions
+	template<typename T, template<typename> typename F, typename ... Args>
+	void genericFunc(Args ... args)
+	{
+		F<T>{}(args...);
+	}
+
+	template<typename ... Types>
+	struct MakeArchiveFpMapStruct;
+
+	//make function pointer map
+	template<template<typename> typename F, typename ... Args, typename ... Types>
+	archive_fp_map<Types...> makeArchiveFpMap(lag::TypeList<Types...> tl);
+
+	//make static instance of function pointer map and return a reference to it
+	template<template<typename> typename F, typename ... Args, typename ... Types>
+	archive_fp_map<Types...> &getArchiveFpMap(lag::TypeList<Types...> tl)
+	{
+		const static auto fpMap = makeArchiveFpMap<F, Args...>(tl);
+		return fpMap;
+	}
+
+	//run a function from the function pointer map
+	template<template<typename> typename F, typename ... Args, typename ... Types>
+	void runArchiveFunction(u32 magicNum, lag::TypeList<Types...> tl, Args ... args)
+	{
+		auto &fpMap = getArchiveFpMap<F, Args...>(tl);
+		fpMap[magicNum](args...);
+	}
+
+
+
+	///MagicNumbers
 
 	struct MagicNumber {
 
@@ -122,7 +167,7 @@ namespace nfs {
 
 	struct SectionLength {
 
-		template<typename T> constexpr static u32 get = 0x0;
+		template<typename T> constexpr static u32 get = 0;
 		template<> constexpr static u32 get<TTLP> = 24;
 		template<> constexpr static u32 get<PMCP> = 16;
 		template<> constexpr static u32 get<RAHC> = 32;
@@ -325,4 +370,43 @@ namespace nfs {
 		}
 
 	};
+
+	template<typename T>
+	struct NFactory {
+		void operator()(void *first, Buffer buf) {
+			NType::readGenericResource(first, buf);
+		}
+	};
+
+	//moved functions from archive function map init
+	template<typename First, typename ... Types>
+	struct MakeArchiveFpMapStruct<First, Types...>
+	{
+		template<template<typename> typename F, typename ... Args>
+		static void insert(archive_fp_map<Args...> &map)
+		{
+			archive_func<Args...> *push = &genericFunc<First, F, Args...>;
+			map[MagicNumber::get<First>] = push;
+			MakeArchiveFpMapStruct<Types...>::insert(map);
+		}
+	};
+
+	template<typename First>
+	struct MakeArchiveFpMapStruct<First>
+	{
+		template<template<typename> typename F, typename ... Args>
+		static void insert(archive_fp_map<Args...> &map)
+		{
+			archive_func<Args...> *push = &genericFunc<First, F, Args...>;
+			map[MagicNumber::get<First>] = push;
+		}
+	};
+
+	template<typename ...Args, typename ...Types>
+	archive_fp_map<Types...> makeArchiveFpMap(lag::TypeList<Types...> tl)
+	{
+		archive_fp_map<Types...> ret = archive_fp_map<Types...>();
+		MakeArchiveFpMapStruct<Types...>::insert<F, Args...>(ret);
+		return ret;
+	}
 }

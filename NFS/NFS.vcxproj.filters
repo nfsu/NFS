@@ -16,9 +16,6 @@
     <Filter Include="Header Files\API">
       <UniqueIdentifier>{269f42b3-7c68-4a96-80a1-e95ae4f3ec18}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\API\LM4000">
-      <UniqueIdentifier>{a8790ad2-1d6f-422b-8ea1-bcf8bb75948b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\API\stbi">
       <UniqueIdentifier>{3acfe182-b068-4adb-b07e-3234968514bc}</UniqueIdentifier>
     </Filter>
@@ -27,6 +24,9 @@
     </Filter>
     <Filter Include="Source Files\API\stbi">
       <UniqueIdentifier>{d75c8426-a7c4-4faf-9c0f-b2bb2c0b57c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\API\LM4000_TypeList">
+      <UniqueIdentifier>{a8790ad2-1d6f-422b-8ea1-bcf8bb75948b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -63,22 +63,22 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="API\LM4000_TypeList\Checks.h">
-      <Filter>Header Files\API\LM4000</Filter>
+      <Filter>Header Files\API\LM4000_TypeList</Filter>
     </ClInclude>
     <ClInclude Include="API\LM4000_TypeList\Filters.h">
-      <Filter>Header Files\API\LM4000</Filter>
+      <Filter>Header Files\API\LM4000_TypeList</Filter>
     </ClInclude>
     <ClInclude Include="API\LM4000_TypeList\Iterators.h">
-      <Filter>Header Files\API\LM4000</Filter>
+      <Filter>Header Files\API\LM4000_TypeList</Filter>
     </ClInclude>
     <ClInclude Include="API\LM4000_TypeList\TypeList.h">
-      <Filter>Header Files\API\LM4000</Filter>
+      <Filter>Header Files\API\LM4000_TypeList</Filter>
     </ClInclude>
     <ClInclude Include="API\LM4000_TypeList\TypeListClass.h">
-      <Filter>Header Files\API\LM4000</Filter>
+      <Filter>Header Files\API\LM4000_TypeList</Filter>
     </ClInclude>
     <ClInclude Include="API\LM4000_TypeList\TypeStruct.h">
-      <Filter>Header Files\API\LM4000</Filter>
+      <Filter>Header Files\API\LM4000_TypeList</Filter>
     </ClInclude>
     <ClInclude Include="API\stbi\stbi_write.h">
       <Filter>Header Files\API\stbi</Filter>

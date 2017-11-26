@@ -11,7 +11,9 @@ void test1(Buffer buf) {
 	u32 NARC_off = 0x5EA2600;
 
 	NARC narc;
-	NType::readGenericResource(&narc, offset(buf, NARC_off));
+	runArchiveFunction<NFactory>(MagicNumber::get<NARC>, ArchiveTypes(), (void*)&narc, offset(buf, NARC_off));
+
+	//NType::readGenericResource(&narc, offset(buf, NARC_off));
 
 	NArchieve arch;
 	NType::convert(narc, &arch);
