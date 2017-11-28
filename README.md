@@ -18,6 +18,43 @@ Down below you can see a simply use of the NFS API.
 	NType::readGenericResource(&narc, offset(buf, NARC_off));
 ```
 NType::readGenericResource is a function that is built to read a GenericResource; which is the base of all Nintendo resources.
+### Automatic resource reading
+You can automatically read resources from a NARC file by simply converting a NARC to a NArchieve, like so:
+```cpp
+	NArchieve arch;
+	NType::convert(narc, &arch);
+```
+NArchieve contains a buffer with all of the types (that could be parsed from the NARC). These types can be converted again to get things like Texture2D, NArchieve, etc. You can detect these types by simply using the function down below.
+```cpp
+	std::string name = arch.getTypeName(i);
+	u32 magicNumber = arch.getType(i);
+```
+The magicNumber can be used to test which type it is.
+```cpp
+	if (arch.getType(i) == MagicNumber::get<NCLR>)
+		NCLR &nclr = arch.operator[]<NCLR>(i);
+```
+It could also be done by using a try and catch;
+```cpp
+	try {
+		NCLR &nclr = arch.operator[]<NCLR>(i);
+		printf("Palette with dimension %ux%u\n", nclr.contents.front.dataSize / 2 / nclr.contents.front.c_colors, nclr.contents.front.c_colors);
+	} catch (std::exception e) {}
+```
+This all means that you can simply loop through the archieve like an std::vector and use the types how you want:
+```cpp
+	for (u32 i = 0; i < arch.size(); ++i) {
+
+		printf("%u %s %u\n", i, arch.getTypeName(i).c_str(), arch.getType(i));
+		
+		try {
+			NCLR &nclr = arch.operator[]<NCLR>(i);
+			printf("Palette with dimension %ux%u\n", nclr.contents.front.dataSize / 2 / nclr.contents.front.c_colors, nclr.contents.front.c_colors);
+		} catch (std::exception e) {
+
+		}
+	}
+```
 ### Converting resources
 ```cpp
   	NArchieve arch;
@@ -52,6 +89,11 @@ You also need to add the following code to MagicNumber and SectionLength; so the
   		template<> constexpr static u32 get<GMIF> = 8;
 		template<> constexpr static u32 get<BTAF> = 12;
 		template<> constexpr static u32 get<BTNF> = 8;
+```
+Afterwards, they also need to be inserted into the ArchieveTypes array, so the auto parser for the NArchieve can recognize them.
+```cpp
+	//TypeList with all the archive types
+	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR> ArchiveTypes;
 ```
 ### Writing a resource type
 The reason this API is so fast is it never mallocs; all resources are structs or use the ROM buffer. This means that the rom is directly affected if you write to a GenericResource's buffer (or convert it to things like textures). The following is how you modify a 64x64 image:
