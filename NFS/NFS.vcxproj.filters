@@ -50,9 +50,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Archieve.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Generic.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -56,6 +56,7 @@ typedef struct {
 ///Create functions
 Buffer newBuffer1(u32 size);																		//Create new empty buffer
 Buffer newBuffer2(u8 *ptr, u32 size);																//Create temporary buffer
+Buffer newBuffer3(u8 *ptr, u32 size);																//Create new copy buffer
 Texture2D newTexture1(u32 width, u32 height, u32 stride = 4, TextureType tt = NORMAL);				//Create new empty texture
 Texture2D newTexture2(u8 *ptr, u32 width, u32 height, u32 stride = 4, TextureType tt = NORMAL);		//Create temporary texture
 

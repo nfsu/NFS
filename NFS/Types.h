@@ -2,9 +2,6 @@
 
 #include "Generic.h"
 
-///Custom types
-#include "Archieve.h"
-
 ///Structs
 
 //BitDepth of a palette;

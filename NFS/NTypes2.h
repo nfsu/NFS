@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <typeinfo>
 #include <unordered_map>
+#include <exception>
 #include "API/LM4000_TypeList/TypeStruct.h"
 
 #ifdef __X64__
@@ -97,8 +98,77 @@ namespace nfs {
 	//Archive file
 	typedef GenericResource<BTAF, BTNF, GMIF> NARC;
 
+
+
 	//Physical archive
-	typedef Archieve<GenericResourceBase*> NArchieve;
+
+	class NArchieve {
+
+	public:
+
+		NArchieve(std::vector<GenericResourceBase*> _resources, Buffer _buf) : resources(_resources), buf(_buf) {}
+		NArchieve() {}
+		~NArchieve() { deleteBuffer(&buf); }
+
+		NArchieve(const NArchieve &other) {
+			copy(other);
+		}
+
+		NArchieve &operator=(const NArchieve &other) {
+			copy(other);
+			return *this;
+		}
+
+		template<class T = typename std::enable_if<std::is_base_of<GenericResourceBase, T>::type>::value>
+		T &operator[](u32 i) const {
+			if (i >= resources.size())
+				throw(std::exception("Out of bounds"));
+
+			T *t = NType::castResource<T>(resources[i]);
+
+			if (t == nullptr)
+				throw(std::exception("Couldn't convert resource"));
+
+			return *t;
+		}
+
+		u32 getType(u32 i) const {
+			if (i >= resources.size())
+				throw(std::exception("Out of bounds"));
+
+			return resources[i]->header.magicNumber;
+		}
+
+		std::string getTypeName(u32 i) const {
+			u32 t = getType(i);
+			std::string typeName = std::string((char*)&t, 4);
+			std::reverse(typeName.begin(), typeName.end());
+			return typeName;
+		}
+
+		u32 size() const { return resources.size(); }
+		u32 bufferSize() const { return buf.size; }
+
+	protected:
+
+		void copy(const NArchieve &other) {
+
+			if (other.buf.data != NULL)
+				buf = newBuffer3(other.buf.data, other.buf.size);
+			else
+				buf = { NULL, 0 };
+
+			resources = other.resources;
+
+			for (u32 i = 0; i < other.size(); ++i)
+				resources[i] = (GenericResourceBase*)(((u8*)other.resources[i]) - other.buf.data + buf.data);
+		}
+
+	private:
+
+		Buffer buf;
+		std::vector<GenericResourceBase*> resources;
+	};
 
 	///LM4000 archieve magic
 
@@ -300,30 +370,75 @@ namespace nfs {
 			return true;
 		}
 
+		template<typename T>
+		struct NFactory {
+			void operator()(void *first, Buffer buf) {
+				NType::readGenericResource((T*)first, buf);
+			}
+		};
+
+		template<typename T>
+		struct GenericResourceSize {
+			void operator()(u32 *result) {
+				*result += sizeof(T);
+			}
+		};
+
 		template<class T, class T2> static bool convert(T source, T2 *target) { return false; }
 
 		template<> static bool convert(NARC source, NArchieve *archieve) {
 
 			BTAF &btaf = source.contents.front;
-			std::vector<ArchieveObject<GenericResourceBase*>> arcobj(btaf.files);
+			u32 files = btaf.files;
 
-			if (btaf.data.size != btaf.files * 8) {
+			if (btaf.data.size != btaf.files * 8 || files == 0) {
 				printf("Couldn't convert NARC to Archieve; invalid file info\n");
 				return false;
 			}
 
-			for (u32 i = 0; i < arcobj.size(); ++i) {
-				ArchieveObject<GenericResourceBase*> &elem = arcobj[i];
+			u32 bufferSize = 0, objects = 0;
 
-				elem.id = i;
-				elem.offset = getUInt(offset(btaf.data, i * 8));
-				elem.contents.size = getUInt(offset(btaf.data, i * 8 + 4)) - elem.offset;
-				elem.contents.data = source.contents.back.back.front.data.data + elem.offset;
-				elem.type = std::string((char*)elem.contents.data, 4);
+			for (u32 i = 0; i < files; ++i) {
 
+				u32 off = getUInt(offset(btaf.data, i * 8));
+				u32 size = getUInt(offset(btaf.data, i * 8 + 4)) - off;
+				u8 *data = source.contents.back.back.front.data.data + off;
+
+				u32 magicNumber = *(u32*)data;
+
+				u32 offInBuffer = bufferSize;
+				runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &bufferSize);
+
+				if (offInBuffer != bufferSize)
+					++objects;
 			}
 
-			*archieve = NArchieve(arcobj, source.contents.back.back.front.size);
+			u32 currOff = 0, objOff = 0;
+
+			Buffer buf = newBuffer1(bufferSize);
+			std::vector<GenericResourceBase*> resources(objects);
+
+			for (u32 i = 0; i < files; ++i) {
+
+				u32 off = getUInt(offset(btaf.data, i * 8));
+				u32 size = getUInt(offset(btaf.data, i * 8 + 4)) - off;
+				u8 *data = source.contents.back.back.front.data.data + off;
+
+				u32 magicNumber = *(u32*)data;
+
+				u32 offInBuffer = currOff;
+				runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &currOff);
+
+				if (currOff != offInBuffer) {
+					u8 *loc = buf.data + offInBuffer;
+					Buffer b = { data, size };
+					runArchiveFunction<NFactory>(magicNumber, ArchiveTypes(), (void*)loc, b);
+					resources[objOff] = (GenericResourceBase*)loc;
+					++objOff;
+				}
+			}
+
+			*archieve = NArchieve(resources, buf);
 
 			return true;
 		}
@@ -362,20 +477,13 @@ namespace nfs {
 			return true;
 		}
 
-		template<typename T, typename ...args>
-		static T *castResource(GenericResource<args...> *wh) {
+		template<typename T>
+		static T *castResource(GenericResourceBase *wh) {
 			if (wh->header.magicNumber == MagicNumber::get<T>)
 				return (T*)wh;
 			return nullptr;
 		}
 
-	};
-
-	template<typename T>
-	struct NFactory {
-		void operator()(void *first, Buffer buf) {
-			NType::readGenericResource((T*)first, buf);
-		}
 	};
 
 	//moved functions from archive function map init

@@ -12,12 +12,22 @@ void test1(Buffer buf) {
 
 	NARC narc = NARC();
 	//auto m = getArchiveFpMap<NFactory, void*, Buffer>(ArchiveTypes());
-	runArchiveFunction<NFactory>(MagicNumber::get<NARC>, ArchiveTypes(), (void*)&narc, offset(buf, NARC_off));
+	runArchiveFunction<NType::NFactory>(MagicNumber::get<NARC>, ArchiveTypes(), (void*)&narc, offset(buf, NARC_off));
 
 	//NType::readGenericResource(&narc, offset(buf, NARC_off));
 
-	NArchieve arch;
+	NArchieve arch{};
 	NType::convert(narc, &arch);
+
+	for (u32 i = 0; i < arch.size(); ++i) {
+
+		printf("%u %s %u\n", i, arch.getTypeName(i).c_str(), arch.getType(i));
+		
+		if (arch.getType(i) == MagicNumber::get<NCLR>) {
+			NCLR &nclr = arch.operator[]<NCLR>(i);
+			printf("Palette with dimension %ux%u\n", nclr.contents.front.dataSize / 2 / nclr.contents.front.c_colors, nclr.contents.front.c_colors);
+		}
+	}
 
 	NHelper::writeNCGR(buf, NCLR_off, NCGR_off, "Final.png");
 }

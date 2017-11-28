@@ -26,6 +26,12 @@ Buffer newBuffer2(u8 *ptr, u32 size) {
 	return b;
 }
 
+Buffer newBuffer3(u8 *ptr, u32 size) {
+	Buffer b = newBuffer1(size);
+	copyBuffer(b, { ptr, size }, size, 0);
+	return b;
+}
+
 bool copyBuffer(Buffer dest, Buffer src, u32 size, u32 offset) {
 	if (dest.size < offset + size) return false;
 	memcpy(dest.data + offset, src.data, size);
@@ -260,9 +266,9 @@ u32 getPixel(Texture2D t, u32 i, u32 j) {
 	u32 dat = fetchData(t, i, j);
 
 	if ((t.tt & 0xF) == BGR5) {
-		u32 b = ((dat & 0x001F) >>  0) / 31.f * 255;
-		u32 g = ((dat & 0x03E0) >>  5) / 31.f * 255;
-		u32 r = ((dat & 0x7C00) >> 10) / 31.f * 255;
+		u32 b = (u32)(((dat & 0x001F) >>  0) / 31.f) * 255;
+		u32 g = (u32)(((dat & 0x03E0) >>  5) / 31.f) * 255;
+		u32 r = (u32)(((dat & 0x7C00) >> 10) / 31.f) * 255;
 		dat = (0xFF << 24) | (r << 16) | (g << 8) | b;
 	}
 
