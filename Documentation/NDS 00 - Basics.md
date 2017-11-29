@@ -11,7 +11,7 @@ It tells you where certain things are located and general information.
 ## NDS header
 The following is the NDS header;
 ```cpp
-  //NDS file format
+  	//NDS file format
 	struct NDS {
 		char title[12];
 		char gameCode[4];
@@ -59,11 +59,11 @@ The following is the NDS header;
 		u8 reserved3[144];
 	};
 ```
-(Where u<x> is defined as an unsigned <x> bit integer)
+(Where `u<x>` is defined as an `unsigned <x> bit integer`)  
 This contains a lot of information; now let's start with the basic information of this file; file information.
 The variables ftable_off and ftable_len are used for determining the position of the file table and the length. 
 This table contains the relationships between folders and files and their names.
-This means that we know where the buffer is located; at [nds->ftable_off, nds->ftable_off + nds->ftable_len>.
+This means that we know where the buffer is located; at `[nds->ftable_off, nds->ftable_off + nds->ftable_len>`.
 That buffer will contain the following types of data (psuedo code):
 ```cpp
   struct FolderInfo {
@@ -84,3 +84,6 @@ That buffer will contain the following types of data (psuedo code):
 ```
 The first folder's relation will be somewhere in range [0x0, 0xFFF], this is the total number of folders. 
 All folders onwards use a relation of [0xF000, 0xFFFF], where the last 3 nibbles indicate which folder this folder is located in.
+This means that you can reference to the folders using the code 0xF<id>, so folder 0 would be 0xF000, folder 1 0xF01, etc.
+### Endianness
+When writing and reading bytes manually, don't forget that NDS roms use little endian, which is different for older roms, which still use big endian. This means that the byte order is flipped; so 0xF0 00 is noted as 0x00 F0, unlike big endian systems.
