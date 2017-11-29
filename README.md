@@ -55,6 +55,25 @@ This all means that you can simply loop through the archieve like an std::vector
 		}
 	}
 ```
+#### Flaws in resource reading
+Resource reading interprets the data of the ROM into a struct; which means that some data can't be interpreted when you try loading them. This will create a struct that can't be written or read and only exists when you run convert on a NARC file. This is called an 'NBUO' (Buffer Unknown Object) and it contains one section; 'NBIS' (Buffer Info Section). All variables except the NBIS's Buffer are 0. So you can still interpret unknown file formats yourself.
+```cpp
+	try {
+		NBUO &nclr = arch.operator[]<NBUO>(i);
+		printf("Undefined object at %u with size %u\n", i, nclr.contents.front.data.size);
+	}
+	catch (std::exception e) {}
+```
+The NBUO has a magicNumber of 0; making it undefined and so does its section. It is only so you can read the data in there:
+```cpp
+	try {
+		NBUO &nclr = arch.operator[]<NBUO>(i);
+		u32 magicNum = *(u32*)nclr.contents.front.data.data;
+		///Check if the magicNumber is actually a format that is implemented and interpret the buffer.
+	}
+	catch (std::exception e) {}
+```
+This is done so you can still edit file formats that might not be a standard, but are used in some ROMs.
 ### Converting resources
 ```cpp
   	NArchieve arch;
