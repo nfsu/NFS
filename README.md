@@ -3,7 +3,7 @@ Nintendo File System
 NFS(U) stands for Nintendo File System (Utils) and is designed to read and interpret nds files such as NARC, NCLR, NCGR, etc.  
 ![Logo](https://i.imgur.com/PWpc5ZX.png)
 ## Why NFS?
-As a kid I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks). I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician /LagMeester4000, I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
+As a kid I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician /LagMeester4000, I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
 ## How to use
 Down below you can see a simply use of the NFS API.
 ### Reading resources
@@ -18,6 +18,62 @@ Down below you can see a simply use of the NFS API.
 	NType::readGenericResource(&narc, offset(buf, NARC_off));
 ```
 NType::readGenericResource is a function that is built to read a GenericResource; which is the base of all Nintendo resources.
+### Automatic resource reading
+You can automatically read resources from a NARC file by simply converting a NARC to a NArchieve, like so:
+```cpp
+	NArchieve arch;
+	NType::convert(narc, &arch);
+```
+NArchieve contains a buffer with all of the types (that could be parsed from the NARC). These types can be converted again to get things like Texture2D, NArchieve, etc. You can detect these types by simply using the function down below.
+```cpp
+	std::string name = arch.getTypeName(i);
+	u32 magicNumber = arch.getType(i);
+```
+The magicNumber can be used to test which type it is.
+```cpp
+	if (arch.getType(i) == MagicNumber::get<NCLR>)
+		NCLR &nclr = arch.operator[]<NCLR>(i);
+```
+It could also be done by using a try and catch;
+```cpp
+	try {
+		NCLR &nclr = arch.operator[]<NCLR>(i);
+		printf("Palette with dimension %ux%u\n", nclr.contents.front.dataSize / 2 / nclr.contents.front.c_colors, nclr.contents.front.c_colors);
+	} catch (std::exception e) {}
+```
+This all means that you can simply loop through the archieve like an std::vector and use the types how you want:
+```cpp
+	for (u32 i = 0; i < arch.size(); ++i) {
+
+		printf("%u %s %u\n", i, arch.getTypeName(i).c_str(), arch.getType(i));
+		
+		try {
+			NCLR &nclr = arch.operator[]<NCLR>(i);
+			printf("Palette with dimension %ux%u\n", nclr.contents.front.dataSize / 2 / nclr.contents.front.c_colors, nclr.contents.front.c_colors);
+		} catch (std::exception e) {
+
+		}
+	}
+```
+#### Flaws in resource reading
+Resource reading interprets the data of the ROM into a struct; which means that some data can't be interpreted when you try loading them. This will create a struct that can't be written or read and only exists when you run convert on a NARC file. This is called an 'NBUO' (Buffer Unknown Object) and it contains one section; 'NBIS' (Buffer Info Section). All variables except the NBIS's Buffer are 0. So you can still interpret unknown file formats yourself.
+```cpp
+	try {
+		NBUO &nclr = arch.operator[]<NBUO>(i);
+		printf("Undefined object at %u with size %u\n", i, nclr.contents.front.data.size);
+	}
+	catch (std::exception e) {}
+```
+The NBUO has a magicNumber of 0; making it undefined and so does its section. It is only so you can read the data in there:
+```cpp
+	try {
+		NBUO &nclr = arch.operator[]<NBUO>(i);
+		u32 magicNum = *(u32*)nclr.contents.front.data.data;
+		///Check if the magicNumber is actually a format that is implemented and interpret the buffer.
+	}
+	catch (std::exception e) {}
+```
+This is done so you can still edit file formats that might not be a standard, but are used in some ROMs.
 ### Converting resources
 ```cpp
   	NArchieve arch;
@@ -52,6 +108,11 @@ You also need to add the following code to MagicNumber and SectionLength; so the
   		template<> constexpr static u32 get<GMIF> = 8;
 		template<> constexpr static u32 get<BTAF> = 12;
 		template<> constexpr static u32 get<BTNF> = 8;
+```
+Afterwards, they also need to be inserted into the ArchieveTypes array, so the auto parser for the NArchieve can recognize them.
+```cpp
+	//TypeList with all the archive types
+	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR> ArchiveTypes;
 ```
 ### Writing a resource type
 The reason this API is so fast is it never mallocs; all resources are structs or use the ROM buffer. This means that the rom is directly affected if you write to a GenericResource's buffer (or convert it to things like textures). The following is how you modify a 64x64 image:
