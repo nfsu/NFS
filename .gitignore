@@ -35,3 +35,4 @@ NFS/Debug
 enc_temp_folder
 *.png
 *.nds
+NFS/Release

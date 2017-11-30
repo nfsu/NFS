@@ -14,6 +14,8 @@
 
 namespace nfs {
 
+	class FileSystem;
+
 	//A generic header used for sections
 	struct GenericSection {
 		Buffer data;
@@ -98,7 +100,64 @@ namespace nfs {
 	//Archive file
 	typedef GenericResource<BTAF, BTNF, GMIF> NARC;
 
+	//NDS file format
+	struct NDS {
+		Buffer data;
+		char title[12];
+		char gameCode[4];
+		char makerCode[2];
+		u8 unitCode;
+		u8 encryptionSeed;
+		u8 capacity;
+		u8 reserved[7];
+		u8 unknown[2];			//Used by DSi titles
+		u8 version;
+		u8 flags;				//Flags such as auto start (Bit2)
+		u32 arm9_offset;		//Rom offset for ARM9
+		u32 arm9_entry;			//Entry address for ARM9
+		u32 arm9_load;			//Load address for ARM9
+		u32 arm9_size;			//Size for ARM9
+		u32 arm7_offset;		//Rom offset for ARM7
+		u32 arm7_entry;			//Entry address for ARM7
+		u32 arm7_load;			//Load address for ARM7
+		u32 arm7_size;			//Size for ARM7
+		u32 ftable_off;			//File name table offset
+		u32 ftable_len;			//File name table length
+		u32 falloc_off;			//File allocation table offset
+		u32 falloc_len;			//File allocation table length
+		u32 arm9_ooff;			//Overlay offset for ARM9
+		u32 arm9_olen;			//Overlay length for ARM9
+		u32 arm7_ooff;			//Overlay offset for ARM7
+		u32 arm7_olen;			//Overlay length for ARM7
+		u32 cardControl;		//Normal card control register settings
+		u32 sCardControl;		//Safe card control register settings
+		u32 iconOffset;
+		u16 sAC;				//Secure area checksum
+		u16 sALT;				//Secure area loading timeout
+		u32 arm9_ALLRA;			//Auto load list RAM address
+		u32 arm7_ALLRA;			//Auto load list RAM address
+		u64 sAD;				//Secure area disable
+		u32 romSize;
+		u32 romHeaderSize;
+		u8 reserved1[56];
+		u8 nLogo[156];
+		u16 nLC;				//Logo Checksum
+		u16 nHC;				//Header Checksum
+		u32 dRomOff;			//Debug rom offset
+		u32 dRomSize;			//Debug rom size
+		u32 reserved2;
+		u8 reserved3[144];
+	};
 
+	///Custom types
+
+	//Buffer info
+	struct NBIS : GenericSection { 
+		std::string name;
+	};
+
+	//Buffer unknown object; used for storing buffers of unknown types
+	typedef GenericResource<NBIS> NBUO;
 
 	//Physical archive
 
@@ -106,21 +165,23 @@ namespace nfs {
 
 	public:
 
-		NArchieve(std::vector<GenericResourceBase*> _resources, Buffer _buf) : resources(_resources), buf(_buf) {}
-		NArchieve() {}
-		~NArchieve() { deleteBuffer(&buf); }
+		NArchieve(std::vector<GenericResourceBase*> _resources, Buffer _buf);
+		NArchieve();
+		~NArchieve();
 
-		NArchieve(const NArchieve &other) {
-			copy(other);
-		}
+		NArchieve(const NArchieve &other);
 
-		NArchieve &operator=(const NArchieve &other) {
-			copy(other);
-			return *this;
-		}
+		NArchieve &operator=(const NArchieve &other);
 
-		template<class T = typename std::enable_if<std::is_base_of<GenericResourceBase, T>::type>::value>
+		template<class T>
 		T &operator[](u32 i) const {
+			return get<T>(i);
+		}
+
+		template<class T>
+		T &get(u32 i) const {
+			static_assert(std::is_base_of<GenericResourceBase, T>::value, "operator<T>[] where T should be instanceof GenericResourceBase");
+
 			if (i >= resources.size())
 				throw(std::exception("Out of bounds"));
 
@@ -132,37 +193,14 @@ namespace nfs {
 			return *t;
 		}
 
-		u32 getType(u32 i) const {
-			if (i >= resources.size())
-				throw(std::exception("Out of bounds"));
-
-			return resources[i]->header.magicNumber;
-		}
-
-		std::string getTypeName(u32 i) const {
-			u32 t = getType(i);
-			std::string typeName = std::string((char*)&t, 4);
-			std::reverse(typeName.begin(), typeName.end());
-			return typeName;
-		}
-
-		u32 size() const { return resources.size(); }
-		u32 bufferSize() const { return buf.size; }
+		u32 getType(u32 i) const;
+		std::string getTypeName(u32 i) const;
+		u32 size() const;
+		u32 bufferSize() const;
 
 	protected:
 
-		void copy(const NArchieve &other) {
-
-			if (other.buf.data != NULL)
-				buf = newBuffer3(other.buf.data, other.buf.size);
-			else
-				buf = { NULL, 0 };
-
-			resources = other.resources;
-
-			for (u32 i = 0; i < other.size(); ++i)
-				resources[i] = (GenericResourceBase*)(((u8*)other.resources[i]) - other.buf.data + buf.data);
-		}
+		void copy(const NArchieve &other);
 
 	private:
 
@@ -173,7 +211,7 @@ namespace nfs {
 	///LM4000 archieve magic
 
 	//TypeList with all the archive types
-	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR> ArchiveTypes;
+	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR, NBUO> ArchiveTypes;
 
 	//function type
 	template<typename ... Args>
@@ -210,10 +248,11 @@ namespace nfs {
 	void runArchiveFunction(u32 magicNum, lag::TypeList<Types...> tl, Args ... args)
 	{
 		auto &fpMap = getArchiveFpMap<F, Args...>(tl);
-		fpMap[magicNum](args...);
+		auto &f = fpMap[magicNum];
+
+		if(f != nullptr)
+			f(args...);
 	}
-
-
 
 	///MagicNumbers
 
@@ -232,6 +271,8 @@ namespace nfs {
 		template<> constexpr static u32 get<BTAF> = 0x46415442;
 		template<> constexpr static u32 get<NARC> = 0x4352414E;
 		template<> constexpr static u32 get<BTNF> = 0x464E5442;
+
+		template<> constexpr static u32 get<NBUO> = 0x0;
 
 	};
 
@@ -252,8 +293,10 @@ namespace nfs {
 
 	struct NType {
 
-		template<typename T = typename std::enable_if<std::is_base_of<GenericResourceBase, T>::value>::type>
+		template<typename T>
 		static bool readGenericStruct(T *wh, Buffer from) {
+
+			static_assert(std::is_base_of<GenericSection, T>::value, "readGenericStruct<T> where T is instanceof GenericResourceBase");
 
 			u32 size = SectionLength::get<T>;
 
@@ -377,6 +420,30 @@ namespace nfs {
 			}
 		};
 
+		template<>
+		struct NFactory<NBUO> {
+			void operator()(void *first, Buffer buf) {
+				NBUO &buo = *(NBUO*)first;
+				buo.contents.front.magicNumber = *((u32*)buf.data);
+				buo.contents.front.data = buf;
+				buo.contents.front.name = std::string((char*)buf.data, 4);
+			}
+		};
+
+		template<typename T>
+		struct IsValidType {
+			void operator()(bool *b) {
+				*b = true;
+			}
+		};
+
+		template<>
+		struct IsValidType<NBUO> {
+			void operator()(bool *b) {
+				*b = false;
+			}
+		};
+
 		template<typename T>
 		struct GenericResourceSize {
 			void operator()(u32 *result) {
@@ -386,96 +453,11 @@ namespace nfs {
 
 		template<class T, class T2> static bool convert(T source, T2 *target) { return false; }
 
-		template<> static bool convert(NARC source, NArchieve *archieve) {
-
-			BTAF &btaf = source.contents.front;
-			u32 files = btaf.files;
-
-			if (btaf.data.size != btaf.files * 8 || files == 0) {
-				printf("Couldn't convert NARC to Archieve; invalid file info\n");
-				return false;
-			}
-
-			u32 bufferSize = 0, objects = 0;
-
-			for (u32 i = 0; i < files; ++i) {
-
-				u32 off = getUInt(offset(btaf.data, i * 8));
-				u32 size = getUInt(offset(btaf.data, i * 8 + 4)) - off;
-				u8 *data = source.contents.back.back.front.data.data + off;
-
-				u32 magicNumber = *(u32*)data;
-
-				u32 offInBuffer = bufferSize;
-				runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &bufferSize);
-
-				if (offInBuffer != bufferSize)
-					++objects;
-			}
-
-			u32 currOff = 0, objOff = 0;
-
-			Buffer buf = newBuffer1(bufferSize);
-			std::vector<GenericResourceBase*> resources(objects);
-
-			for (u32 i = 0; i < files; ++i) {
-
-				u32 off = getUInt(offset(btaf.data, i * 8));
-				u32 size = getUInt(offset(btaf.data, i * 8 + 4)) - off;
-				u8 *data = source.contents.back.back.front.data.data + off;
-
-				u32 magicNumber = *(u32*)data;
-
-				u32 offInBuffer = currOff;
-				runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &currOff);
-
-				if (currOff != offInBuffer) {
-					u8 *loc = buf.data + offInBuffer;
-					Buffer b = { data, size };
-					runArchiveFunction<NFactory>(magicNumber, ArchiveTypes(), (void*)loc, b);
-					resources[objOff] = (GenericResourceBase*)loc;
-					++objOff;
-				}
-			}
-
-			*archieve = NArchieve(resources, buf);
-
-			return true;
-		}
-
-		template<> static bool convert(NCLR source, Texture2D *tex) {
-			tex->width = source.contents.front.c_colors;
-			tex->size = source.contents.front.dataSize;
-			tex->stride = 2;
-			tex->tt = BGR5;
-			tex->height = tex->size / tex->stride / tex->width;
-			tex->data = source.contents.front.data.data;
-			return true;
-		}
-
-
-		template<> static bool convert(NCGR source, Texture2D *tex) {
-			bool fourBit = source.contents.front.tileDepth == BD_FOUR;
-			
-			tex->width = source.contents.front.tileWidth * 8;
-			tex->height = source.contents.front.tileHeight * 8;
-			tex->size = tex->width * tex->height / (fourBit ? 2 : 1);
-			tex->tt = fourBit ? TILED8_B4 : TILED8;
-			tex->stride = 1;
-			tex->data = source.contents.front.data.data;
-			return true;
-		}
-
-
-		template<> static bool convert(NCSR source, Texture2D *tex) {
-			tex->width = source.contents.front.screenWidth / 8;
-			tex->height = source.contents.front.screenHeight / 8;
-			tex->size = tex->width * tex->height * 2;
-			tex->tt = NORMAL;
-			tex->stride = 2;
-			tex->data = source.contents.front.data.data;
-			return true;
-		}
+		template<> static bool convert(NARC source, NArchieve *archieve);
+		template<> static bool convert(NCLR source, Texture2D *tex);
+		template<> static bool convert(NCGR source, Texture2D *tex);
+		template<> static bool convert(NCSR source, Texture2D *tex);
+		template<> static bool convert(NDS nds, FileSystem *fs);
 
 		template<typename T>
 		static T *castResource(GenericResourceBase *wh) {
@@ -484,6 +466,7 @@ namespace nfs {
 			return nullptr;
 		}
 
+		static NDS readNDS(Buffer buf);
 	};
 
 	//moved functions from archive function map init
@@ -516,5 +499,102 @@ namespace nfs {
 		archive_fp_map<Args...> ret = archive_fp_map<Args...>();
 		MakeArchiveFpMapStruct<Types...>::insert<F, Args...>(ret);
 		return ret;
+	}
+
+
+	template<> static bool NType::convert(NARC source, NArchieve *archieve) {
+
+		BTAF &btaf = source.contents.front;
+		u32 files = btaf.files;
+
+		if (btaf.data.size != btaf.files * 8 || files == 0) {
+			printf("Couldn't convert NARC to Archieve; invalid file info\n");
+			return false;
+		}
+
+		u32 bufferSize = 0;
+
+		for (u32 i = 0; i < files; ++i) {
+
+			u32 off = getUInt(offset(btaf.data, i * 8));
+			u32 size = getUInt(offset(btaf.data, i * 8 + 4)) - off;
+			u8 *data = source.contents.back.back.front.data.data + off;
+
+			u32 magicNumber = *(u32*)data;
+
+			u32 offInBuffer = bufferSize;
+			runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &bufferSize);
+
+			if (offInBuffer == bufferSize)
+				bufferSize += sizeof(NBUO);
+		}
+
+		u32 currOff = 0;
+
+		u32 someOtherInt = *(u32*)(source.contents.back.front.data.data + 4);
+
+		Buffer buf = newBuffer1(bufferSize);
+		std::vector<GenericResourceBase*> resources(files);
+
+		for (u32 i = 0; i < files; ++i) {
+
+			u32 off = getUInt(offset(btaf.data, i * 8));
+			u32 size = getUInt(offset(btaf.data, i * 8 + 4)) - off;
+			u8 *data = source.contents.back.back.front.data.data + off;
+
+			u32 magicNumber = *(u32*)data;
+
+			u32 offInBuffer = currOff;
+			runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &currOff);
+
+			u8 *loc = buf.data + offInBuffer;
+			Buffer b = { data, size };
+
+			if (currOff == offInBuffer) {
+				currOff += sizeof(NBUO);
+				magicNumber = 0;
+			}
+
+			runArchiveFunction<NFactory>(magicNumber, ArchiveTypes(), (void*)loc, b);
+			resources[i] = (GenericResourceBase*)loc;
+		}
+
+		*archieve = NArchieve(resources, buf);
+
+		return true;
+	}
+
+	template<> bool NType::convert(NCLR source, Texture2D *tex) {
+		tex->width = source.contents.front.c_colors;
+		tex->size = source.contents.front.dataSize;
+		tex->stride = 2;
+		tex->tt = BGR5;
+		tex->height = tex->size / tex->stride / tex->width;
+		tex->data = source.contents.front.data.data;
+		return true;
+	}
+
+
+	template<> bool NType::convert(NCGR source, Texture2D *tex) {
+		bool fourBit = source.contents.front.tileDepth == BD_FOUR;
+
+		tex->width = source.contents.front.tileWidth * 8;
+		tex->height = source.contents.front.tileHeight * 8;
+		tex->size = tex->width * tex->height / (fourBit ? 2 : 1);
+		tex->tt = fourBit ? TILED8_B4 : TILED8;
+		tex->stride = 1;
+		tex->data = source.contents.front.data.data;
+		return true;
+	}
+
+
+	template<> bool NType::convert(NCSR source, Texture2D *tex) {
+		tex->width = source.contents.front.screenWidth / 8;
+		tex->height = source.contents.front.screenHeight / 8;
+		tex->size = tex->width * tex->height * 2;
+		tex->tt = NORMAL;
+		tex->stride = 2;
+		tex->data = source.contents.front.data.data;
+		return true;
 	}
 }

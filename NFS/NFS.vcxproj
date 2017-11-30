@@ -214,6 +214,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="API\stbi\stbi_write.c" />
+    <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="Generic.cpp" />
     <ClCompile Include="NHelper.cpp" />
     <ClCompile Include="NTypes2.cpp" />
@@ -228,6 +229,7 @@
     <ClInclude Include="API\LM4000_TypeList\TypeListClass.h" />
     <ClInclude Include="API\LM4000_TypeList\TypeStruct.h" />
     <ClInclude Include="API\stbi\stbi_write.h" />
+    <ClInclude Include="FileSystem.h" />
     <ClInclude Include="Generic.h" />
     <ClInclude Include="NTypes2.h" />
     <ClInclude Include="NHelper.h" />

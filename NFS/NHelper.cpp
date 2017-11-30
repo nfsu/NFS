@@ -1,8 +1,6 @@
-#include "NHelper.h"
 #include "Timer.h"
+#include "NHelper.h"
 using namespace nfs;
-
-const bool NHelper::logTimes = true;
 
 PaletteTexture2D NHelper::readNCGR(Buffer buf, u32 paletteOff, u32 textureOff) {
 
@@ -36,29 +34,16 @@ TiledTexture2D NHelper::readNCSR(Buffer buf, u32 paletteOff, u32 tilemapOff, u32
 
 bool NHelper::writeNCGR(Buffer buf, u32 paletteOff, u32 tilemapOff, std::string path) {
 
-	if (logTimes)
-		printf("Writing NCGR:\n");
-	lun::Timer t;
-
 	PaletteTexture2D pt2d = NHelper::readNCGR(buf, paletteOff, tilemapOff);
 
 	Texture2D tex2 = convertPT2D(pt2d);
 	bool res = writeTexture(tex2, path);
 	deleteTexture(&tex2);
 
-	if (logTimes) {
-		t.stop();
-		t.print();
-	}
-
 	return res;
 }
 
 bool NHelper::writeNCSR(Buffer buf, u32 paletteOff, u32 tilemapOff, u32 mapOff, std::string path) {
-
-	if(logTimes)
-		printf("Writing NCSR:\n");
-	lun::Timer t;
 
 	TiledTexture2D tt2d = NHelper::readNCSR(buf, paletteOff, tilemapOff, mapOff);
 
@@ -66,11 +51,6 @@ bool NHelper::writeNCSR(Buffer buf, u32 paletteOff, u32 tilemapOff, u32 mapOff, 
 
 	bool res = writeTexture(tex2, path);
 	deleteTexture(&tex2);
-
-	if (logTimes) {
-		t.stop();
-		t.print();
-	}
 
 	return res;
 }
