@@ -226,8 +226,8 @@ Source.cpp is what I use to test if parts of the API work, however, I can't supp
 File extension | File name | Magic number | Data type | Conversion type | isResource
 --- | --- | --- | --- | --- | ---
 NCLR | CoLor Resource | 0x4E434C52 | Palette | Texture2D | yes
-NCGR | Character Graphics Resource | 0x4E434752 | Tilemap / image | PaletteTexture2D | yes
-NSCR | SCreen Resource | 0x4E534352 | Map | TiledTexture2D | yes
+NCGR | Character Graphics Resource | 0x4E434752 | Tilemap / image | Texture2D / PaletteTexture2D | yes
+NSCR | SCreen Resource | 0x4E534352 | Map | Texture2D / TiledTexture2D | yes
 NARC | Archive | 0x4352414E | Archive | NArchive | yes
 NDS | Dual Screen | - | File system and code | FileSystem | no
 ## Special thanks
