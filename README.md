@@ -6,30 +6,84 @@ NFS(U) stands for Nintendo File System (Utils) and is designed to read and inter
 As a kid I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician /LagMeester4000, I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
 ## How to use
 Down below you can see a simply use of the NFS API.
-### Reading resources
+### Reading raw ROM data
 ```cpp
-  	NCLR nclr;
-	NType::readGenericResource(&nclr, offset(buf, NCLR_off));
-
-	NCGR ncgr;
-	NType::readGenericResource(&ncgr, offset(buf, NCGR_off));
-
-	NARC narc;
-	NType::readGenericResource(&narc, offset(buf, NARC_off));
+	Buffer buf = readFile("ROM.nds");
+	try {
+		NDS nds = NType::readNDS(buf);
+	} catch (std::exception e) {
+		printf("%s\n", e.what());
+	}
+	deleteBuffer(&buf);
 ```
-NType::readGenericResource is a function that is built to read a GenericResource; which is the base of all Nintendo resources.
-### Automatic resource reading
-You can automatically read resources from a NARC file by simply converting a NARC to a NArchieve, like so:
+If you've acquired your ROM, you have to load it into memory, so the program can read and modify (a copy) of it. This buffer can be deleted afterwards (and written to a folder, to save all changes made).  
+NDS is a format that seperates the header from the contents for a NDS file; it stores the important information in a struct and the other stuff in a buffer.
+### Converting the ROM into a FileSystem
+A ROM is like a ZIP; except it is used for storing game data (models, images, sounds, palettes, maps, binary data, text, code and more). This means that it stores the file names into the ROM; which we can use to extract the files we need and where they are.
 ```cpp
-	NArchieve arch;
+		FileSystem files;
+		NType::convert(nds, &files);
+```
+This will put the file data into the files variable, which you can then loop through and use.
+```cpp
+		for (auto iter = files.begin(); iter != files.end(); ++iter) {
+
+			FileSystemObject fileSysObj = *iter;
+			//More code...
+		}
+```
+### Checks for fso's
+Fso stands for 'FileSystemObject' and it is what I call folders and files; this means that fileSysObj isn't always a file, it could also be a folder. To distinguish them, you can use the following functions:
+- isFile
+- isFolder
+- isRoot
+- hasParent
+- getMagicNumber(std::string &type, u32 &magicNum)
+'getMagicNumber' will try to figure out the type name for a file and will also try to return a valid 'magicNumber' (an identifier for any type of class).  
+So, before converting a file, make sure it is actually a file.
+### Obtaining the resource of the file
+```cpp
+			if (fileSysObj.isFile()) {
+
+				std::string name;						//Typename of the file
+				u32 magicNumber;						//MagicNumber / indication
+				bool valid = fileSysObj.getMagicNumber(name, magicNumber);	//Whether or not the file is supported
+
+				try {
+					const NBUO &nbuo = files.getResource<NBUO>(fileSysObj);
+					printf("Object: %s (%s)\n", val.path.c_str(), name.c_str());
+					//Cast it to a 'Buffer Unknown Object', this scope only runs when the file is not supported
+				}
+				catch (std::exception e) {
+					printf("Supported object: %s (%s)\n", val.path.c_str(), name.c_str());	
+					//If it's not an unknown object; it's supported
+				}
+			}
+			else {
+				//It's not a file, but a folder or root folder
+			}
+```
+A resource can be anything; a buffer, a file, an image, a palette, a map, etc. It is anything that is stored in the ROM's file system. This resource has to be converted, just like the NDS file, before you can use the contents.
+### Reading resources
+You can automatically read resources from an archive by simply converting a NARC to a NArchieve, like so:
+```cpp
+	NArchive arch;
 	NType::convert(narc, &arch);
 ```
-NArchieve contains a buffer with all of the types (that could be parsed from the NARC). These types can be converted again to get things like Texture2D, NArchieve, etc. You can detect these types by simply using the function down below.
+NArchive contains a buffer with all of the types. These types can be converted again to get things like Texture2D, NArchive, etc.
+```cpp
+	Texture2D tex;
+	NType::convert(nclr, &tex);
+```
+### FileSystem's parent
+FileSystem is a unique object, it has a folder structure. But, it still remains a list of resources. This is why it uses NArchive as its parent. It stores both resources and file information. This means that you can use the archive's functions too, but those can't be used in combination with file names.
+### Archives
+As said before, an archive is basically a list of resources, which you can get types of and cast.
 ```cpp
 	std::string name = arch.getTypeName(i);
 	u32 magicNumber = arch.getType(i);
 ```
-The magicNumber can be used to test which type it is.
+The typeName and magicNumber aren't always correct, as an archive doesn't know about the extension of a file. It just knows that the first 4 bytes generally indicate the type of the file. You can't always rely on the typeName, but the magicNumber is valid (most of the time).
 ```cpp
 	if (arch.getType(i) == MagicNumber::get<NCLR>)
 		NCLR &nclr = arch.operator[]<NCLR>(i);
@@ -38,7 +92,7 @@ It could also be done by using a try and catch;
 ```cpp
 	try {
 		NCLR &nclr = arch.operator[]<NCLR>(i);
-		printf("Palette with dimension %ux%u\n", nclr.contents.front.dataSize / 2 / nclr.contents.front.c_colors, nclr.contents.front.c_colors);
+		printf("Palette!\n");
 	} catch (std::exception e) {}
 ```
 This all means that you can simply loop through the archieve like an std::vector and use the types how you want:
@@ -74,12 +128,6 @@ The NBUO has a magicNumber of 0; making it undefined and so does its section. It
 	catch (std::exception e) {}
 ```
 This is done so you can still edit file formats that might not be a standard, but are used in some ROMs.
-### Converting resources
-```cpp
-  	NArchieve arch;
-	NType::convert(narc, &arch);
-```
-NType::convert is created to wrap around existing resources; it could convert a NCLR (palette) to a 2D texture, a NARC to NArchieve and more.
 ### Adding a resource type
 ```cpp
   	//File allocation table
@@ -109,10 +157,10 @@ You also need to add the following code to MagicNumber and SectionLength; so the
 		template<> constexpr static u32 get<BTAF> = 12;
 		template<> constexpr static u32 get<BTNF> = 8;
 ```
-Afterwards, they also need to be inserted into the ArchieveTypes array, so the auto parser for the NArchieve can recognize them.
+Afterwards, they also need to be inserted into the ArchieveTypes array, so the auto parser for the NArchive / FileSystem can recognize them.
 ```cpp
 	//TypeList with all the archive types
-	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR> ArchiveTypes;
+	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR, NBUO> ArchiveTypes;
 ```
 ### Writing a resource type
 The reason this API is so fast is it never mallocs; all resources are structs or use the ROM buffer. This means that the rom is directly affected if you write to a GenericResource's buffer (or convert it to things like textures). The following is how you modify a 64x64 image:
