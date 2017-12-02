@@ -223,13 +223,13 @@ RunPixelShader will however return a new texture and will put it into RGBA8 form
 ### Running the example
 Source.cpp is what I use to test if parts of the API work, however, I can't supply all dependencies. It is illegal to upload roms, so if you want to test it out, you have to obtain a rom first. Afterwards, you can use something like nitro explorer to find offsets of palettes, images, animations, models or other things you might use. All important things in Source.cpp have been suffixed by '//TODO: !!!', so please fix those before running.
 ## Supported file formats
-| File extension | File name | Magic number | Data type | Conversion type | isResource |
-| --- | --- |
-| NCLR | CoLor Resource | 0x4E434C52 | Palette | Texture2D | yes |
-| NCGR | Character Graphics Resource | 0x4E434752 | Tilemap / image | PaletteTexture2D | yes |
-| NSCR | SCreen Resource | 0x4E534352 | Map | TiledTexture2D | yes |
-| NARC | Archive | 0x4352414E | Archive | NArchive | yes |
-| NDS | Dual Screen | - | File system and code | FileSystem | no |
+	| File extension | File name | Magic number | Data type | Conversion type | isResource |
+	| --- | --- |
+	| NCLR | CoLor Resource | 0x4E434C52 | Palette | Texture2D | yes |
+	| NCGR | Character Graphics Resource | 0x4E434752 | Tilemap / image | PaletteTexture2D | yes |
+	| NSCR | SCreen Resource | 0x4E534352 | Map | TiledTexture2D | yes |
+	| NARC | Archive | 0x4352414E | Archive | NArchive | yes |
+	| NDS | Dual Screen | - | File system and code | FileSystem | no |
 ## Special thanks
 Thanks to /LagMeester4000 for creating magic templates that are used all the time in this API. Typelists are used from his repo at [/LagMeester4000/TypeList](https://github.com/LagMeester4000/TypeList).
 ## Nintendo policies
