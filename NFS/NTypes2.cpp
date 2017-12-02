@@ -1,36 +1,36 @@
 #include "NTypes2.h"
 using namespace nfs;
 
-NArchieve::NArchieve(std::vector<GenericResourceBase*> _resources, Buffer _buf) : resources(_resources), buf(_buf) {}
-NArchieve::NArchieve() {}
-NArchieve::~NArchieve() { deleteBuffer(&buf); }
+NArchive::NArchive(std::vector<GenericResourceBase*> _resources, Buffer _buf) : resources(_resources), buf(_buf) {}
+NArchive::NArchive() {}
+NArchive::~NArchive() { deleteBuffer(&buf); }
 
-NArchieve::NArchieve(const NArchieve &other) {
+NArchive::NArchive(const NArchive &other) {
 	copy(other);
 }
 
-NArchieve &NArchieve::operator=(const NArchieve &other) {
+NArchive &NArchive::operator=(const NArchive &other) {
 	copy(other);
 	return *this;
 }
 
-u32 NArchieve::getType(u32 i) const {
+u32 NArchive::getType(u32 i) const {
 	if (i >= resources.size())
 		throw(std::exception("Out of bounds"));
 
 	return resources[i]->header.magicNumber;
 }
 
-std::string NArchieve::getTypeName(u32 i) const {
+std::string NArchive::getTypeName(u32 i) const {
 	u32 t = getType(i);
 	std::string typeName = std::string((char*)&t, 4);
 	return typeName;
 }
 
-u32 NArchieve::size() const { return resources.size(); }
-u32 NArchieve::bufferSize() const { return buf.size; }
+u32 NArchive::size() const { return resources.size(); }
+u32 NArchive::bufferSize() const { return buf.size; }
 
-void NArchieve::copy(const NArchieve &other) {
+void NArchive::copy(const NArchive &other) {
 
 	if (other.buf.data != NULL)
 		buf = newBuffer3(other.buf.data, other.buf.size);

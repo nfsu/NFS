@@ -24,7 +24,7 @@ namespace nfs {
 
 	//A bundle of files; different than an archieve
 	//An archieve is a list of files, while this can also contain folders
-	class FileSystem : public NArchieve {
+	class FileSystem : public NArchive {
 
 	public:
 

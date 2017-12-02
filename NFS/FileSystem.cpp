@@ -1,7 +1,7 @@
 #include "FileSystem.h"
 using namespace nfs;
 
-FileSystem::FileSystem(std::vector<FileSystemObject> _files, std::vector<GenericResourceBase*> resources, Buffer buf) : NArchieve(resources, buf), files(_files) {}
+FileSystem::FileSystem(std::vector<FileSystemObject> _files, std::vector<GenericResourceBase*> resources, Buffer buf) : NArchive(resources, buf), files(_files) {}
 FileSystem::FileSystem() {}
 
 const FileSystemObject &FileSystem::operator[](std::string str) const {

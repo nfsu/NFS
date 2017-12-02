@@ -161,17 +161,17 @@ namespace nfs {
 
 	//Physical archive
 
-	class NArchieve {
+	class NArchive {
 
 	public:
 
-		NArchieve(std::vector<GenericResourceBase*> _resources, Buffer _buf);
-		NArchieve();
-		~NArchieve();
+		NArchive(std::vector<GenericResourceBase*> _resources, Buffer _buf);
+		NArchive();
+		~NArchive();
 
-		NArchieve(const NArchieve &other);
+		NArchive(const NArchive &other);
 
-		NArchieve &operator=(const NArchieve &other);
+		NArchive &operator=(const NArchive &other);
 
 		template<class T>
 		T &operator[](u32 i) const {
@@ -200,7 +200,7 @@ namespace nfs {
 
 	protected:
 
-		void copy(const NArchieve &other);
+		void copy(const NArchive &other);
 
 	private:
 
@@ -458,7 +458,7 @@ namespace nfs {
 
 		template<class T, class T2> static bool convert(T source, T2 *target) { return false; }
 
-		template<> static bool convert(NARC source, NArchieve *archieve);
+		template<> static bool convert(NARC source, NArchive *archieve);
 		template<> static bool convert(NCLR source, Texture2D *tex);
 		template<> static bool convert(NCGR source, Texture2D *tex);
 		template<> static bool convert(NCSR source, Texture2D *tex);
@@ -507,7 +507,7 @@ namespace nfs {
 	}
 
 
-	template<> static bool NType::convert(NARC source, NArchieve *archieve) {
+	template<> static bool NType::convert(NARC source, NArchive *archieve) {
 
 		BTAF &btaf = source.contents.front;
 		u32 files = btaf.files;
@@ -576,7 +576,7 @@ namespace nfs {
 			resources[i] = (GenericResourceBase*)loc;
 		}
 
-		*archieve = NArchieve(resources, buf);
+		*archieve = NArchive(resources, buf);
 
 		return true;
 	}
