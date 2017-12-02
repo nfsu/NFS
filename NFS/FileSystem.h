@@ -32,35 +32,45 @@ namespace nfs {
 		FileSystem();
 
 		template<class T>
-		const T &operator[](std::string str) const {
+		const T &getResource(std::string str) const {
 
 			static_assert(std::is_base_of<GenericResourceBase, T>::value, "operator<T>[] where T should be instanceof GenericResourceBase");
 
 			try {
 
-				FileSystemObject &fso = (*this)[str];
-
-				u32 resource = fso.resource;
+				const FileSystemObject &fso = (*this)[str];
 
 				if (!fso.isFile()) {
 					throw(std::exception("Resource is a folder and couldn't be cast to GenericResourceBase"));
-					return *nullptr;
 				}
 
-				T *t = NType::castResource<T>(resources[resource]);
-
-				if (t == nullptr)
-					throw(std::exception("Couldn't convert resource"));
-
-				return *t;
+				u32 resource = fso.resource;
+				return get<T>(resource);
 			}
 			catch (std::exception e) {
-				throw(std::exception(std::string("Couldn't get resource (\"").append(e.what()).append("\")")));
-
-				return *nullptr;
+				throw(std::exception(std::string("Couldn't get resource (\"").append(e.what()).append("\")").c_str()));
 			}
 		}
 
+		template<class T>
+		const T &getResource(const FileSystemObject &fso) const {
+
+			static_assert(std::is_base_of<GenericResourceBase, T>::value, "operator<T>[] where T should be instanceof GenericResourceBase");
+
+			try {
+
+				if (!fso.isFile()) {
+					throw(std::exception("Resource is a folder and couldn't be cast to GenericResourceBase"));
+				}
+
+				u32 resource = fso.resource;
+				return get<T>(resource);
+			}
+			catch (std::exception e) {
+				throw(std::exception(std::string("Couldn't get resource (\"").append(e.what()).append("\")").c_str()));
+			}
+		}
+		
 		const FileSystemObject &operator[](std::string str) const;
 
 		//Gets all files and folders in folder
