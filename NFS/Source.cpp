@@ -6,42 +6,6 @@ using namespace nfs;
 
 void test1(Buffer buf) {
 
-	u32 NCLR_off = 0x5EBCE5C;
-	u32 NCGR_off = 0x5EB0E1C;
-	//u32 NARC_off = 0x5EA2600;		//Does work
-	//u32 NARC_off = 0x5C9F000;		//Doesn't work?
-	//u32 NARC_off = 0x5F32000;		//Does work
-	u32 NARC_off = 0x5C78E00;		//Does work
-
-	NARC narc = NARC();
-	runArchiveFunction<NType::NFactory>(MagicNumber::get<NARC>, ArchiveTypes(), (void*)&narc, offset(buf, NARC_off));
-
-	//NType::readGenericResource(&narc, offset(buf, NARC_off));
-
-	NArchieve arch;
-	NType::convert(narc, &arch);
-
-	for (u32 i = 0; i < arch.size(); ++i) {
-
-		printf("%u %s %u\n", i, arch.getTypeName(i).c_str(), arch.getType(i));
-
-		try {
-			NCLR &nclr = arch.operator[]<NCLR>(i);
-			printf("Palette with dimension %ux%u\n", nclr.contents.front.dataSize / 2 / nclr.contents.front.c_colors, nclr.contents.front.c_colors);
-		}
-		catch (std::exception e) {
-
-			try {
-				NBUO &nbuo = arch.operator[]<NBUO>(i);
-				printf("Couldn't parse %u; %s (%u)\n", i, nbuo.contents.front.name.c_str(), nbuo.contents.front.magicNumber);
-			}
-			catch (std::exception e) {
-
-			}
-
-		}
-	}
-
 	try {
 
 		NDS nds = NType::readNDS(buf);
@@ -49,22 +13,32 @@ void test1(Buffer buf) {
 		NType::convert(nds, &files);
 
 		for (auto iter = files.begin(); iter != files.end(); ++iter) {
+
 			FileSystemObject val = *iter;
 			u32 resource = val.resource;
 			if (val.isFile()) {
-				printf("%s\n", val.name.c_str());
-				///Get not working?
-			} else {
 
+				std::string name;
+				u32 magicNumber;
+				bool valid = val.getMagicNumber(name, magicNumber);
+
+				try {
+					NBUO &nbuo = files.get<NBUO>(resource);
+					printf("Object: %s (%s)\n", val.path.c_str(), name.c_str());
+				}
+				catch (std::exception e) {
+					printf("Supported object: %s (%s)\n", val.path.c_str(), name.c_str());
+				}
+			}
+			else {
+				printf("Directory: %s\n", val.path.c_str());
 			}
 		}
 
 	}
 	catch (std::exception e) {
-		printf("Error %s\n", e.what());
+		printf("%s\n", e.what());
 	}
-
-	NHelper::writeNCGR(buf, NCLR_off, NCGR_off, "Final.png");
 }
 
 void test2(Buffer buf) {

@@ -109,23 +109,25 @@ char hexChar(u8 i) {
 }
 
 std::string toHex(u8 i) {
-	std::string str = std::string(' ', 2);
+	std::string str = std::string(' ', 3);
 	str[0] = hexChar((i & 0xF0) >> 4);
 	str[1] = hexChar(i & 0xF);
+	str[2] = 0;
 	return str;
 }
 
 std::string toHex16(u16 i) {
-	std::string str = std::string(' ', 4);
+	std::string str = std::string(' ', 5);
 	str[0] = hexChar((i & 0xF000) >> 12);
 	str[1] = hexChar((i & 0xF00) >> 8);
 	str[2] = hexChar((i & 0xF0) >> 4);
 	str[3] = hexChar(i & 0xF);
+	str[4] = 0;
 	return str;
 }
 
 std::string toHex32(u32 i) {
-	std::string str(' ', 8);
+	std::string str(' ', 9);
 	str[0] = hexChar((i & 0xF0000000) >> 28);
 	str[1] = hexChar((i & 0xF000000) >> 24);
 	str[2] = hexChar((i & 0xF00000) >> 20);
@@ -134,6 +136,7 @@ std::string toHex32(u32 i) {
 	str[5] = hexChar((i & 0xF00) >> 8);
 	str[6] = hexChar((i & 0xF0) >> 4);
 	str[7] = hexChar(i & 0xF);
+	str[8] = 0;
 	return str;
 }
 

@@ -11,15 +11,15 @@ namespace nfs {
 		u32 index, parent, resource, fileOff;
 		Buffer buffer;
 
-		virtual ~FileSystemObject() {}
+		virtual ~FileSystemObject();
 
-		bool isFolder() const { return resource >= u32_MAX - 1; }
-		bool isFile() const { return !isFolder(); }
-		bool isRoot() const { return resource == u32_MAX; }
-		bool hasParent() const { return resource != u32_MAX - 1; }
-		bool operator==(const FileSystemObject &other) const {
-			return path == other.path && index == other.index && parent == other.parent && resource == other.resource && name == other.name;
-		}
+		bool isFolder() const;
+		bool isFile() const;
+		bool isRoot() const;
+		bool hasParent() const;
+		bool operator==(const FileSystemObject &other) const;
+		std::string getExtension() const;
+		bool getMagicNumber(std::string &name, u32 &number) const;
 	};
 
 	//A bundle of files; different than an archieve
@@ -138,6 +138,9 @@ namespace nfs {
 			fso[i].resource = i == 0 ? u32_MAX - 1 : u32_MAX;
 			fso[i].parent = i == 0 ? u32_MAX : folderArray[i].relation & 0xFFF;
 			fso[i].fileOff = folderArray[i].firstFilePosition - startFile;
+
+			if (i == 0)
+				fso[i].path = fso[i].name = "/";
 		}
 
 		Buffer next = offset(fileNames, folderArraySize * sizeof(FolderInfo));
@@ -189,7 +192,7 @@ namespace nfs {
 
 			if (isFolder) {
 				fso[dir].name = str;
-				fso[dir].path = fso[fso[dir].parent].path + "/" + str;
+				fso[dir].path = (fso[fso[dir].parent].isRoot() ? "" : (fso[fso[dir].parent].path + "/")) + str;
 				fso[dir].buffer = { nullptr, 0 };
 			} else {
 
@@ -210,14 +213,13 @@ namespace nfs {
 
 				fso.push_back(fo);
 
-				u32 magicNumber = 0;
-				std::string type = "";
-				
-				if (len > 4) {
-					magicNumber = *(u32*)fo.buffer.data;
-					type = std::string((char*)fo.buffer.data, 4);
-				}
+				std::string name;
+				u32 magicNumber;
+				bool valid = fo.getMagicNumber(name, magicNumber);
 
+				if (!valid)
+					magicNumber = 0;
+				
 				runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &bufferSize);
 				
 				++fileOffset;
@@ -226,36 +228,42 @@ namespace nfs {
 			next = offset(next, curr);
 		}
 
-		u32 totalFiles = fso.size() - startFile;
+		u32 totalFiles = fso.size() - folderArraySize;
 		Buffer resources = newBuffer1(bufferSize);
 		std::vector<GenericResourceBase*> resourcePtrs(totalFiles);
 		u32 bufferOffset = 0;
 
-		for (u32 i = startFile; i < fso.size(); ++i) {
+		for (u32 i = folderArraySize; i < fso.size(); ++i) {
 
 			const FileSystemObject &fo = fso[i];
 
-			u32 magicNumber = 0;
-			std::string type = "";
+			std::string name;
+			u32 magicNumber;
+			bool valid = fo.getMagicNumber(name, magicNumber);
 
-			if (fo.buffer.size > 4) {
-				magicNumber = *(u32*)fo.buffer.data;
-				type = std::string((char*)fo.buffer.data, 4);
-			}
+			if (!valid)
+				magicNumber = 0;
 
 			u8 *at = resources.data + bufferOffset;
-			bool isValid = false;
+			u32 j = i - folderArraySize;
 
-			resourcePtrs[i - startFile] = (GenericResourceBase*)at;
+			resourcePtrs[j] = (GenericResourceBase*)at;
 
-			runArchiveFunction<IsValidType>(magicNumber, ArchiveTypes(), &isValid);
-			runArchiveFunction<NFactory>(magicNumber, ArchiveTypes(), (void*)at, fo.buffer);
+			u32 mlen = 0;
+			runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &mlen);
 
-			if (!isValid) {
-				printf("Invalid; %s\n", fo.path.c_str());
+			try {
+				runArchiveFunction<NFactory>(magicNumber, ArchiveTypes(), (void*)at, fo.buffer);
+			} catch (std::exception e) {
+
+				if (mlen >= sizeof(NBUO)) {
+					runArchiveFunction<NFactory>(0, ArchiveTypes(), (void*)at, fo.buffer);
+				}
+				else
+					memset(at, 0, mlen);
 			}
 
-			runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &bufferOffset);
+			bufferOffset += mlen;
 		}
 
 		*fs = FileSystem(fso, resourcePtrs, resources);

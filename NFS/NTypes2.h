@@ -250,8 +250,12 @@ namespace nfs {
 		auto &fpMap = getArchiveFpMap<F, Args...>(tl);
 		auto &f = fpMap[magicNum];
 
-		if(f != nullptr)
+		if (f != nullptr)
 			f(args...);
+		else {
+			std::string where = "Function not found (" + std::string(typeid(F).name()) + "; " + (char*)&magicNum + ")";
+			throw(std::exception(where.c_str()));
+		}
 	}
 
 	///MagicNumbers
@@ -406,7 +410,10 @@ namespace nfs {
 
 			if (error != nullptr) {
 				memset(wh, 0, sizeof(T));
-				printf("Couldn't read %s; %s\n", typeid(T).name(), error);
+
+				std::string errorstr = "Couldn't read " + std::string(typeid(T).name()) + " \"" + error + "\"";
+
+				throw(std::exception(errorstr.c_str()));
 				return false;
 			}
 
@@ -424,9 +431,7 @@ namespace nfs {
 		struct NFactory<NBUO> {
 			void operator()(void *first, Buffer buf) {
 				NBUO &buo = *(NBUO*)first;
-				buo.contents.front.magicNumber = *((u32*)buf.data);
 				buo.contents.front.data = buf;
-				buo.contents.front.name = std::string((char*)buf.data, 4);
 			}
 		};
 
@@ -523,7 +528,11 @@ namespace nfs {
 			u32 magicNumber = *(u32*)data;
 
 			u32 offInBuffer = bufferSize;
-			runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &bufferSize);
+
+			try {
+				runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &bufferSize);
+			}
+			catch (std::exception e) {}
 
 			if (offInBuffer == bufferSize)
 				bufferSize += sizeof(NBUO);
@@ -542,10 +551,14 @@ namespace nfs {
 			u32 size = getUInt(offset(btaf.data, i * 8 + 4)) - off;
 			u8 *data = source.contents.back.back.front.data.data + off;
 
-			u32 magicNumber = *(u32*)data;
+			u32 magicNumber = *(u32*)data, oMagicNumber = magicNumber;
 
 			u32 offInBuffer = currOff;
-			runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &currOff);
+			
+			try{
+				runArchiveFunction<GenericResourceSize>(magicNumber, ArchiveTypes(), &currOff);
+			}
+			catch (std::exception e) {}
 
 			u8 *loc = buf.data + offInBuffer;
 			Buffer b = { data, size };
@@ -555,7 +568,11 @@ namespace nfs {
 				magicNumber = 0;
 			}
 
-			runArchiveFunction<NFactory>(magicNumber, ArchiveTypes(), (void*)loc, b);
+			try {
+				runArchiveFunction<NFactory>(magicNumber, ArchiveTypes(), (void*)loc, b);
+			}
+			catch (std::exception e) {}
+
 			resources[i] = (GenericResourceBase*)loc;
 		}
 

@@ -112,3 +112,73 @@ template<class T> bool FileSystem::isRoot(T t) {
 		return false;
 	}
 }
+
+FileSystemObject::~FileSystemObject() {}
+
+bool FileSystemObject::isFolder() const { return resource >= u32_MAX - 1; }
+bool FileSystemObject::isFile() const { return !isFolder(); }
+bool FileSystemObject::isRoot() const { return resource == u32_MAX - 1; }
+bool FileSystemObject::hasParent() const { return resource != u32_MAX - 1; }
+bool FileSystemObject::operator==(const FileSystemObject &other) const {
+	return path == other.path && index == other.index && parent == other.parent && resource == other.resource && name == other.name;
+}
+
+std::string FileSystemObject::getExtension() const {
+	if (!isFile()) return "";
+
+	size_t pos = path.find_last_of('.');
+	if (pos == std::string::npos || pos == path.size() - 1)
+		return "";
+
+	std::string ext = std::string(path.c_str() + pos + 1, path.size() - 1 - pos);
+	for (u32 i = 0; i < ext.size(); ++i)
+		ext[i] = toupper(ext[i]);
+	return ext;
+}
+
+bool FileSystemObject::getMagicNumber(std::string &name, u32 &number) const {
+	u32 magicNumber = 0;
+	std::string extension = getExtension(), extensionReverse = extension, type = extension;
+	std::reverse(extensionReverse.begin(), extensionReverse.end());
+
+	magicNumber = extension.size() == 4 ? *(u32*)extension.c_str() : 0;
+
+	bool valid = false;
+
+	try {
+		runArchiveFunction<NType::IsValidType>(magicNumber, ArchiveTypes(), &valid);
+	}
+	catch (std::exception e) {}
+
+	if (!valid && extension != "TXT" && extension != "BIN" && extension != "DAT") {
+		type = std::string((char*)buffer.data, 4);
+		valid = true;
+
+		if (type != extensionReverse) {
+
+			for (u32 i = 0; i < 4; ++i)
+				if (!((type[i] >= 'A' && type[i] <= 'Z') || type[i] == '0'))
+					valid = false;
+
+			if (valid) 
+				magicNumber = *(u32*)type.c_str();
+			else
+				type = extension;
+		}
+		else {
+			magicNumber = *(u32*)type.c_str();
+			type = extension;
+		}
+	}
+
+	name = type;
+	number = magicNumber;
+
+	valid = false;
+
+	try {
+		runArchiveFunction<NType::IsValidType>(magicNumber, ArchiveTypes(), &valid);
+	} catch (std::exception e) {}
+
+	return valid;
+}
