@@ -64,13 +64,30 @@ So, before converting a file, make sure it is actually a file.
 			}
 ```
 A resource can be anything; a buffer, a file, an image, a palette, a map, etc. It is anything that is stored in the ROM's file system. This resource has to be converted, just like the NDS file, before you can use the contents.
-### Reading resources
-You can automatically read resources from an archive by simply converting a NARC to a NArchieve, like so:
+### Traversing a folder
+'Traversing' is what I call searching through an entire folder; so traverse through /someFolder/something would give all of the folders and files in the directory and inside those folders. While the square brackets (or array operator) are used for obtaining folders/files directly inside a folder:
 ```cpp
+	std::vector<const FileSystemObject*> fsos = files.traverseFolder(files["fielddata"]);
+	for (u32 i = 0; i < fsos.size(); ++i)
+		printf("%s\n", fsos[i]->path.c_str());
+```
+`files["x"]` will get the fso at the position of x; that FSO can then be used to trace all files or get the files inside of that folder (if it is a folder). You could also traverse root; by using "/" as the folder, or simply by using `files[fso]`.
+```cpp
+	std::vector<const FileSystemObject*> fsos = files[files["/"]];
+	for (u32 i = 0; i < fsos.size(); ++i)
+		printf("%s\n", fsos[i]->path.c_str());
+```
+### Reading resources
+You can automatically read resources from an archive/file system by simply converting an NDS to a file system or a NARC to a NArchive, like so:
+```cpp
+	//Archives
 	NArchive arch;
 	NType::convert(narc, &arch);
+	//FileSystems
+	FileSystem fs;
+	NType::convert(nds, &fs);
 ```
-NArchive contains a buffer with all of the types. These types can be converted again to get things like Texture2D, NArchive, etc.
+NArchive contains a buffer with all of the types, while FileSystem also contains the names and relations of the files. These types can be converted again to get things like Texture2D, NArchive, etc.
 ```cpp
 	Texture2D tex;
 	NType::convert(nclr, &tex);
@@ -92,7 +109,9 @@ It could also be done by using a try and catch;
 ```cpp
 	try {
 		NCLR &nclr = arch.operator[]<NCLR>(i);
-		printf("Palette!\n");
+		Texture2D someTex;
+		NType::convert(nclr, &someTex);
+		writeTexture(someTex, "SomeTex.png");
 	} catch (std::exception e) {}
 ```
 This all means that you can simply loop through the archieve like an std::vector and use the types how you want:
@@ -103,7 +122,7 @@ This all means that you can simply loop through the archieve like an std::vector
 		
 		try {
 			NCLR &nclr = arch.operator[]<NCLR>(i);
-			printf("Palette with dimension %ux%u\n", nclr.contents.front.dataSize / 2 / nclr.contents.front.c_colors, nclr.contents.front.c_colors);
+			printf("Palette with %u colors!\n", nclr.contents.front.c_colors);
 		} catch (std::exception e) {
 
 		}
@@ -128,7 +147,7 @@ The NBUO has a magicNumber of 0; making it undefined and so does its section. It
 	catch (std::exception e) {}
 ```
 This is done so you can still edit file formats that might not be a standard, but are used in some ROMs.
-### Adding a resource type
+### Adding a custom resource type
 ```cpp
   	//File allocation table
 	struct BTAF : GenericSection {
