@@ -152,9 +152,7 @@ namespace nfs {
 	///Custom types
 
 	//Buffer info
-	struct NBIS : GenericSection { 
-		std::string name;
-	};
+	struct NBIS : GenericSection { };
 
 	//Buffer unknown object; used for storing buffers of unknown types
 	typedef GenericResource<NBIS> NBUO;

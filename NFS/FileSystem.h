@@ -85,6 +85,8 @@ namespace nfs {
 		std::vector<FileSystemObject>::const_iterator begin();
 		std::vector<FileSystemObject>::const_iterator end();
 		u32 getFileObjectCount();
+		u32 getFileCount();
+		u32 getFolderCount();
 		const FileSystemObject &operator[](u32 i);
 		template<class T> bool isFile(T t);
 		template<class T> bool isFolder(T t);
@@ -93,7 +95,7 @@ namespace nfs {
 	private:
 
 		std::vector<FileSystemObject> files;
-
+		u32 folderC, fileC;
 	};
 
 	template<> bool FileSystem::isFile(std::string str);

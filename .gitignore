@@ -36,3 +36,11 @@ enc_temp_folder
 *.png
 *.nds
 NFS/Release
+API/Debug
+NFS/x64
+NTFE/x64/
+NTFE/Debug/
+NFS/LIBDebug/
+NFS/LIBDLL
+API/x64/Debug
+x64/Debug

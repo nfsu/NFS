@@ -39,12 +39,8 @@ void NArchive::copy(const NArchive &other) {
 
 	resources = other.resources;
 
-	for (u32 i = 0; i < other.size(); ++i) {
+	for (u32 i = 0; i < other.size(); ++i) 
 		resources[i] = (GenericResourceBase*)(((u8*)other.resources[i]) - other.buf.data + buf.data);
-		if (resources[i]->header.magicNumber == 0) {
-			((NBUO*)resources[i])->contents.front.name = ((NBUO*)other.resources[i])->contents.front.name;
-		}
-	}
 }
 
 NDS NType::readNDS(Buffer buf) {

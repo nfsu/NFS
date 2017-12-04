@@ -1,7 +1,15 @@
 #include "FileSystem.h"
 using namespace nfs;
 
-FileSystem::FileSystem(std::vector<FileSystemObject> _files, std::vector<GenericResourceBase*> resources, Buffer buf) : NArchive(resources, buf), files(_files) {}
+FileSystem::FileSystem(std::vector<FileSystemObject> _files, std::vector<GenericResourceBase*> resources, Buffer buf) : NArchive(resources, buf), files(_files), fileC(0), folderC(0){
+	
+	for (u32 i = 0; i < files.size(); ++i) 
+		if (files[i].isFile())
+			++fileC;
+		else
+			++folderC;
+}
+
 FileSystem::FileSystem() {}
 
 const FileSystemObject &FileSystem::operator[](std::string str) const {
@@ -73,6 +81,8 @@ std::vector<const FileSystemObject*> FileSystem::traverseFolder(const FileSystem
 std::vector<FileSystemObject>::const_iterator FileSystem::begin() { return files.begin(); }
 std::vector<FileSystemObject>::const_iterator FileSystem::end() { return files.end(); }
 u32 FileSystem::getFileObjectCount() { return files.size(); }
+u32 FileSystem::getFileCount() { return fileC; } 
+u32 FileSystem::getFolderCount() { return folderC; }
 
 const FileSystemObject &FileSystem::operator[](u32 i) {
 	if (i >= files.size())
@@ -137,6 +147,13 @@ std::string FileSystemObject::getExtension() const {
 }
 
 bool FileSystemObject::getMagicNumber(std::string &name, u32 &number) const {
+
+	if (!isFile()) {
+		name = "";
+		number = 0;
+		return true;
+	}
+
 	u32 magicNumber = 0;
 	std::string extension = getExtension(), extensionReverse = extension, type = extension;
 	std::reverse(extensionReverse.begin(), extensionReverse.end());
