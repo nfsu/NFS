@@ -63,6 +63,10 @@ MainWindow::MainWindow() {
 			{
 				NExplorer *model = new NExplorer(romData.data, fs);
 
+				///Right
+
+				NEditors *right = new NEditors();
+
 				///Left
 				QSplitter *left;
 				{
@@ -104,7 +108,7 @@ MainWindow::MainWindow() {
 
 					}
 
-					NExplorerView *tree = new NExplorerView(model, fileInfo);
+					NExplorerView *tree = new NExplorerView(model, fileInfo, right);
 
 					QTableView *table2 = new QTableView();
 					table2->setModel(fileInfo);
@@ -121,17 +125,6 @@ MainWindow::MainWindow() {
 					left->setMinimumSize(500, 650);
 				}
 
-				///Right
-
-				QTreeView *right;
-				{
-					right = new QTreeView();
-					right->setUniformRowHeights(true);
-					right->setModel(model);
-
-					right->setMinimumSize(500, 325);
-				}
-
 				row1->addWidget(left);
 				row1->addWidget(right);
 
@@ -140,9 +133,6 @@ MainWindow::MainWindow() {
 			}
 
 			vertical->addWidget(row1);
-			/*vertical->addWidget(row2);
-			vertical->addWidget(row3);*/
-
 			layout->addWidget(vertical);
 		}
 	}

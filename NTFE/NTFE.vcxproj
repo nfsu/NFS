@@ -71,19 +71,19 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(SolutionDir)NFS;$(SolutionDir)API/glm/include;$(SolutionDir)API/Qt/Include;$(SolutionDir)API/Qt/Include/QtWidgets;$(SolutionDir)API/Qt/Include/QtCore;$(SolutionDir)API/Qt/Include/QtOpenGL;$(SolutionDir)API/Qt/Include/QtGui;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)API/glew/include;$(SolutionDir)NFS;$(SolutionDir)API/glm/include;$(SolutionDir)API/Qt/Include;$(SolutionDir)API/Qt/Include/QtWidgets;$(SolutionDir)API/Qt/Include/QtCore;$(SolutionDir)API/Qt/Include/QtOpenGL;$(SolutionDir)API/Qt/Include/QtGui;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)LIB$(Configuration);$(SolutionDir)API/glew/lib/Release/Win32;$(SolutionDir)API/Qt/lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(SolutionDir)NFS;$(SolutionDir)API/glm/include;$(SolutionDir)API/Qt/Include;$(SolutionDir)API/Qt/Include/QtWidgets;$(SolutionDir)API/Qt/Include/QtCore;$(SolutionDir)API/Qt/Include/QtOpenGL;$(SolutionDir)API/Qt/Include/QtGui;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)API/glew/include;$(SolutionDir)NFS;$(SolutionDir)API/glm/include;$(SolutionDir)API/Qt/Include;$(SolutionDir)API/Qt/Include/QtWidgets;$(SolutionDir)API/Qt/Include/QtCore;$(SolutionDir)API/Qt/Include/QtOpenGL;$(SolutionDir)API/Qt/Include/QtGui;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)LIB$(Configuration);$(SolutionDir)API/glew/lib/Release/x64;$(SolutionDir)API/Qt/lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)API/glm/include;$(SolutionDir)API/Qt/Include;$(SolutionDir)API/Qt/Include/QtWidgets;$(SolutionDir)NFS;$(SolutionDir)API/Qt/Include/QtCore;$(SolutionDir)API/Qt/Include/QtOpenGL;$(SolutionDir)API/Qt/Include/QtGui;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)x64/LIB$(Configuration);$(SolutionDir)API/glew/lib/Release/Win32;$(SolutionDir)API/Qt/lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDIr)API/glew/include;$(SolutionDir)API/glm/include;$(SolutionDir)API/Qt/Include;$(SolutionDir)API/Qt/Include/QtWidgets;$(SolutionDir)NFS;$(SolutionDir)API/Qt/Include/QtCore;$(SolutionDir)API/Qt/Include/QtOpenGL;$(SolutionDir)API/Qt/Include/QtGui;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)x64/LIB$(Configuration);$(SolutionDir)API/glew/lib/Release/x64;$(SolutionDir)API/Qt/lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)API/glm/include;$(SolutionDir)API/Qt/Include;$(SolutionDir)API/Qt/Include/QtWidgets;$(SolutionDir)API/NFS/include;$(SolutionDir)API/Qt/Include/QtCore;$(SolutionDir)API/Qt/Include/QtOpenGL;$(SolutionDir)API/Qt/Include/QtGui;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)API/glew/include;$(SolutionDir)API/glm/include;$(SolutionDir)API/Qt/Include;$(SolutionDir)API/Qt/Include/QtWidgets;$(SolutionDir)API/NFS/include;$(SolutionDir)API/Qt/Include/QtCore;$(SolutionDir)API/Qt/Include/QtOpenGL;$(SolutionDir)API/Qt/Include/QtGui;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)x64/LIB$(Configuration);$(SolutionDir)API/NFS/lib;$(SolutionDir)API/glew/lib/Release/x64;$(SolutionDir)API/Qt/lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -150,14 +150,18 @@ XCOPY "$(SolutionDir)API/x64" "$(OutDir)" /y</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="NEditors.cpp" />
     <ClCompile Include="NExplorer.cpp" />
+    <ClCompile Include="NEditor.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Link.h" />
     <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="NEditors.h" />
     <ClInclude Include="NExplorer.h" />
     <ClInclude Include="InfoTable.h" />
+    <ClInclude Include="NEditor.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="C:\Users\Niels Brunekreef\Pictures\kappa.png" />

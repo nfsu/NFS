@@ -5,6 +5,8 @@
 #include <qtreeview.h>
 #include "InfoTable.h"
 
+#include "NEditors.h"
+
 class NExplorer : public QAbstractItemModel {
 
 	friend class NExplorerView;
@@ -32,7 +34,7 @@ class NExplorerView : public QTreeView {
 
 public:
 
-	NExplorerView(NExplorer *_nex, InfoTable *_fileInfo) : fso(nullptr), nex(_nex), fileInfo(_fileInfo) {
+	NExplorerView(NExplorer *_nex, InfoTable *_fileInfo, NEditors *_editors) : fso(nullptr), nex(_nex), fileInfo(_fileInfo), editors(_editors) {
 		setUniformRowHeights(true);
 		setModel(nex);
 
@@ -61,6 +63,13 @@ public:
 			fileInfo->set("Values", 9, fso->isFolder() ? "" : QString::number(fso->buffer.size).toStdString());
 
 			emit fileInfo->dataChanged(QModelIndex(), QModelIndex());
+
+			if (name == "NCLR") {
+				Texture2D tex;
+				nfs::NType::convert(nex->fs.get<nfs::NCLR>(fso->resource), &tex);
+
+				editors->setTexture(0, tex);
+			}
 		}
 	}
 
@@ -69,4 +78,5 @@ private:
 	nfs::FileSystemObject *fso;
 	NExplorer *nex;
 	InfoTable *fileInfo;
+	NEditors *editors;
 };
