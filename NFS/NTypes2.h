@@ -595,6 +595,17 @@ namespace nfs {
 
 		tex->width = source.contents.front.tileWidth * 8;
 		tex->height = source.contents.front.tileHeight * 8;
+		
+		//Unknown parts of NCGR;
+		//width & height: 0xFFFF
+		//padding; 1048592, 24
+		//16, 24
+
+		if (tex->width / 8 == 0xFFFF || tex->height / 8 == 0xFFFF) {		//Special flag?
+			tex->width = (u32)sqrt(source.contents.front.tileDataSize * (fourBit ? 2 : 1));
+			tex->height = tex->width;
+		}
+
 		tex->size = tex->width * tex->height / (fourBit ? 2 : 1);
 		tex->tt = fourBit ? TILED8_B4 : TILED8;
 		tex->stride = 1;

@@ -20,7 +20,7 @@ class NEditor : public QOpenGLWidget {
 
 public:
 
-	NEditor(NEditorMode mode, std::unordered_map<u32, GLuint> &buffers);
+	NEditor(NEditorMode mode, std::unordered_map<u32, GLuint> &buffers, std::unordered_map<u32, Texture2D> &textures);
 	~NEditor();
 
 protected:
@@ -34,6 +34,7 @@ public:
 	NEditorMode mode;
 	
 	std::unordered_map<u32, GLuint> &buffers;
+	std::unordered_map<u32, Texture2D> &textures;
 };
 
 void logGLErrors();
