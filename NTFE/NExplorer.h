@@ -34,57 +34,13 @@ class NExplorerView : public QTreeView {
 
 public:
 
-	NExplorerView(NExplorer *_nex, InfoTable *_fileInfo, NEditors *_editors) : fso(nullptr), nex(_nex), fileInfo(_fileInfo), editors(_editors) {
-		setUniformRowHeights(true);
-		setModel(nex);
-
-		setContextMenuPolicy(Qt::CustomContextMenu);
-		connect(this, &QTreeView::customContextMenuRequested, this, &NExplorerView::onCustomContextMenu);
-	}
+	NExplorerView(NExplorer *_nex, InfoTable *_fileInfo, NEditors *_editors);
 	
-	bool hasCurrent() { return fso != nullptr; }
-	const nfs::FileSystemObject &getCurrent() { return *fso; }
+	bool hasCurrent();
+	const nfs::FileSystemObject &getCurrent();
 
 	private slots:
-	void onCustomContextMenu(const QPoint &point) {
-		QModelIndex index = indexAt(point);
-
-		if (index.isValid()) {
-			fso = (nfs::FileSystemObject*)index.internalPointer();
-
-			u32 magicNumber = 0;
-			std::string name = "";
-			bool valid = fso->getMagicNumber(name, magicNumber);
-
-			fileInfo->set("Values", 5, QString::number(fso->index).toStdString());
-			fileInfo->set("Values", 6, fso->isFolder() ? "" : name);
-			fileInfo->set("Values", 7, fso->path);
-			fileInfo->set("Values", 8, fso->isFolder() ? "" : QString::number(fso->buffer.data - nex->begin, 16).toStdString());
-			fileInfo->set("Values", 9, fso->isFolder() ? "" : QString::number(fso->buffer.size).toStdString());
-
-			emit fileInfo->dataChanged(QModelIndex(), QModelIndex());
-
-			if (name == "NCLR") {
-				Texture2D tex;
-				nfs::NType::convert(nex->fs.get<nfs::NCLR>(fso->resource), &tex);
-
-				editors->setTexture(0, tex);
-			} else if (name == "NCGR") {
-				Texture2D tex;
-				nfs::NCGR ncgr = nex->fs.get<nfs::NCGR>(fso->resource);
-				nfs::NType::convert(ncgr, &tex);
-
-				editors->setTexture(1, tex);
-			}
-			else if (name == "NSCR") {
-				Texture2D tex;
-				nfs::NCSR ncgr = nex->fs.get<nfs::NCSR>(fso->resource);
-				nfs::NType::convert(ncgr, &tex);
-
-				editors->setTexture(2, tex);
-			}
-		}
-	}
+	void onCustomContextMenu(const QPoint &point);
 
 private:
 

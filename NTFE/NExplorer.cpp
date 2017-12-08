@@ -10,15 +10,8 @@ NExplorer::NExplorer(u8 *_begin, FileSystem &_fs, QObject *parent) : QAbstractIt
 int NExplorer::columnCount(const QModelIndex &parent) const { return 1; }
 QVariant NExplorer::headerData(int section, Qt::Orientation orientation, int role) const {
 
-	if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
-
-		switch (section) {
-		default:
+	if (orientation == Qt::Horizontal && role == Qt::DisplayRole) 
 			return QString("Files");
-
-		}
-
-	}
 
 	return QVariant();
 }
@@ -66,12 +59,7 @@ QVariant NExplorer::data(const QModelIndex &index, int role) const {
 		else
 			return QPixmap(QString("Resources/Binary.png"));
 
-	switch (index.column()) {
-
-	default:
-		return QString(var.name.c_str());
-
-	}
+	return QString(var.name.c_str());
 }
 
 QModelIndex NExplorer::index(int row, int column, const QModelIndex &parent) const {
@@ -132,4 +120,56 @@ Qt::ItemFlags NExplorer::flags(const QModelIndex &index) const {
 		return 0;
 
 	return QAbstractItemModel::flags(index);
+}
+
+NExplorerView::NExplorerView(NExplorer *_nex, InfoTable *_fileInfo, NEditors *_editors) : fso(nullptr), nex(_nex), fileInfo(_fileInfo), editors(_editors) {
+	setUniformRowHeights(true);
+	setModel(nex);
+
+	setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(this, &QTreeView::customContextMenuRequested, this, &NExplorerView::onCustomContextMenu);
+}
+
+bool NExplorerView::hasCurrent() { return fso != nullptr; }
+const nfs::FileSystemObject &NExplorerView::getCurrent() { return *fso; }
+
+void NExplorerView::onCustomContextMenu(const QPoint &point) {
+	QModelIndex index = indexAt(point);
+
+	if (index.isValid()) {
+		fso = (nfs::FileSystemObject*)index.internalPointer();
+
+		u32 magicNumber = 0;
+		std::string name = "";
+		bool valid = fso->getMagicNumber(name, magicNumber);
+
+		fileInfo->set("Values", 5, QString::number(fso->index).toStdString());
+		fileInfo->set("Values", 6, fso->isFolder() ? "" : name);
+		fileInfo->set("Values", 7, fso->path);
+		fileInfo->set("Values", 8, fso->isFolder() ? "" : QString::number(fso->buffer.data - nex->begin, 16).toStdString());
+		fileInfo->set("Values", 9, fso->isFolder() ? "" : QString::number(fso->buffer.size).toStdString());
+
+		emit fileInfo->dataChanged(QModelIndex(), QModelIndex());
+
+		if (name == "NCLR") {
+			Texture2D tex;
+			nfs::NType::convert(nex->fs.get<nfs::NCLR>(fso->resource), &tex);
+
+			editors->setTexture(0, tex);
+		}
+		else if (name == "NCGR") {
+			Texture2D tex;
+			nfs::NCGR ncgr = nex->fs.get<nfs::NCGR>(fso->resource);
+			nfs::NType::convert(ncgr, &tex);
+
+			editors->setTexture(1, tex);
+		}
+		else if (name == "NSCR") {
+			Texture2D tex;
+			nfs::NCSR ncgr = nex->fs.get<nfs::NCSR>(fso->resource);
+			nfs::NType::convert(ncgr, &tex);
+
+			editors->setTexture(2, tex);
+		}
+	}
 }

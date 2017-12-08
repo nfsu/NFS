@@ -216,10 +216,8 @@
     <ClCompile Include="API\stbi\stbi_write.c" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="Generic.cpp" />
-    <ClCompile Include="NHelper.cpp" />
     <ClCompile Include="NTypes2.cpp" />
     <ClCompile Include="Source.cpp" />
-    <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="API\LM4000_TypeList\Checks.h" />
@@ -232,8 +230,6 @@
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="Generic.h" />
     <ClInclude Include="NTypes2.h" />
-    <ClInclude Include="NHelper.h" />
-    <ClInclude Include="Timer.h" />
     <ClInclude Include="Types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

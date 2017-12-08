@@ -149,6 +149,7 @@ XCOPY "$(SolutionDir)API/x64" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="InfoTable.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="NEditors.cpp" />
     <ClCompile Include="NExplorer.cpp" />
