@@ -218,6 +218,7 @@
     <ClCompile Include="Generic.cpp" />
     <ClCompile Include="NTypes2.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="API\LM4000_TypeList\Checks.h" />
@@ -225,11 +226,13 @@
     <ClInclude Include="API\LM4000_TypeList\Iterators.h" />
     <ClInclude Include="API\LM4000_TypeList\TypeList.h" />
     <ClInclude Include="API\LM4000_TypeList\TypeListClass.h" />
+    <ClInclude Include="API\LM4000_TypeList\TypeListHelper.h" />
     <ClInclude Include="API\LM4000_TypeList\TypeStruct.h" />
     <ClInclude Include="API\stbi\stbi_write.h" />
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="Generic.h" />
     <ClInclude Include="NTypes2.h" />
+    <ClInclude Include="Timer.h" />
     <ClInclude Include="Types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

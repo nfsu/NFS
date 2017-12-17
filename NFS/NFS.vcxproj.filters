@@ -45,6 +45,9 @@
     <ClCompile Include="FileSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Generic.h">
@@ -79,6 +82,12 @@
     </ClInclude>
     <ClInclude Include="FileSystem.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="API\LM4000_TypeList\TypeListHelper.h">
+      <Filter>Header Files\API\LM4000_TypeList</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

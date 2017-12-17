@@ -16,7 +16,7 @@ QVariant NExplorer::headerData(int section, Qt::Orientation orientation, int rol
 	return QVariant();
 }
 
-QVariant NExplorer::data(const QModelIndex &index, int role) const {
+QVariant NExplorer::data(const QModelIndex &index, int role) const {		//Improve
 
 	if (!index.isValid())
 		return QVariant();
@@ -40,7 +40,7 @@ QVariant NExplorer::data(const QModelIndex &index, int role) const {
 	std::string name;
 	bool valid = var.getMagicNumber(name, magicNumber);
 
-
+	//TODO: Store those?
 	if (role == Qt::DecorationRole)
 		if (var.isFolder())
 			return QPixmap(QString("Resources/Folder.png"));
@@ -62,19 +62,23 @@ QVariant NExplorer::data(const QModelIndex &index, int role) const {
 	return QString(var.name.c_str());
 }
 
-QModelIndex NExplorer::index(int row, int column, const QModelIndex &parent) const {
+QModelIndex NExplorer::index(int row, int column, const QModelIndex &parent) const {		//Improve
 
-	u32 index = 0;
+	FileSystemObject *fso = nullptr;
 
 	if (parent.isValid())
-		index = static_cast<const FileSystemObject*>(parent.internalPointer())->index;
+		fso = (FileSystemObject*)parent.internalPointer();
+	else
+		fso = const_cast<FileSystemObject*>(&fs[0]);
 
-	auto something = fs[fs[index]];
+	FileSystemObject *child = fs.foreachInFolder([](const FileSystemObject &fso, u32 i, u32 param) -> bool {
+		return i == param;
+	}, *fso, row);
 
-	if (row >= something.size())
+	if (child == nullptr)
 		return QModelIndex();
 
-	return createIndex(row, column, (void*)something[row]);
+	return createIndex(row, column, (void*)child);
 }
 
 QModelIndex NExplorer::parent(const QModelIndex &index) const {
@@ -88,30 +92,22 @@ QModelIndex NExplorer::parent(const QModelIndex &index) const {
 	if (father.isRoot())
 		return QModelIndex();
 
-	auto contents = fs[fs[father.parent]];
-
-	u32 row = 0;
-	for (u32 i = 0; i < contents.size(); ++i)
-		if (contents[i]->index == father.index) {
-			row = i;
-			break;
-		}
-
-	return createIndex((int)row, 0, (void*)&father);
+	return createIndex((int)father.getIndex(), 0, (void*)&father);
 }
 
 int NExplorer::rowCount(const QModelIndex &parent) const {
 
-	u32 index = 0;
-
 	if (parent.column() > 0)
 		return 0;
 
-	if (parent.isValid())
-		index = static_cast<const FileSystemObject*>(parent.internalPointer())->index;
+	FileSystemObject *fso = nullptr;
 
-	auto something = fs[fs[index]];
-	return (int)something.size();
+	if (parent.isValid())
+		fso = (FileSystemObject*)parent.internalPointer();
+	else
+		fso = const_cast<FileSystemObject*>(&fs[0]);
+	
+	return (int)fso->size();
 }
 
 Qt::ItemFlags NExplorer::flags(const QModelIndex &index) const {
@@ -161,6 +157,9 @@ void NExplorerView::onCustomContextMenu(const QPoint &point) {
 			Texture2D tex;
 			nfs::NCGR ncgr = nex->fs.get<nfs::NCGR>(fso->resource);
 			nfs::NType::convert(ncgr, &tex);
+
+			///TODO: Calculate correct size of image when it's not specified
+			///TODO: Sometimes palettes are wrong?
 
 			editors->setTexture(1, tex);
 		}

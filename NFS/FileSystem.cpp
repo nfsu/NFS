@@ -1,14 +1,9 @@
 #include "FileSystem.h"
+#include "Timer.h"
+#include <future>
 using namespace nfs;
 
-FileSystem::FileSystem(std::vector<FileSystemObject> _files, std::vector<GenericResourceBase*> resources, Buffer buf) : NArchive(resources, buf), files(_files), fileC(0), folderC(0){
-	
-	for (u32 i = 0; i < files.size(); ++i) 
-		if (files[i].isFile())
-			++fileC;
-		else
-			++folderC;
-}
+FileSystem::FileSystem(std::vector<FileSystemObject> &_files, std::vector<GenericResourceBase*> &resources, Buffer buf, u32 _folderc, u32 _filec) : NArchive(resources, buf), files(_files), fileC(_filec), folderC(_folderc){ }
 
 FileSystem::FileSystem() {}
 
@@ -90,6 +85,28 @@ const FileSystemObject &FileSystem::operator[](u32 i) {
 	return files[i];
 }
 
+
+FileSystemObject *FileSystem::foreachInFolder(bool(*f)(const FileSystemObject &fso, u32 i, u32 param), FileSystemObject &start, u32 param) {
+
+	u32 j = 0;
+	for (u32 i = start.folderHint; i < folderC; ++i)
+		if (files[i].parent == start.index) {
+			if (f(files[i], j, param))
+				return const_cast<FileSystemObject*>(&files[i]);
+			++j;
+		}
+
+	j = 0;
+	for (u32 i = start.fileHint; i < fileC; ++i)
+		if (files[i].parent == start.index) {
+			if (f(files[i], j + start.folders, param))
+				return const_cast<FileSystemObject*>(&files[i]);
+			++j;
+		}
+
+	return nullptr;
+}
+
 template<class T> bool FileSystem::isFile(T t) {
 	try {
 		const FileSystemObject &obj = (*this)[t];
@@ -122,8 +139,6 @@ template<class T> bool FileSystem::isRoot(T t) {
 		return false;
 	}
 }
-
-FileSystemObject::~FileSystemObject() {}
 
 bool FileSystemObject::isFolder() const { return resource >= u32_MAX - 1; }
 bool FileSystemObject::isFile() const { return !isFolder(); }
@@ -202,6 +217,10 @@ bool FileSystemObject::getMagicNumber(std::string &name, u32 &number) const {
 
 bool NType::convert(NDS nds, FileSystem *fs) {
 
+	oi::Timer t;
+
+	///Find file alloc and name table
+
 	Buffer fileNames = offset(nds.data, nds.ftable_off - nds.romHeaderSize);
 	fileNames.size = nds.ftable_len;
 
@@ -212,6 +231,8 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 		throw(std::exception("Invalid buffer size"));
 		return false;
 	}
+
+	///Get root
 
 	FolderInfo *folderArray = (FolderInfo*)fileNames.data;
 	FolderInfo &root = folderArray[0];
@@ -229,6 +250,9 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 		return false;
 	}
 
+	t.lap("Startup");
+	///Get folder info
+
 	std::vector<FileSystemObject> fso(folderArraySize);
 	fso.reserve(folderArraySize + 512);
 
@@ -236,11 +260,15 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 		fso[i].index = i;
 		fso[i].resource = i == 0 ? u32_MAX - 1 : u32_MAX;
 		fso[i].parent = i == 0 ? u32_MAX : folderArray[i].relation & 0xFFF;
-		fso[i].fileOff = folderArray[i].firstFilePosition - startFile;
+		fso[i].count = 0;
+		fso[i].fileHint = fso[i].folderHint = u32_MAX;
 
 		if (i == 0)
 			fso[i].path = fso[i].name = "/";
 	}
+
+	t.lap("Folder info");
+	///Get file info
 
 	Buffer next = offset(fileNames, folderArraySize * sizeof(FolderInfo));
 
@@ -291,8 +319,16 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 
 		if (isFolder) {
 			fso[dir].name = str;
+			fso[dir].files = fso[dir].folders = 0;
 			fso[dir].path = (fso[fso[dir].parent].isRoot() ? "" : (fso[fso[dir].parent].path + "/")) + str;
 			fso[dir].buffer = { nullptr, 0 };
+			fso[dir].indexInFolder = fso[fso[dir].parent].count;
+			
+			if (fso[fso[dir].parent].folderHint == u32_MAX)
+				fso[fso[dir].parent].folderHint = fso[dir].index;
+
+			++fso[fso[dir].parent].folders;
+			++fso[fso[dir].parent].count;
 		}
 		else {
 
@@ -302,6 +338,17 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 			fo.index = i;
 			fo.parent = dir;
 			fo.resource = fileOffset - startFile;
+			fo.files = fo.folders = 0;
+			fo.indexInFolder = fso[current].count;
+			fo.count = 0;
+			fo.folderHint = fo.fileHint = u32_MAX;
+
+			if (fso[current].fileHint == u32_MAX) 
+				fso[current].fileHint = i;
+
+			++fso[current].files;
+			++fso[current].count;
+
 			++i;
 
 			u32 &x = *(u32*)(filePositions.data + fileOffset * 8);
@@ -328,14 +375,20 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 		next = offset(next, curr);
 	}
 
+	t.lap("File info");
+	///Get file resources
+
 	u32 totalFiles = (u32)fso.size() - folderArraySize;
 	Buffer resources = newBuffer1(bufferSize);
 	std::vector<GenericResourceBase*> resourcePtrs(totalFiles);
 	u32 bufferOffset = 0;
 
+	u32 subfiles = 0;
+	std::vector<u32> narcs;
+
 	for (u32 i = folderArraySize; i < fso.size(); ++i) {
 
-		const FileSystemObject &fo = fso[i];
+		FileSystemObject &fo = fso[i];
 
 		std::string name;
 		u32 magicNumber;
@@ -354,6 +407,12 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 
 		try {
 			runArchiveFunction<NFactory>(magicNumber, ArchiveTypes(), (void*)at, fo.buffer);
+
+			if (magicNumber == MagicNumber::get<NARC>) {
+				subfiles += ((NARC*)at)->contents.front.files;
+				narcs.push_back(i - folderArraySize);
+				fo.files = subfiles;
+			}
 		}
 		catch (std::exception e) {
 
@@ -367,6 +426,138 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 		bufferOffset += mlen;
 	}
 
-	*fs = FileSystem(fso, resourcePtrs, resources);
+	t.lap("Resources");
+	///Get sub resources (inside archive)
+
+		///Alloc sub Resources
+
+	u32 biggestResource = 0;
+	lag::RunForType<BiggestResource>::run(ArchiveTypes(), &biggestResource);
+
+	fso.resize(fso.size() + subfiles);
+	resourcePtrs.resize(resourcePtrs.size() + subfiles);
+
+	u8 *oldAddr = resources.data;
+
+	u32 bufferStart = resources.size;
+
+	Buffer nresources = newBuffer1(resources.size + biggestResource * subfiles);
+	memcpy(nresources.data, resources.data, resources.size);
+	deleteBuffer(&resources);
+	resources = nresources;
+
+	for (u32 i = 0; i < totalFiles; ++i)
+		resourcePtrs[i] = (GenericResourceBase*)((u8*)resourcePtrs[i] - oldAddr + resources.data);
+
+
+	t.lap("Alloc sub resources");
+
+		///Init sub resources
+
+	u32 threads = std::thread::hardware_concurrency();
+	u32 perThread = subfiles / (threads + 1);
+	u32 perThreadr = subfiles % (threads + 1);
+
+	struct FileSystemThread {
+
+		std::vector<u32> archives;
+		u32 resourceOff, fsoOff, bufferStart;
+
+		Buffer resources;
+		std::vector<GenericResourceBase*> *ptrs;
+		std::vector<FileSystemObject> *fsos;
+
+	};
+
+	std::vector<FileSystemThread> thrs(threads);
+	std::vector<std::future<void>> processes(threads);
+
+	bool run = true;
+
+	std::vector<u32> archives;
+	u32 fileC = 0, thrI = 0, fileOff = 0;
+
+	for (u32 i = 0; i < narcs.size(); ++i) {
+		NARC *narc = (NARC*)resourcePtrs[narcs[i]];
+		archives.push_back(narcs[i] + folderArraySize);
+		fileC += narc->contents.front.files;
+		if (fileC >= perThread + (i == narcs.size() - 1 ? perThreadr : 0) || i == narcs.size() - 1) {
+
+			thrs[thrI] = { archives, totalFiles + fileOff, totalFiles + folderArraySize + fileOff, bufferStart + fileOff * biggestResource, resources, &resourcePtrs, &fso };
+
+			processes[thrI] = std::move(std::async([](FileSystemThread fst) -> void {
+
+				u32 delta = fst.fsoOff - fst.resourceOff;
+				u32 off = fst.resourceOff;
+				u32 roffset = fst.bufferStart;
+
+				for (u32 i = 0; i < fst.archives.size(); ++i) {
+
+					u32 fsoId = fst.archives[i];
+					FileSystemObject &parent = (*fst.fsos)[fsoId];
+					NARC &narc = *(NARC*)(*fst.ptrs)[parent.resource];
+					NArchive archive;
+
+					try {
+						convert(narc, &archive);
+
+						for (u32 j = 0; j < archive.size(); ++j) {
+
+							std::string name = archive.getTypeName(j);
+							u32 size = 0;
+							runArchiveFunction<GenericResourceSize>(archive.getType(j), ArchiveTypes(), &size);
+
+							archive.copyResource(j, fst.resources.data + roffset, size);
+							(*fst.ptrs)[off] = (GenericResourceBase*)(fst.resources.data + roffset);
+
+							FileSystemObject &fso = (*fst.fsos)[off + delta];
+
+							fso.index = off + delta;
+							fso.resource = off;
+							fso.buffer = { nullptr, 0 };
+							fso.name = std::to_string(j) + "." + name;
+							fso.parent = fsoId;
+							fso.path = parent.path + "/" + fso.name;
+							fso.indexInFolder = parent.count;
+							fso.fileHint = fso.folderHint = u32_MAX;
+							
+							if (parent.fileHint == u32_MAX)
+								parent.fileHint = fso.index;
+							
+							++parent.count;
+
+							u32 boff = getUInt(offset(narc.contents.front.data, j * 8));
+							u32 bsize = getUInt(offset(narc.contents.front.data, j * 8 + 4)) - boff;
+							u8 *bdata = narc.contents.back.back.front.data.data + boff;
+							fso.buffer = { bdata, bsize };
+
+							roffset += size;
+							++off;
+						}
+					}
+					catch (std::exception e) {}
+				}
+
+			}, thrs[thrI]));
+
+			archives.clear();
+			++thrI;
+			fileOff += fileC;
+			fileC = 0;
+		}
+	}
+
+	for (u32 i = 0; i < threads; ++i)
+		processes[i].get();
+
+	t.lap("Init sub resources");
+
+	///Turn into file system
+	*fs = FileSystem(std::move(fso), std::move(resourcePtrs), resources, folderArraySize, fso.size() - folderArraySize);
+
+	t.lap("Finalizing sub resources");
+	t.stop();
+	t.print();
+
 	return true;
 }

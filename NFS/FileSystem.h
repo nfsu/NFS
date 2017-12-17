@@ -8,10 +8,8 @@ namespace nfs {
 	struct FileSystemObject {
 
 		std::string path, name;
-		u32 index, parent, resource, fileOff;
+		u32 index, parent, resource, files, folders, count, indexInFolder, fileHint, folderHint;
 		Buffer buffer;
-
-		virtual ~FileSystemObject();
 
 		bool isFolder() const;
 		bool isFile() const;
@@ -20,6 +18,11 @@ namespace nfs {
 		bool operator==(const FileSystemObject &other) const;
 		std::string getExtension() const;
 		bool getMagicNumber(std::string &name, u32 &number) const;
+
+		u32 getFolders() const { return folders; }
+		u32 getFiles() const { return files; }
+		u32 size() const { return count; }
+		u32 getIndex() const { return indexInFolder; }
 	};
 
 	//A bundle of files; different than an archieve
@@ -28,7 +31,7 @@ namespace nfs {
 
 	public:
 
-		FileSystem(std::vector<FileSystemObject> _files, std::vector<GenericResourceBase*> resources, Buffer buf);
+		FileSystem(std::vector<FileSystemObject> &_files, std::vector<GenericResourceBase*> &resources, Buffer buf, u32 folders, u32 files);
 		FileSystem();
 
 		template<class T>
@@ -57,6 +60,8 @@ namespace nfs {
 		template<class T> bool isFile(T t);
 		template<class T> bool isFolder(T t);
 		template<class T> bool isRoot(T t);
+
+		FileSystemObject *foreachInFolder(bool (*f)(const FileSystemObject &fso, u32 i, u32 param), FileSystemObject &start, u32 param);
 
 	private:
 

@@ -4,7 +4,7 @@
 #include <typeinfo>
 #include <unordered_map>
 #include <exception>
-#include "API/LM4000_TypeList/TypeStruct.h"
+#include "API/LM4000_TypeList/TypeListHelper.h"
 
 #define GenericSection_begin sizeof(Buffer)
 
@@ -173,6 +173,8 @@ namespace nfs {
 		template<class T>
 		T &get(u32 i) const;
 
+		bool copyResource(u32 id, u8 *where, u32 size);
+
 		u32 getType(u32 i) const;
 		std::string getTypeName(u32 i) const;
 		u32 size() const;
@@ -248,14 +250,10 @@ namespace nfs {
 	void runArchiveFunction(u32 magicNum, lag::TypeList<Types...> tl, Args ... args)
 	{
 		auto &fpMap = getArchiveFpMap<F, Args...>(tl);
-		auto &f = fpMap[magicNum];
+		auto &fit = fpMap.find(magicNum);
 
-		if (f != nullptr)
-			f(args...);
-		else {
-			std::string where = "Function not found (" + std::string(typeid(F).name()) + "; " + (char*)&magicNum + ")";
-			throw(std::exception(where.c_str()));
-		}
+		if (fit != fpMap.end())
+			(*fit).second(args...);
 	}
 
 	///MagicNumbers
@@ -453,6 +451,14 @@ namespace nfs {
 		struct GenericResourceSize {
 			void operator()(u32 *result) {
 				*result += sizeof(T);
+			}
+		};
+
+		template<typename T>
+		struct BiggestResource {
+			void operator()(u32 *result) {
+				if (*result < sizeof(T))
+					*result = sizeof(T);
 			}
 		};
 

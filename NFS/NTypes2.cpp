@@ -18,12 +18,31 @@ u32 NArchive::getType(u32 i) const {
 	if (i >= resources.size())
 		throw(std::exception("Out of bounds"));
 
-	return resources[i]->header.magicNumber;
+	u32 mn = resources[i]->header.magicNumber;
+	bool isValid = false;
+	runArchiveFunction<NType::IsValidType>(mn, ArchiveTypes(), &isValid);
+
+	return mn;
+}
+
+bool NArchive::copyResource(u32 id, u8 *where, u32 size) {
+	if(id >= resources.size()) return false;
+
+	memcpy(where, resources[id], size);
+	return true;
 }
 
 std::string NArchive::getTypeName(u32 i) const {
 	u32 t = getType(i);
 	std::string typeName = std::string((char*)&t, 4);
+	std::reverse(typeName.begin(), typeName.end());
+
+	for (u32 i = 0; i < 4; ++i) {
+		char &c = typeName[i];
+		if (!(c >= '0' && c <= '9') && !(c >= 'A' && c <= 'Z') && !(c >= 'a' && c <= 'z'))
+			c = '?';
+	}
+
 	return typeName;
 }
 
