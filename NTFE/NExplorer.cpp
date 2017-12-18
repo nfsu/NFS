@@ -170,7 +170,7 @@ void NExplorerView::onCustomContextMenu(const QPoint &point) {
 		}
 		else if (name == "NSCR") {
 			Texture2D tex;
-			nfs::NCSR ncgr = nex->fs.get<nfs::NCSR>(fso->resource);
+			nfs::NSCR ncgr = nex->fs.get<nfs::NSCR>(fso->resource);
 			nfs::NType::convert(ncgr, &tex);
 
 			editors->setTexture(2, tex, fso);

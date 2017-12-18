@@ -178,7 +178,7 @@ bool NType::convert(NCGR source, Texture2D *tex) {
 }
 
 
-bool NType::convert(NCSR source, Texture2D *tex) {
+bool NType::convert(NSCR source, Texture2D *tex) {
 	tex->width = source.contents.front.screenWidth / 8;
 	tex->height = source.contents.front.screenHeight / 8;
 	tex->size = tex->width * tex->height * 2;

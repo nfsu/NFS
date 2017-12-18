@@ -80,7 +80,7 @@ namespace nfs {
 	};
 
 	//Screen resource
-	typedef GenericResource<NRCS> NCSR;
+	typedef GenericResource<NRCS> NSCR;
 
 	//File allocation table
 	struct BTAF : GenericSection {
@@ -213,7 +213,7 @@ namespace nfs {
 	///LM4000 archieve magic
 
 	//TypeList with all the archive types
-	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR, NBUO> ArchiveTypes;
+	typedef lag::TypeList<NARC, NSCR, NCGR, NCLR, NBUO> ArchiveTypes;
 
 	//function type
 	template<typename ... Args>
@@ -268,7 +268,7 @@ namespace nfs {
 		template<> constexpr static u32 get<SOPC> = 0x43504F53;
 		template<> constexpr static u32 get<NCGR> = 0x4E434752;
 		template<> constexpr static u32 get<NRCS> = 0x5343524E;
-		template<> constexpr static u32 get<NCSR> = 0x4E534352;
+		template<> constexpr static u32 get<NSCR> = 0x4E534352;
 		template<> constexpr static u32 get<GMIF> = 0x46494D47;
 		template<> constexpr static u32 get<BTAF> = 0x46415442;
 		template<> constexpr static u32 get<NARC> = 0x4352414E;
@@ -466,7 +466,7 @@ namespace nfs {
 		static bool convert(NARC source, NArchive *archieve);
 		static bool convert(NCLR source, Texture2D *tex);
 		static bool convert(NCGR source, Texture2D *tex);
-		static bool convert(NCSR source, Texture2D *tex);
+		static bool convert(NSCR source, Texture2D *tex);
 		static bool convert(NDS nds, FileSystem *fs);
 
 		template<typename T>

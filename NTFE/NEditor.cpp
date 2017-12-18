@@ -324,7 +324,7 @@ std::unordered_map<u32, NEditorType> NEditor::__editors() {
 	map[(u32)NEditorMode::MAP].onActivate = [](NEditor*) -> void {};
 	map[(u32)NEditorMode::MAP].save = [](NEditor*) -> void {};
 	map[(u32)NEditorMode::MAP].ex = [](NEditor *edit) -> void {
-		QString fileName = QFileDialog::getSaveFileName(edit, tr("Export"), "", tr("PNG file (*.png);;NCSR (map) file (*.NCSR);;NCGR (tilemap) file (*.NCGR);;NCLR (palette) file (*.NCLR)"));
+		QString fileName = QFileDialog::getSaveFileName(edit, tr("Export"), "", tr("PNG file (*.png);;NSCR (map) file (*.NSCR);;NCGR (tilemap) file (*.NCGR);;NCLR (palette) file (*.NCLR)"));
 
 		if (fileName.endsWith(".png", Qt::CaseInsensitive)) {
 			Texture2D result = convertTT2D({ edit->getBoundTexture(0), edit->getBoundTexture(1), edit->getBoundTexture(2) });
