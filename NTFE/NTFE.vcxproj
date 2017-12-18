@@ -149,6 +149,7 @@ XCOPY "$(SolutionDir)API/x64" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ColorPalette.cpp" />
     <ClCompile Include="InfoTable.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="NEditors.cpp" />
@@ -157,6 +158,7 @@ XCOPY "$(SolutionDir)API/x64" "$(OutDir)" /y</Command>
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ColorPalette.h" />
     <ClInclude Include="Link.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="NEditors.h" />

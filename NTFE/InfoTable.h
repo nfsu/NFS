@@ -6,7 +6,7 @@ class InfoTable : public QAbstractTableModel {
 
 public:
 
-	InfoTable(nfs::NDS &_nds, nfs::FileSystem &_fs, std::unordered_map<std::string, std::vector<std::string>> _contents, QObject *parent = 0);
+	InfoTable(std::unordered_map<std::string, std::vector<std::string>> _contents, QObject *parent = 0);
 
 	int rowCount(const QModelIndex &) const override;
 	int columnCount(const QModelIndex &) const override;
@@ -19,8 +19,6 @@ public:
 
 private:
 
-	nfs::NDS &nds;
-	nfs::FileSystem &fs;
 	std::unordered_map<std::string, std::vector<std::string>> contents;
 	std::vector<std::string> keys;
 	u32 maxValues;

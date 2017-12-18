@@ -1,6 +1,6 @@
 #include "InfoTable.h"
 
-InfoTable::InfoTable(nfs::NDS &_nds, nfs::FileSystem &_fs, std::unordered_map<std::string, std::vector<std::string>> _contents, QObject *parent) : QAbstractTableModel(parent), nds(_nds), fs(_fs), contents(_contents), maxValues(0) {
+InfoTable::InfoTable(std::unordered_map<std::string, std::vector<std::string>> _contents, QObject *parent) : QAbstractTableModel(parent), contents(_contents), maxValues(0) {
 	keys.resize(contents.size());
 	u32 i = 0;
 	for (auto &elem : contents) {

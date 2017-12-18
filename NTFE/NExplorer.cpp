@@ -5,7 +5,12 @@
 #include <qevent.h>
 using namespace nfs;
 
-NExplorer::NExplorer(u8 *_begin, FileSystem &_fs, QObject *parent) : QAbstractItemModel(parent), begin(_begin), fs(_fs) { }
+NExplorer::NExplorer(u8 *_begin, FileSystem &_fs, QObject *parent) : QAbstractItemModel(parent), begin(_begin), fs(_fs), flag(0x7F) { }
+
+void NExplorer::setFlag(u32 fl) {
+	flag = fl & 0x7F;
+}
+
 
 int NExplorer::columnCount(const QModelIndex &parent) const { return 1; }
 QVariant NExplorer::headerData(int section, Qt::Orientation orientation, int role) const {
@@ -62,7 +67,7 @@ QVariant NExplorer::data(const QModelIndex &index, int role) const {		//Improve
 	return QString(var.name.c_str());
 }
 
-QModelIndex NExplorer::index(int row, int column, const QModelIndex &parent) const {		//Improve
+QModelIndex NExplorer::index(int row, int column, const QModelIndex &parent) const {
 
 	FileSystemObject *fso = nullptr;
 
@@ -151,7 +156,7 @@ void NExplorerView::onCustomContextMenu(const QPoint &point) {
 			Texture2D tex;
 			nfs::NType::convert(nex->fs.get<nfs::NCLR>(fso->resource), &tex);
 
-			editors->setTexture(0, tex);
+			editors->setTexture(0, tex, fso);
 		}
 		else if (name == "NCGR") {
 			Texture2D tex;
@@ -161,14 +166,14 @@ void NExplorerView::onCustomContextMenu(const QPoint &point) {
 			///TODO: Calculate correct size of image when it's not specified
 			///TODO: Sometimes palettes are wrong?
 
-			editors->setTexture(1, tex);
+			editors->setTexture(1, tex, fso);
 		}
 		else if (name == "NSCR") {
 			Texture2D tex;
 			nfs::NCSR ncgr = nex->fs.get<nfs::NCSR>(fso->resource);
 			nfs::NType::convert(ncgr, &tex);
 
-			editors->setTexture(2, tex);
+			editors->setTexture(2, tex, fso);
 		}
 	}
 }

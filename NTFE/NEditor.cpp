@@ -1,5 +1,6 @@
 #include "NEditor.h"
 #include <NTypes2.h>
+#include <qfiledialog.h>
 
 void logGLErrors() {
 
@@ -120,11 +121,36 @@ void destroyShader(GLuint &shader) {
 	shader = 0;
 }
 
-NEditor::NEditor(NEditorMode _mode, std::unordered_map<u32, GLuint> &_buffers, std::unordered_map<u32, Texture2D> &_textures): shader(0), vbo(0), mode(_mode), buffers(_buffers), textures(_textures) { }
+NEditor::NEditor(u32 _mode, std::unordered_map<u32, GLuint> &_buffers, std::unordered_map<u32, Texture2D> &_textures, std::unordered_map<u32, nfs::FileSystemObject*> &_files, QPushButton *_actions[4]): shader(0), vbo(0), mode(_mode), buffers(_buffers), textures(_textures), files(_files) {
+	for (u32 i = 0; i < 4; ++i) {
+		actions[i] = _actions[i];
+		connect(actions[i], &QPushButton::pressed, this, [this, i]() { this->action(i); });
+	}
+}
 
-void NEditor::initializeGL() {
+void NEditor::action(u32 i) {
+	switch (i) {
+	case 0:
+		editors[mode].save(this);
+		break;
+	case 1:
+		editors[mode].ex(this);
+		break;
+	case 2:
+		editors[mode].load(this);
+		break;
+	default:
+		editors[mode].import(this);
+		break;
+	}
+}
 
-	glewInit();
+
+std::unordered_map<u32, NEditorType> NEditor::editors = __editors();
+
+std::unordered_map<u32, NEditorType> NEditor::__editors() {
+
+	std::unordered_map<u32, NEditorType> map;
 
 	std::string vert =
 		"#version 330 core\r\n"
@@ -138,7 +164,7 @@ void NEditor::initializeGL() {
 		"	uv = vec2(tuv.x, 1 - tuv.y);"
 		"}";
 
-	std::string header = 
+	std::string header =
 		"#version 330 core\r\n"
 		"in vec2 uv;"
 		"out vec4 color;";
@@ -179,7 +205,7 @@ void NEditor::initializeGL() {
 		"	return samplePalette(uv2);"
 		"}";
 
-	std::string map =
+	std::string maps =
 		"uniform usampler2D map;"
 		"uniform uvec2 dim0;"
 
@@ -210,27 +236,131 @@ void NEditor::initializeGL() {
 
 		"}";
 
-	if (mode == NEditorMode::PALETTE)
-		shader = makeShader(vert, header + palette +
+	map[(u32)NEditorMode::PALETTE].name = "palette";
+	map[(u32)NEditorMode::PALETTE].prepareRender = [](NEditor *editor) {};
+	map[(u32)NEditorMode::PALETTE].init = [vert, header, palette](NEditor *editor) -> GLuint {
+		return makeShader(vert, header + palette +
 			"void main() {"
 			"	color = vec4(samplePalette(uv), 1);"
 			"}"
-
 		);
-	else if (mode == NEditorMode::TILEMAP) 
-		shader = makeShader(vert, header + palette + tilemap + 
+	};
+	map[(u32)NEditorMode::PALETTE].onActivate = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::PALETTE].save = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::PALETTE].ex = [](NEditor *edit) -> void {
+		QString fileName = QFileDialog::getSaveFileName(edit, tr("Export"), "", tr("PNG file (*.png);;NCLR (palette) file (*.NCLR)"));
+		if (fileName.endsWith(".png", Qt::CaseInsensitive))
+			writeTexture(edit->getBoundTexture(0), fileName.toStdString());
+		else
+			writeBuffer(edit->getBoundFile(0)->buffer, fileName.toStdString());
+	};
+	map[(u32)NEditorMode::PALETTE].load = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::PALETTE].import = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::PALETTE].activateButtons = [](NEditor *edit) -> bool {
+		return edit->hasBoundTexture(0);
+	};
+
+	auto setupTiling = [](NEditor *n, u32 mode) {
+
+		u32 is4bit = (n->getBoundTexture(1).tt & TextureType::B4) != 0;
+
+		GLuint loc2 = glGetUniformLocation(n->getShader(), "isFourBit");
+		glUniform1ui(loc2, is4bit);
+
+		GLuint dim[2] = { n->getBoundTexture(1).width, n->getBoundTexture(1).height };
+		GLuint loc3 = glGetUniformLocation(n->getShader(), "dim");
+		glUniform2uiv(loc3, 1, dim);
+
+		if (mode == (u32)NEditorMode::MAP) {
+			GLuint dim0[2] = { n->getBoundTexture(2).width, n->getBoundTexture(2).height };
+			GLuint loc4 = glGetUniformLocation(n->getShader(), "dim0");
+			glUniform2uiv(loc4, 1, dim0);
+		}
+
+		GLuint loc4 = glGetUniformLocation(n->getShader(), "tiling");
+		if ((n->getBoundTexture(1).tt & TextureType::TILED8) != 0)
+			glUniform1ui(loc4, 8);
+	};
+
+	map[(u32)NEditorMode::TILEMAP].name = "tilemap";
+	map[(u32)NEditorMode::TILEMAP].prepareRender = [setupTiling](NEditor *editor) { setupTiling(editor, (u32)NEditorMode::TILEMAP); };
+	map[(u32)NEditorMode::TILEMAP].init = [vert, header, palette, tilemap](NEditor *editor) -> GLuint {
+		return makeShader(vert, header + palette + tilemap + 
 			"void main() {"
 			"	color = vec4(sampleTilemap(uv), 1);"
 			"}"
-
 		);
-	 else if (mode == NEditorMode::MAP) 
-		shader = makeShader(vert, header + palette + tilemap + map +
+	};
+	map[(u32)NEditorMode::TILEMAP].onActivate = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::TILEMAP].save = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::TILEMAP].ex = [](NEditor *edit) -> void {
+		QString fileName = QFileDialog::getSaveFileName(edit, tr("Export"), "", tr("PNG file (*.png);;NCGR (tilemap) file (*.NCGR);;NCLR (palette) file (*.NCLR)"));
+
+		if (fileName.endsWith(".png", Qt::CaseInsensitive)) {
+			Texture2D result = convertPT2D({ edit->getBoundTexture(0), edit->getBoundTexture(1) });
+			writeTexture(result, fileName.toStdString());
+			deleteTexture(&result);
+		} 
+		else if (fileName.endsWith(".NCGR", Qt::CaseInsensitive)) 
+			writeBuffer(edit->getBoundFile(1)->buffer, fileName.toStdString());
+		else
+			writeBuffer(edit->getBoundFile(0)->buffer, fileName.toStdString());
+	};
+	map[(u32)NEditorMode::TILEMAP].load = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::TILEMAP].import = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::TILEMAP].activateButtons = [](NEditor *edit) -> bool {
+		return edit->hasBoundTexture(0) && edit->hasBoundTexture(1);
+	};
+
+	map[(u32)NEditorMode::MAP].name = "map";
+	map[(u32)NEditorMode::MAP].prepareRender = [setupTiling](NEditor *editor) { setupTiling(editor, (u32)NEditorMode::MAP); };
+	map[(u32)NEditorMode::MAP].init = [vert, header, palette, tilemap, maps](NEditor *editor) -> GLuint {
+		return makeShader(vert, header + palette + tilemap + maps +
 			"void main() {"
 			"	color = vec4(sampleMap(uv), 1);"
 			"}"
-
 		);
+	};
+	map[(u32)NEditorMode::MAP].onActivate = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::MAP].save = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::MAP].ex = [](NEditor *edit) -> void {
+		QString fileName = QFileDialog::getSaveFileName(edit, tr("Export"), "", tr("PNG file (*.png);;NCSR (map) file (*.NCSR);;NCGR (tilemap) file (*.NCGR);;NCLR (palette) file (*.NCLR)"));
+
+		if (fileName.endsWith(".png", Qt::CaseInsensitive)) {
+			Texture2D result = convertTT2D({ edit->getBoundTexture(0), edit->getBoundTexture(1), edit->getBoundTexture(2) });
+			writeTexture(result, fileName.toStdString());
+			deleteTexture(&result);
+		}
+		else if (fileName.endsWith(".NCGR", Qt::CaseInsensitive))
+			writeBuffer(edit->getBoundFile(1)->buffer, fileName.toStdString());
+		else if (fileName.endsWith(".NSCR", Qt::CaseInsensitive))
+			writeBuffer(edit->getBoundFile(2)->buffer, fileName.toStdString());
+		else
+			writeBuffer(edit->getBoundFile(0)->buffer, fileName.toStdString());
+	};
+	map[(u32)NEditorMode::MAP].load = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::MAP].import = [](NEditor*) -> void {};
+	map[(u32)NEditorMode::MAP].activateButtons = [](NEditor *edit) -> bool {
+		return edit->hasBoundTexture(0) && edit->hasBoundTexture(1) && edit->hasBoundTexture(2);
+	};
+
+	return map;
+}
+
+void NEditor::activate() {
+	bool b = editors[mode].activateButtons(this);
+
+	for (u32 i = 0; i < 4; ++i)
+		actions[i]->setEnabled(b);
+
+	editors[mode].onActivate(this);
+}
+
+void NEditor::initializeGL() {
+
+	glewInit();
+
+	shader = editors[mode].init(this);
 
 	Position2D data[4] = {
 		{ -1, -1 },
@@ -247,18 +377,22 @@ NEditor::~NEditor() {
 	destroyVBO(vbo);
 }
 
-const char *getName(u32 i) {
-	switch (i) {
-	case 0:
-		return "palette";
-	case 1:
-		return "tilemap";
-	case 2:
-		return "map";
-	default:
-		return "";
+bool NEditor::addType(u32 i, NEditorType net) {
+	if (editors.find(i) != editors.end())
+	return false;
 
-	}
+	editors[i] = net;
+	return true;
+}
+
+u32 NEditor::getSize() { return (u32)editors.size(); }
+
+GLuint NEditor::getShader() const { return shader; }
+Texture2D NEditor::getBoundTexture(u32 i) const { return textures[i]; }
+nfs::FileSystemObject *NEditor::getBoundFile(u32 i) const { return files[i]; }
+bool NEditor::hasBoundTexture(u32 i) const {
+	if (textures.find(i) == textures.end()) return false;
+	return textures[i].size != 0;
 }
 
 void NEditor::paintGL() {
@@ -274,31 +408,11 @@ void NEditor::paintGL() {
 		glActiveTexture(GL_TEXTURE0 + i.first);
 		glBindTexture(GL_TEXTURE_2D, buffers[i.first]);
 
-		GLuint loc = glGetUniformLocation(shader, getName(i.first));
+		GLuint loc = glGetUniformLocation(shader, editors[i.first].name.c_str());
 		glUniform1i(loc, i.first);
 	}
 
-	if (mode == NEditorMode::TILEMAP || mode == NEditorMode::MAP) {
-
-		u32 is4bit = (textures[1].tt & TextureType::B4) != 0;
-
-		GLuint loc2 = glGetUniformLocation(shader, "isFourBit");
-		glUniform1ui(loc2, is4bit);
-
-		GLuint dim[2] = { textures[1].width, textures[1].height };
-		GLuint loc3 = glGetUniformLocation(shader, "dim");
-		glUniform2uiv(loc3, 1, dim);
-
-		if (mode == NEditorMode::MAP) {
-			GLuint dim0[2] = { textures[2].width, textures[2].height };
-			GLuint loc4 = glGetUniformLocation(shader, "dim0");
-			glUniform2uiv(loc4, 1, dim0);
-		}
-
-		GLuint loc4 = glGetUniformLocation(shader, "tiling");
-		if ((textures[1].tt & TextureType::TILED8) != 0)
-			glUniform1ui(loc4, 8);
-	}
+	editors[mode].prepareRender(this);
 
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 

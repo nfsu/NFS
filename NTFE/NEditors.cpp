@@ -1,6 +1,64 @@
 #include "NEditors.h"
 #include <qsplitter.h>
 #include <qboxlayout.h>
+#include <qpushbutton.h>
+#include "InfoTable.h"
+#include <qheaderview.h>
+#include <qcolordialog.h>
+#include "ColorPalette.h"
+
+NEditor *NEditors::add(QSplitter *parent, u32 mode) {
+
+	QSplitter *content = new QSplitter(Qt::Vertical);
+
+	QWidget *fileOptions = new QWidget;
+	fileOptions->setContentsMargins(QMargins(0, 0, 0, 0));
+	QHBoxLayout *hl = new QHBoxLayout;
+	hl->setContentsMargins(QMargins(0, 5, 0, 5));
+	fileOptions->setLayout(hl);
+	hl->setAlignment(Qt::AlignHCenter);
+
+	QPushButton *opt[4];
+	hl->addWidget(opt[0] = new QPushButton("Save"));
+	hl->addWidget(opt[1] = new QPushButton("Export"));
+	hl->addWidget(opt[2] = new QPushButton("Load"));
+	hl->addWidget(opt[3] = new QPushButton("Import"));
+
+	for (QPushButton *op : opt) {
+		op->setMinimumSize(QSize(64, 24));
+		op->setMaximumSize(QSize(64, 24));
+		op->setEnabled(false);
+	}
+
+	QSplitter *top = new QSplitter;
+
+	NEditor *result = new NEditor(mode, buffers, textures, files, opt);
+	result->setMinimumSize(QSize(256, 256));
+
+	QWidget *right = new QWidget;
+	QLayout *rightLayout = new QVBoxLayout;
+	right->setLayout(rightLayout);
+
+	if (mode == (u32)NEditorMode::PALETTE) {
+
+		ColorPalette *color = new ColorPalette;
+		rightLayout->addWidget(color);
+	}
+
+	top->addWidget(result);
+	top->addWidget(right);
+	top->setStretchFactor(0, 0);
+	top->setStretchFactor(1, 1);
+
+	content->addWidget(top);
+	content->addWidget(fileOptions);
+	content->setStretchFactor(0, 1);
+	content->setStretchFactor(1, 0);
+
+	parent->addWidget(content);
+
+	return result;
+}
 
 NEditors::NEditors(){
 
@@ -15,14 +73,11 @@ NEditors::NEditors(){
 			{
 				rr = new QSplitter(Qt::Horizontal);
 
-				editors[0] = new NEditor(NEditorMode::PALETTE, buffers, textures);
-				editors[0]->setMinimumSize(QSize(500, 400));
+				editors[0] = add(rr, (u32)NEditorMode::PALETTE);
+				editors[1] = add(rr, (u32)NEditorMode::TILEMAP);
 
-				editors[1] = new NEditor(NEditorMode::TILEMAP, buffers, textures);
-				editors[1]->setMinimumSize(QSize(500, 400));
-
-				rr->addWidget(editors[0]);
-				rr->addWidget(editors[1]);
+				rr->setStretchFactor(0, 0);
+				rr->setStretchFactor(1, 0);
 			}
 
 			QSplitter *rl;
@@ -30,14 +85,11 @@ NEditors::NEditors(){
 			{
 				rl = new QSplitter(Qt::Horizontal);
 
-				editors[2] = new NEditor(NEditorMode::MAP, buffers, textures);
-				editors[2]->setMinimumSize(QSize(500, 400));
+				editors[2] = add(rl, (u32)NEditorMode::MAP);
+				editors[3] = add(rl, (u32)NEditorMode::PALETTE);
 
-				editors[3] = new NEditor(NEditorMode::PALETTE, buffers, textures);
-				editors[3]->setMinimumSize(QSize(500, 400));
-
-				rl->addWidget(editors[2]);
-				rl->addWidget(editors[3]);
+				rl->setStretchFactor(0, 0);
+				rl->setStretchFactor(1, 0);
 			}
 
 			right->addWidget(rr);
@@ -84,16 +136,20 @@ GLuint makeTexture(Texture2D tex) {
 	return id;
 }
 
-void NEditors::setTexture(u32 id, Texture2D t2d) {
+void NEditors::setTexture(u32 id, Texture2D t2d, nfs::FileSystemObject *obj) {
 
 	GLuint &buffer = buffers[id];
 	Texture2D &tex = textures[id];
 
+	files[id] = obj;
+
 	if (buffer != 0) destroyTexture(buffer);
 	buffer = makeTexture(tex = t2d);
 
-	for(auto elem : editors)
+	for (auto elem : editors) {
+		elem->activate();
 		elem->update();
+	}
 }
 
 NEditors::~NEditors() {

@@ -23,11 +23,15 @@ public:
 	int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 	int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
+	void setFlag(u32 flag);
+
 private:
 
 	u8 *begin;
 	nfs::FileSystem &fs;
 	u32 fileCount;
+
+	u32 flag;
 };
 
 class NExplorerView : public QTreeView {
