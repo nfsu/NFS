@@ -234,5 +234,7 @@ NDS | Dual Screen | - | File system and code | FileSystem | no
 Thanks to /LagMeester4000 for creating magic templates that are used all the time in this API. Typelists are used from his repo at [/LagMeester4000/TypeList](https://github.com/LagMeester4000/TypeList).
 ## Nintendo policies
 Nintendo policies are strict, especially on fan-made content. If you are using this to hack roms, please be sure to NOT SUPPLY roms and if you're using this, please ensure that copyright policies are being kept. I am not responsible for any programs made with this, for it is only made to create new roms or use existing roms in the fair use policy.
+### Legal issues
+To prevent any legal issues, you can choose to distribute a 'patch' instead of a ROM. Distributing a ROM is illegal, it is copyrighted content and you are uploading it. Distributing a patch however, isn't illegal. This is because the patch doesn't contain any copyrighted info and just the data that was altered from the original. This patch contains no pieces of art, no pieces of code that have been untouched by the user, therefore making it the user's property.
 ## Fair use
 You can feel free to use this program any time you'd like, as long as you mention this repo.
