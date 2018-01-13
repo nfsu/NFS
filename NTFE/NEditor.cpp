@@ -193,12 +193,12 @@ std::unordered_map<u32, NEditorType> NEditor::__editors() {
 		"	}"
 
 		"	uint posi = uint(texture(tilemap, uv).r);"
-		"	if(isFourBit != uint(0)) { \n"
+		"	if(isFourBit != uint(0)) {"
 		"		if(pix.x % uint(2) != uint(1))"
 		"			posi &= uint(0xF);"
 		"		else"
 		"			posi = (posi & uint(0xF0)) >> uint(4);"
-		"	}\n"
+		"	}"
 
 		"	uvec2 uv1 = uvec2(posi & uint(0xF), (posi & uint(0xF0)) >> uint(4));"
 		"	vec2 uv2 = vec2(float(uv1.x) / 15.0, float(uv1.y) / 15.0);"
@@ -262,23 +262,26 @@ std::unordered_map<u32, NEditorType> NEditor::__editors() {
 
 	auto setupTiling = [](NEditor *n, u32 mode) {
 
-		u32 is4bit = (n->getBoundTexture(1).tt & TextureType::B4) != 0;
+		Texture2D tilemap = n->getBoundTexture(1);
+
+		u32 is4bit = (tilemap.tt & TextureType::B4) != 0;
 
 		GLuint loc2 = glGetUniformLocation(n->getShader(), "isFourBit");
 		glUniform1ui(loc2, is4bit);
 
-		GLuint dim[2] = { n->getBoundTexture(1).width, n->getBoundTexture(1).height };
+		GLuint dim[2] = { tilemap.width, tilemap.height };
 		GLuint loc3 = glGetUniformLocation(n->getShader(), "dim");
 		glUniform2uiv(loc3, 1, dim);
 
 		if (mode == (u32)NEditorMode::MAP) {
-			GLuint dim0[2] = { n->getBoundTexture(2).width, n->getBoundTexture(2).height };
+			Texture2D map = n->getBoundTexture(2);
+			GLuint dim0[2] = { map.width, map.height };
 			GLuint loc4 = glGetUniformLocation(n->getShader(), "dim0");
 			glUniform2uiv(loc4, 1, dim0);
 		}
 
 		GLuint loc4 = glGetUniformLocation(n->getShader(), "tiling");
-		if ((n->getBoundTexture(1).tt & TextureType::TILED8) != 0)
+		if ((tilemap.tt & TextureType::TILED8) != 0)
 			glUniform1ui(loc4, 8);
 	};
 

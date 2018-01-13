@@ -217,6 +217,7 @@
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="Generic.cpp" />
     <ClCompile Include="NTypes2.cpp" />
+    <ClCompile Include="Patcher.cpp" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>
@@ -232,6 +233,7 @@
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="Generic.h" />
     <ClInclude Include="NTypes2.h" />
+    <ClInclude Include="Patcher.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Types.h" />
   </ItemGroup>
