@@ -7,12 +7,20 @@ namespace nfs {
 
 	struct NFSP_Header {
 		char magicNumber[4];
-		u32 blocks, size, padding;
+		u32 blocks, size, registers;
 	};
 
 	struct NFSP_Block {
 		u32 offset, length;
 		Buffer buf;
+
+		bool operator<(const NFSP_Block &other) const {
+			return length < other.length || (length == other.length && offset < other.offset);
+		}
+	};
+
+	struct NFSP_Register {
+		u32 size, count;
 	};
 
 	//Patcher class; stores modified bytes

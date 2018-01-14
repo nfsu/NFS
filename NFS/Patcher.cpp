@@ -52,14 +52,28 @@ Buffer Patcher::patch(Buffer original, Buffer patch) {
 
 	u8 *off = (u8*)(head + 1);
 
+	std::vector<NFSP_Register> registers(head->registers);
+	for (u32 i = 0; i < head->registers; ++i) {
+		memcpy(&registers[i], off, sizeof(NFSP_Register));
+		off += sizeof(NFSP_Register);
+	}
+
+	u32 reg = 0, regC = 0, regtarg = registers[0].count, regval = registers[0].size;
 	for (u32 i = 0; i < head->blocks; ++i) {
 
+		if (regC >= regtarg - 1) {
+			++reg;
+			regC = 0;
+			regtarg = registers[reg].count;
+			regval = registers[reg].size;
+		}
+
 		NFSP_Block *block = (NFSP_Block*)off;
-		u8 *dat = off + 8;
 
-		memcpy(output.data + block->offset, dat, block->length);
+		memcpy(output.data + block->offset, off + 4, regval);
 
-		off += 8 + block->length;
+		off += 4 + regval;
+		++regC;
 	}
 
 	t.stop();
@@ -128,7 +142,6 @@ Buffer Patcher::writePatch(Buffer original, Buffer modified) {
 
 	NFSP_Header header;
 	memcpy(&header, magicNum, 4);
-	header.padding = 0;
 	header.size = modified.size;
 
 	u32 end;
@@ -173,25 +186,66 @@ Buffer Patcher::writePatch(Buffer original, Buffer modified) {
 			for (u32 j = 0; j < bufs.size(); ++j) {
 				Buffer &buf = bufs[j];
 				blocks[off + j] = { (u32)(buf.data - modified.data), buf.size, buf };
-				finalSize += 8 + buf.size;
+				finalSize += 4 + buf.size;
 			}
 		}
 	}
 
+	if (blocks.size() == 0) {
+		printf("Couldn't patch file! As they are identical\n");
+		return { nullptr, 0 };
+	}
+
 	header.blocks = blocks.size();
+
+	std::sort(blocks.begin(), blocks.end());
+
+	std::vector<NFSP_Register> regs;
+
+	u32 prevSize = blocks[0].length, prevI = 0;
+	for (u32 i = 0; i < blocks.size(); ++i) {
+
+		NFSP_Block *blc = &blocks[i];
+		
+		if (prevSize != blc->length) {
+			regs.push_back({ prevSize, i - prevI + 1});
+			prevSize = blc->length;
+			prevI = i;
+			finalSize += 8;
+		}
+	}
+
+	u32 lastI = blocks.size() - 1;
+	auto &last = blocks[lastI];
+	if (regs[regs.size() - 1].size != last.length) {
+		regs.push_back({ prevSize, lastI - prevI + 1});
+		finalSize += 8;
+	}
+
+	header.registers = regs.size();
 
 	Buffer result = newBuffer1(finalSize);
 	memcpy(result.data, &header, sizeof(header));
 
 	Buffer offb = offset(result, sizeof(header));
 
+	for (u32 i = 0; i < regs.size(); ++i) {
+
+		NFSP_Register *reg = &regs[i];
+
+		memcpy(offb.data, reg, sizeof(NFSP_Register));
+
+		offb = offset(offb, sizeof(NFSP_Register));
+	}
+
 	for (u32 i = 0; i < blocks.size(); ++i) {
 
 		NFSP_Block *blc = &blocks[i];
 
-		memcpy(offb.data, blc, 8);
-		memcpy(offb.data + 8, blc->buf.data, blc->length);
-		offb = offset(offb, 8 + blc->length);
+		memcpy(offb.data, blc, 4);
+		memcpy(offb.data + 4, blc->buf.data, blc->length);
+
+		offb = offset(offb, 4 + blc->length);
 	}
 
 	t.stop();
