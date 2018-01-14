@@ -3,13 +3,70 @@
 #include <future>
 using namespace nfs;
 
-bool Patcher::patch(std::string original, std::string patch, std::string out) {
-	return false;
+bool Patcher::patch(std::string original, std::string path, std::string out) {
+	Buffer og = readFile(original);
+	Buffer ptc = readFile(path);
+
+	if (og.size == 0) {
+		if (ptc.size != 0)
+			deleteBuffer(&ptc);
+		return false;
+	}
+
+	if (ptc.size == 0) {
+		if (og.size != 0)
+			deleteBuffer(&og);
+		return false;
+	}
+
+	Buffer output = patch(og, ptc);
+	if (output.size == 0) {
+		deleteBuffer(&og);
+		deleteBuffer(&ptc);
+		return false;
+	}
+
+	bool b = writeBuffer(output, out);
+	deleteBuffer(&output);
+	deleteBuffer(&og);
+	deleteBuffer(&ptc);
+	return b;
 }
 
 Buffer Patcher::patch(Buffer original, Buffer patch) {
 
-	return { nullptr, 0 };
+	oi::Timer t;
+
+	NFSP_Header *head = (NFSP_Header*)patch.data;
+
+	static const char magicNum[4] = { 'N', 'F', 'S', 'P' };
+
+	if (memcmp(head, magicNum, 4) != 0) {
+		printf("Couldn't patch file! Patch was invalid\n");
+		return { nullptr, 0 };
+	}
+
+	Buffer output = newBuffer1(head->size);
+	u32 len = original.size > head->size ? head->size : original.size;
+	memcpy(output.data, original.data, len);
+
+	u8 *off = (u8*)(head + 1);
+
+	for (u32 i = 0; i < head->blocks; ++i) {
+
+		NFSP_Block *block = (NFSP_Block*)off;
+		u8 *dat = off + 8;
+
+		memcpy(output.data + block->offset, dat, block->length);
+
+		off += 8 + block->length;
+	}
+
+	t.stop();
+	printf("Finished patching a buffer:\n");
+	t.print();
+
+	return output;
 }
 
 bool Patcher::compare(Buffer a, Buffer b, std::vector<Buffer> &result, u32 &compares) {
@@ -32,7 +89,29 @@ bool Patcher::compare(Buffer a, Buffer b, std::vector<Buffer> &result, u32 &comp
 		res = false;
 
 		if (size <= 1024U) {
-			result.push_back(iB);
+
+			Buffer buf = { nullptr, 0 };
+			bool match = true;
+			for (u32 j = 0; j < size; ++j) {
+
+				bool curr = iA.data[j] == iB.data[j];
+
+				if (match && !curr) 				//Start of buffer
+					buf = { iB.data + j, size - j };
+				else if(curr && !match){			//End of buffer
+					buf.size = (u32)((iB.data + j) - buf.data);
+					result.push_back(buf);
+					buf = { nullptr, 0 };
+				}
+
+				match = curr;
+			}
+
+			if (!match) {							//End of buffer
+				buf.size = (u32)((iB.data + size) - buf.data);
+				result.push_back(buf);
+			}
+			
 			continue;
 		} else
 			compare(iA, iB, result, compares);
@@ -147,5 +226,7 @@ bool Patcher::writePatch(std::string original, std::string modified, std::string
 
 	bool b = writeBuffer(res, patch);
 	deleteBuffer(&res);
+	deleteBuffer(&og);
+	deleteBuffer(&mod);
 	return b;
 }

@@ -8,9 +8,8 @@
 int main(int argc, char *argv[]) {
 
 	nfs::Patcher::writePatch("ROM.nds", "ROMMod.nds", "RomDif.NFSP");
-
-	printf("%u\n", (u32)sizeof(Buffer));
-
+	nfs::Patcher::patch("ROM.nds", "RomDif.NFSP", "ROMMod2.nds");
+	
 	QApplication app(argc, argv);
 	QIcon icon = QIcon("Resources/NFS.png");
 
