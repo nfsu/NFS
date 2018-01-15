@@ -21,6 +21,18 @@ typedef unsigned long long u64;
 typedef float f32;
 typedef double f64;
 
+#ifdef _WIN64
+typedef u64 platformVar;
+constexpr platformVar platformVar_MAX = 0xFFFFFFFFFFFFFFFFU;
+constexpr platformVar platformVar_SIZE = 8;
+constexpr platformVar platformVar_BITSIZE = 64;
+#else
+typedef u32 platformVar;
+constexpr platformVar platformVar_MAX = 0xFFFFFFFFU;
+constexpr platformVar platformVar_SIZE = 4;
+constexpr platformVar platformVar_BITSIZE = 32;
+#endif
+
 constexpr u8 u8_MAX = (u8)0xFF;
 constexpr u8 u8_MIN = (u8)0;
 constexpr u16 u16_MAX = (u16)0xFFFF;

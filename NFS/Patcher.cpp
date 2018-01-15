@@ -1,6 +1,7 @@
 #include "Patcher.h"
 #include "Timer.h"
 #include <future>
+#include "Bitset.h"
 using namespace nfs;
 
 bool Patcher::patch(std::string original, std::string path, std::string out) {
@@ -58,7 +59,11 @@ Buffer Patcher::patch(Buffer original, Buffer patch) {
 		off += sizeof(NFSP_Register);
 	}
 
-	u32 reg = 0, regC = 0, regtarg = registers[0].count, regval = registers[0].size;
+	u32 bitsetLength = (u32)ceil(head->blocks / 4.f);
+	oi::Bitset types({ off, bitsetLength }, head->blocks * 2);
+	off += bitsetLength;
+
+	u32 reg = 0, regC = 0, regtarg = registers[0].count, regval = registers[0].size, prevOff = 0;
 	for (u32 i = 0; i < head->blocks; ++i) {
 
 		if (regC >= regtarg - 1) {
@@ -70,9 +75,20 @@ Buffer Patcher::patch(Buffer original, Buffer patch) {
 
 		NFSP_Block *block = (NFSP_Block*)off;
 
-		memcpy(output.data + block->offset, off + 4, regval);
+		oi::Bitset subset = types.subset(i * 2U, 2U);
+		u32 size = subset[0] ? 4 : (subset[1] ? 2 : 1);
+		u32 toff = 0;
 
-		off += 4 + regval;
+		if (size == 4) toff = *(u32*)block;
+		else if (size == 2) toff = *(u16*)block;
+		else toff = *(u8*)block;
+
+		if (size == 4) prevOff = toff;
+		else prevOff += toff;
+		
+		memcpy(output.data + prevOff, off + size, regval);
+
+		off += size + regval;
 		++regC;
 	}
 
@@ -180,13 +196,13 @@ Buffer Patcher::writePatch(Buffer original, Buffer modified) {
 		std::vector<Buffer> bufs = std::move(futures[i].get());
 
 		if (bufs.size() != 0) {
-			u32 off = blocks.size();
+			u32 off = (u32)blocks.size();
 			blocks.resize(off + bufs.size());
 
 			for (u32 j = 0; j < bufs.size(); ++j) {
 				Buffer &buf = bufs[j];
 				blocks[off + j] = { (u32)(buf.data - modified.data), buf.size, buf };
-				finalSize += 4 + buf.size;
+				finalSize += buf.size;
 			}
 		}
 	}
@@ -196,7 +212,7 @@ Buffer Patcher::writePatch(Buffer original, Buffer modified) {
 		return { nullptr, 0 };
 	}
 
-	header.blocks = blocks.size();
+	header.blocks = (u32)blocks.size();
 
 	std::sort(blocks.begin(), blocks.end());
 
@@ -215,14 +231,47 @@ Buffer Patcher::writePatch(Buffer original, Buffer modified) {
 		}
 	}
 
-	u32 lastI = blocks.size() - 1;
+	oi::Bitset b((u32)blocks.size() * 2);
+
+	prevSize = blocks[0].length;
+	u32 prevOff = 0;
+	for (u32 i = 0; i < blocks.size(); ++i) {
+
+		NFSP_Block *blc = &blocks[i];
+
+		if (prevSize != blc->length) {
+			prevOff = 0;
+			prevSize = blc->length;
+		}
+
+		u32 off = blc->offset - prevOff;
+		if (off < 256) {
+			b(oi::Bitset(false, false), 2 * i);
+			++finalSize;
+		}
+		else if (off < 65536) {
+			b(oi::Bitset(false, true), 2 * i);
+			finalSize += 2;
+		}
+		else {
+			finalSize += 4;
+			b(oi::Bitset(true, false), 2 * i);
+		}
+
+		prevOff = blc->offset;
+	}
+
+	Buffer bbuf = b;
+	finalSize += bbuf.size;
+
+	u32 lastI = (u32)blocks.size() - 1;
 	auto &last = blocks[lastI];
 	if (regs[regs.size() - 1].size != last.length) {
 		regs.push_back({ prevSize, lastI - prevI + 1});
 		finalSize += 8;
 	}
 
-	header.registers = regs.size();
+	header.registers = (u32)regs.size();
 
 	Buffer result = newBuffer1(finalSize);
 	memcpy(result.data, &header, sizeof(header));
@@ -238,14 +287,41 @@ Buffer Patcher::writePatch(Buffer original, Buffer modified) {
 		offb = offset(offb, sizeof(NFSP_Register));
 	}
 
+	memcpy(offb.data, bbuf.data, bbuf.size);
+	offb = offset(offb, bbuf.size);
+
+	prevSize = blocks[0].length;
+	prevOff = 0;
 	for (u32 i = 0; i < blocks.size(); ++i) {
 
 		NFSP_Block *blc = &blocks[i];
 
-		memcpy(offb.data, blc, 4);
-		memcpy(offb.data + 4, blc->buf.data, blc->length);
+		u32 off = blc->offset - prevOff;
+		if (prevSize != blc->length) {
+			off = blc->offset;
+			prevSize = blc->length;
+		}
 
-		offb = offset(offb, 4 + blc->length);
+		u32 size = 0;
+
+		if (off < 256) {
+			*(u8*)offb.data = off;
+			size = 1;
+		}
+		else if (off < 65536) {
+			*(u16*)offb.data = off;
+			size = 2;
+		}
+		else {
+			*(u32*)offb.data = off;
+			size = 4;
+		}
+
+		prevOff = blc->offset;
+
+		memcpy(offb.data + size, blc->buf.data, blc->length);
+
+		offb = offset(offb, size + blc->length);
 	}
 
 	t.stop();
