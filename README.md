@@ -1,5 +1,8 @@
-# NFS ![Logo](https://i.imgur.com/bBy2kS9.png)
+![NFS logo](https://i.imgur.com/uabtvGW.png)
+<br>
 Nintendo File System
+-------
+
 NFS(U) stands for Nintendo File System (Utils) and is designed to read and interpret nds files such as NARC, NCLR, NCGR, etc.  
 ![Logo](https://i.imgur.com/PWpc5ZX.png)
 ## Why NFS?
