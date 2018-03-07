@@ -1,5 +1,5 @@
-#include "FileSystem.h"
 #include "Timer.h"
+#include "FileSystem.h"
 #include <future>
 using namespace nfs;
 
@@ -553,7 +553,7 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 	t.lap("Init sub resources");
 
 	///Turn into file system
-	*fs = FileSystem(std::move(fso), std::move(resourcePtrs), resources, folderArraySize, fso.size() - folderArraySize);
+	*fs = FileSystem(std::move(fso), std::move(resourcePtrs), resources, folderArraySize, (u32) fso.size() - folderArraySize);
 
 	t.lap("Finalizing sub resources");
 	t.stop();

@@ -18,6 +18,8 @@
 #pragma comment(lib, "libEGL.lib")
 #endif
 
-#ifdef _WIN32
-//#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+#include "Settings.h"
+
+#if defined(_WIN32) && defined(HIDE_CONSOLE)
+#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
 #endif

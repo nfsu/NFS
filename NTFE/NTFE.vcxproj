@@ -165,9 +165,7 @@ XCOPY "$(SolutionDir)API/x64" "$(OutDir)" /y</Command>
     <ClInclude Include="NExplorer.h" />
     <ClInclude Include="InfoTable.h" />
     <ClInclude Include="NEditor.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="C:\Users\Niels Brunekreef\Pictures\kappa.png" />
+    <ClInclude Include="Settings.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
