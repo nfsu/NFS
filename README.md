@@ -1,9 +1,11 @@
-# NFS ![Logo](https://i.imgur.com/bBy2kS9.png)
+![NFS logo](https://i.imgur.com/uabtvGW.png)
+<br>
 Nintendo File System
+-------
+
 NFS(U) stands for Nintendo File System (Utils) and is designed to read and interpret nds files such as NARC, NCLR, NCGR, etc.  
-![Logo](https://i.imgur.com/PWpc5ZX.png)
 ## Why NFS?
-As a kid I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician /LagMeester4000, I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
+As a kid I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician [LagMeester4000](https://github.com/LagMeester4000), I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
 ## How to use
 Down below you can see a simply use of the NFS API.
 ### Reading raw ROM data

@@ -59,10 +59,8 @@
     <ClInclude Include="ColorPalette.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="C:\Users\Niels Brunekreef\Pictures\kappa.png">
-      <Filter>Resource Files</Filter>
-    </Image>
+    <ClInclude Include="Settings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
