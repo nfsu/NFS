@@ -17,12 +17,17 @@ public:
 	void findOnline();
 	void changeFlag(u32 flag, bool triggered);
 
+	void setup(std::string file);
+	void setupRomInfo();
+
 private:
 
-	Buffer romData;
+	Buffer romData = { nullptr, 0 };
 	nfs::NDS rom;
 	nfs::FileSystem fs;
-	NExplorer *nex;
+	NExplorer *nex = nullptr;
+	std::string fileName = "";
+	QLayout *layout = nullptr;
 
-	u32 displayFlag;
+	u32 displayFlag = 0xFFFFFF;
 };

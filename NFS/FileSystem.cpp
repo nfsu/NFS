@@ -455,8 +455,8 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 		///Init sub resources
 
 	u32 threads = std::thread::hardware_concurrency();
-	u32 perThread = subfiles / (threads + 1);
-	u32 perThreadr = subfiles % (threads + 1);
+	u32 perThread = subfiles / threads;
+	u32 perThreadr = subfiles - perThread * threads;
 
 	struct FileSystemThread {
 
@@ -548,16 +548,25 @@ bool NType::convert(NDS nds, FileSystem *fs) {
 	}
 
 	for (u32 i = 0; i < threads; ++i)
-		processes[i].get();
+		if (processes[i].valid())
+			processes[i].get();
+		else
+			printf("Invalid future process at thread %u\n", i);
 
 	t.lap("Init sub resources");
 
 	///Turn into file system
-	*fs = FileSystem(std::move(fso), std::move(resourcePtrs), resources, folderArraySize, fso.size() - folderArraySize);
+	*fs = FileSystem(std::move(fso), std::move(resourcePtrs), resources, folderArraySize, (u32)fso.size() - folderArraySize);
 
 	t.lap("Finalizing sub resources");
 	t.stop();
 	t.print();
 
 	return true;
+}
+
+void FileSystem::clear() {
+	files.clear();
+	fileC = folderC = 0;
+	NArchive::clear();
 }

@@ -180,6 +180,8 @@ namespace nfs {
 		u32 size() const;
 		u32 bufferSize() const;
 
+		void clear();
+
 	protected:
 
 		void copy(const NArchive &other);

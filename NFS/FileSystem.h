@@ -63,6 +63,8 @@ namespace nfs {
 
 		FileSystemObject *foreachInFolder(bool (*f)(const FileSystemObject &fso, u32 i, u32 param), FileSystemObject &start, u32 param);
 
+		void clear();
+
 	private:
 
 		std::vector<FileSystemObject> files;

@@ -9,6 +9,11 @@ NArchive::NArchive(const NArchive &other) {
 	copy(other);
 }
 
+void NArchive::clear() {
+	resources.clear();
+	deleteBuffer(&buf);
+}
+
 NArchive &NArchive::operator=(const NArchive &other) {
 	copy(other);
 	return *this;
