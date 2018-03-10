@@ -97,6 +97,9 @@
       <Command>XCOPY "$(SolutionDir)API/Debug" "$(OutDir)"
 XCOPY "$(SolutionDir)API/x86" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreLinkEvent>
+      <Command>XCOPY "$(SolutionDir)API/dependency" /y /f /s "$(OutDir)"</Command>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -110,6 +113,9 @@ XCOPY "$(SolutionDir)API/x86" "$(OutDir)"</Command>
       <Command>XCOPY "$(SolutionDir)API/Debug" /y "$(OutDir)"
 XCOPY "$(SolutionDir)API/x64" "$(OutDir)" /y</Command>
     </PostBuildEvent>
+    <PreLinkEvent>
+      <Command>XCOPY "$(SolutionDir)API/dependency" /y /f /s "$(OutDir)"</Command>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -128,6 +134,9 @@ XCOPY "$(SolutionDir)API/x64" "$(OutDir)" /y</Command>
       <Command>XCOPY "$(SolutionDir)API/Release" "$(OutDir)"
 XCOPY "$(SolutionDir)API/x86" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreLinkEvent>
+      <Command>XCOPY "$(SolutionDir)API/dependency" /y /f /s "$(OutDir)"</Command>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -147,6 +156,9 @@ XCOPY "$(SolutionDir)API/x86" "$(OutDir)"</Command>
       <Command>XCOPY "$(SolutionDir)API/Release" /y "$(OutDir)"
 XCOPY "$(SolutionDir)API/x64" "$(OutDir)" /y</Command>
     </PostBuildEvent>
+    <PreLinkEvent>
+      <Command>XCOPY "$(SolutionDir)API/dependency" /y /f /s "$(OutDir)"</Command>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ColorPalette.cpp" />
