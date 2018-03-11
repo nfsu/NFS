@@ -47,7 +47,7 @@ Down below you can see a simple use of the NFS API.
 	}
 	buf.dealloc();
 ```
-If you've acquired your ROM, you have to load it into memory, so the program can read and modify it. This buffer can be deleted afterwards (and written to a folder, to save all changes made).  
+If you've acquired your ROM, you have to load it into memory, so the program can read and modify it. This buffer can be deleted once you don't want to use the FileSystem anymore.  
 NDS is a header file with the most important information about the ROM; such as, where the code and files are located and the name of the ROM.
 ### Converting the ROM into a FileSystem
 A ROM is like a ZIP; except it is used for storing game data (models, images, sounds, palettes, maps, binary data, text, code and more). This means that it stores the file names into the ROM; which we can use to extract the files we need and where they are. Above, you could see that converting to a FileSystem is done by simply using the constructor; so even fs = nds; is okay.
