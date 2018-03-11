@@ -23,9 +23,9 @@ target_link_libraries(nfsu lib/Qt5Widgets)
 
 add_custom_command(
         TARGET nfsu POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}
-                ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+				${CMAKE_CURRENT_SOURCE_DIR}/bin
+				${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE})
 				
 add_custom_command(
         TARGET nfsu POST_BUILD

@@ -33,3 +33,10 @@
 *.nds
 *.NFSP
 CMakeFiles/
+*.filters
+*.vcxproj
+bin/Debug/
+nfs/nfs.dir/
+nfsu/nfsu.dir/
+*.cmake
+CMakeCache.txt
