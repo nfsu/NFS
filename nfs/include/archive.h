@@ -26,6 +26,9 @@ namespace nfs {
 		T &at(u32 i);
 
 		template<typename T>
+		T &get(ArchiveObject &ao);
+
+		template<typename T>
 		bool isType(u32 i) const;
 
 		u32 size() const;
@@ -53,10 +56,16 @@ namespace nfs {
 
 		ArchiveObject &ao = (*this)[i];
 
+		return get<T>(ao);
+	}
+
+	template<typename T>
+	T &get(ArchiveObject &ao) {
+
 		if (ao.info.magicNumber != ResourceHelper::getMagicNumber(T{}))
 			throw std::exception("Archive Couldn't cast; variables aren't of same type");
 
-		return *(T*)ao.position;
+		return *(T*) ao.position;
 	}
 
 

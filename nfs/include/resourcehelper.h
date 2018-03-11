@@ -12,6 +12,15 @@ namespace nfs {
 			return i;
 		}
 
+		static u32 getMagicNumber(NBUO nbuo) {
+			return NBUO_num;
+		}
+
+		template<typename T>
+		static u32 getMagicNumber() {
+			return getMagicNumber(T{});
+		}
+
 		template<typename T>
 		static bool isType(const u8 *type) {
 

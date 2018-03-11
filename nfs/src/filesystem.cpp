@@ -230,3 +230,10 @@ std::vector<FileSystemObject> &FileSystem::getFileSystem() { return fileSystem; 
 void FileSystem::copy(const FileSystem &fs) {
 	fileSystem = fs.fileSystem;
 }
+
+std::vector<FileSystemObject>::iterator FileSystem::begin() { return fileSystem.begin(); }
+std::vector<FileSystemObject>::iterator FileSystem::end() { return fileSystem.end(); }
+
+FileSystemObject &FileSystem::operator[](u32 i) {
+	return fileSystem[i];
+}

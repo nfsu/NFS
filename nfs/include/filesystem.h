@@ -15,6 +15,11 @@ namespace nfs {
 		FileSystem(FileSystem &&fs);
 
 		std::vector<FileSystemObject> &getFileSystem();
+		std::vector<FileSystemObject>::iterator begin();
+		std::vector<FileSystemObject>::iterator end();
+
+		FileSystemObject &operator[](u32 i);
+		ArchiveObject &getResource(FileSystemObject &fso);
 
 	protected:
 
