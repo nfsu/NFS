@@ -4,68 +4,104 @@ Nintendo File System
 -------
 
 NFS(U) stands for Nintendo File System (Utils) and is designed to read and interpret nds files such as NARC, NCLR, NCGR, etc.  
-## Why NFS?
-As a kid I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician [LagMeester4000](https://github.com/LagMeester4000), I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
+# But why?
+Some time ago, I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician [LagMeester4000](https://github.com/LagMeester4000), I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
+# How to install
+The newest version of NFS uses cmake to generate the build projects for you, you can simply run 'reload.bat' and it will generate the files for you. With this, you can add new projects and depend on NFS/NFSU. Simply add the following cmake file (CMakeLists.txt) in your project <name>.
+```cmake
+include_directories(../nfs/include)
+include_directories(include)
+
+file(GLOB_RECURSE <name>_SRC
+	"include/*.h"
+	"src/*.c"
+	"include/*.hpp"
+	"src/*.cpp"
+)
+
+add_executable(
+	<name>
+	${<name>_SRC}
+)
+
+target_link_libraries(<name> nfs)
+```
+And add it to the list in the root cmake
+```cmake
+add_subdirectory(nfs)
+add_subdirectory(nfsu)
+add_subdirectory(<name>)
+```
+	
 ## How to use
 Down below you can see a simply use of the NFS API.
 ### Reading raw ROM data
 ```cpp
-	Buffer buf = readFile("ROM.nds");
+	using namespace nfs;
+	Buffer buf = Buffer::read("ROM.nds");
 	try {
-		NDS nds = NType::readNDS(buf);
+		NDS *nds = (NDS*) buf.ptr;
+		FileSystem fs(nds);
 	} catch (std::exception e) {
 		printf("%s\n", e.what());
 	}
-	deleteBuffer(&buf);
+	buf.dealloc();
 ```
-If you've acquired your ROM, you have to load it into memory, so the program can read and modify (a copy) of it. This buffer can be deleted afterwards (and written to a folder, to save all changes made).  
-NDS is a format that seperates the header from the contents for a NDS file; it stores the important information in a struct and the other stuff in a buffer.
+If you've acquired your ROM, you have to load it into memory, so the program can read and modify it. This buffer can be deleted afterwards (and written to a folder, to save all changes made).  
+NDS is a header file with the most important information about the ROM; such as, where the code and files are located and the name of the ROM.
 ### Converting the ROM into a FileSystem
-A ROM is like a ZIP; except it is used for storing game data (models, images, sounds, palettes, maps, binary data, text, code and more). This means that it stores the file names into the ROM; which we can use to extract the files we need and where they are.
+A ROM is like a ZIP; except it is used for storing game data (models, images, sounds, palettes, maps, binary data, text, code and more). This means that it stores the file names into the ROM; which we can use to extract the files we need and where they are. Above, you could see that converting to a FileSystem is done by simply using the constructor; so even fs = nds; is okay.
+This will put the file data into the fs variable, which you can then loop through and use.
 ```cpp
-		FileSystem files;
-		NType::convert(nds, &files);
-```
-This will put the file data into the files variable, which you can then loop through and use.
-```cpp
-		for (auto iter = files.begin(); iter != files.end(); ++iter) {
+		for (auto iter = fs.begin(); iter != fs.end(); ++iter) {
 
-			FileSystemObject fileSysObj = *iter;
+			FileSystemObject &fso = *iter;
 			//More code...
 		}
 ```
 ### Checks for fso's
-Fso stands for 'FileSystemObject' and it is what I call folders and files; this means that fileSysObj isn't always a file, it could also be a folder. To distinguish them, you can use the following functions:
+Fso stands for 'FileSystemObject' and it is what I call folders and files; this means that fso isn't always a file, it could also be a folder. To distinguish them, you can use the following functions:
 - isFile
 - isFolder
 - isRoot
 - hasParent
-- getMagicNumber(std::string &type, u32 &magicNum)
-'getMagicNumber' will try to figure out the type name for a file and will also try to return a valid 'magicNumber' (an identifier for any type of class).  
-So, before converting a file, make sure it is actually a file.
+Before converting a file, make sure it is actually a file. The other variables are explained as following:
+- folders; the count of folders for this file
+- files; the count of files for this file  (Yes; even files can have subfiles, as .NARC and .CARC are still a file, but contain files)
+- objects; the count of objects for this file (folders + files)
+- index; the index in the FileSystem
+- parent; the index to the parent in the FileSystem
+- resource; the index to the resource in the FileSystem's Archive
+- fileHint; a hint about where the files are located (if it has any; otherwise it's u32_MAX)
+- folderHint; a hint about where the folders are located (if it has any; otherwise it's u32_MAX)
+- name; the absolute path to the directory
+- buf; the buffer of the file, if it isn't a file, it's a null buffer
 ### Obtaining the resource of the file
 ```cpp
-			if (fileSysObj.isFile()) {
+			if (fso.isFile()) {
 
-				std::string name;						//Typename of the file
-				u32 magicNumber;						//MagicNumber / indication
-				bool valid = fileSysObj.getMagicNumber(name, magicNumber);	//Whether or not the file is supported
-
-				try {
-					const NBUO &nbuo = files.getResource<NBUO>(fileSysObj);
-					printf("Object: %s (%s)\n", val.path.c_str(), name.c_str());
-					//Cast it to a 'Buffer Unknown Object', this scope only runs when the file is not supported
-				}
-				catch (std::exception e) {
-					printf("Supported object: %s (%s)\n", val.path.c_str(), name.c_str());	
-					//If it's not an unknown object; it's supported
+				ArchiveObject &ao = fs.getResource(fso);
+				if(ao.info.magicNumber == ResourceHelper::getMagicNumber<NBUO>()) {
+					//It is not supported
+				} else {	
+					//It is supported
+					printf("Supported object: %s (%s)\n", ao.name.c_str(), ao.info..c_str());
+					
+					if(ao.info.magicNumber == NCLR::getMagicNumber()){
+						NCLR &nclr = fs.get<NCLR>(ao);
+						u32 nclrSize = nclr.header->size;
+						//More stuff
+					}
 				}
 			}
 			else {
 				//It's not a file, but a folder or root folder
 			}
 ```
-A resource can be anything; a buffer, a file, an image, a palette, a map, etc. It is anything that is stored in the ROM's file system. This resource has to be converted, just like the NDS file, before you can use the contents.
+Here we are getting the ArchiveObject; which is the physical representation of a file/folder, it tells you where what kind of resource is located. One identifier you can use is the 'magicNumber'; which is the standard way, you can also use the type, which is used by a few ResourceHelper functions and the name (extension), however, magicNumber is the fastest in most cases. If you are sure the fso is actually an object that you can read, you can use the FileSystem's Archive's 'get' function, which requires a template parameter. If you cast incorrectly, it will throw a std::exception, so you could surround it instead of checking first, but that's bad practice. Then, you can use the GenericHeader*, which has a size and a few other variables, or you can use the at<i> method for getting a section. NCLR for example has a TTLP (Palette data) and sometimes a PMCP (Palette count map). These are defined in 'ntypes.h'. If you want to get the palette data, you can use get<0>, to get the buffer which contains the data for that section.
+	
+	
+## (The following is from previous documentation and isn't implemented yet)	
 ### Traversing a folder
 'Traversing' is what I call searching through an entire folder; so traverse through /someFolder/something would give all of the folders and files in the directory and inside those folders. While the square brackets (or array operator) are used for obtaining folders/files directly inside a folder:
 ```cpp
