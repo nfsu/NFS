@@ -211,6 +211,8 @@ FileSystem::FileSystem(NDS *rom) {
 		t.lap("Intialize resources");
 	#endif
 
+	//TODO: Subresources
+
 	#ifdef USE_TIMER
 		t.lap("Intialize subresource threads");
 	#endif

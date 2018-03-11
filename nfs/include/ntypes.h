@@ -3,14 +3,14 @@
 
 namespace nfs {
 
-	struct TTLP : public GenericSection {										//palette data
+	struct TTLP : GenericSection {												//palette data
 		u32 bitDepth;						//3 = 4 bits, 4 = 8 bits
 		u32 c_padding;						//0x00000000
 		u32 dataSize;						//size of palette data in bytes; if(size > 0x200) size = 0x200 - size;
 		u32 c_colors;						//0x00000010
 	};
 
-	struct PMCP : public GenericSection {										//Palette count map
+	struct PMCP : GenericSection {												//Palette count map
 		u16 count;							//Count of palettes in file
 		u32 c_constant;						//0xEFBE08
 		u16 c_padding;						//0x0000
