@@ -64,7 +64,7 @@ Fso stands for 'FileSystemObject' and it is what I call folders and files; this 
 - isFile
 - isFolder
 - isRoot
-- hasParent
+- hasParent  
 Before converting a file, make sure it is actually a file. The other variables are explained as following:
 - folders; the count of folders for this file
 - files; the count of files for this file  (Yes; even files can have subfiles, as .NARC and .CARC are still a file, but contain files)
