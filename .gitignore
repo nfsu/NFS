@@ -41,6 +41,7 @@ nfsu/nfsu.dir/
 *.cmake
 CMakeCache.txt
 !nfsu/bin
+!nfsu/bin/platforms
 !nfsu/lib
 bin/
 *.sln

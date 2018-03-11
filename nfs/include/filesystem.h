@@ -32,6 +32,15 @@ namespace nfs {
 		template<typename ...args>
 		FileSystemObject *foreachInFolder(bool(*isMatch)(FileSystem &fs, FileSystemObject &fso, u32 i, u32 index, args... arg), FileSystemObject &start, args... arg);
 
+		template<typename T>
+		T &get(std::string path);
+
+		template<typename T>
+		T &get(FileSystemObject &fso);
+
+		template<typename T>
+		T &get(ArchiveObject &ao);
+
 		void clear();
 
 	protected:
@@ -75,5 +84,26 @@ namespace nfs {
 		}
 
 		return nullptr;
+	}
+
+	template<typename T>
+	T &FileSystem::get(std::string path) {
+
+		FileSystemObject *fso = (*this)[path];
+
+		if (fso == nullptr)
+			throw std::exception(("FileSystem Couldn't get fso at path \"" + path + "\"").c_str());
+
+		return get<T>(*fso);
+	}
+
+	template<typename T>
+	T &FileSystem::get(FileSystemObject &fso) {
+		return get<T>(getResource(fso));
+	}
+
+	template<typename T>
+	T &FileSystem::get(ArchiveObject &ao) {
+		return Archive::get<T>(ao);
 	}
 }

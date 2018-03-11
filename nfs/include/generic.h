@@ -59,7 +59,11 @@ struct Buffer {
 	u8 *end();
 	
 	static Buffer alloc(u32 size);
+	static Buffer allocEmpty(u32 size); //allocate and memset to 0
 	void dealloc();
+
+	//Set every byte to val
+	void set(u8 val);
 
 	Buffer offset(u32 len);
 	Buffer &addOffset(u32 i);

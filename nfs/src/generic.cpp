@@ -36,6 +36,16 @@ Buffer Buffer::alloc(u32 size) {
 	return { size, (u8*)malloc(size) };
 }
 
+void Buffer::set(u8 val) {
+	memset(ptr, val, size);
+}
+
+Buffer Buffer::allocEmpty(u32 size) {
+	Buffer b = alloc(size);
+	b.set(0);
+	return b;
+}
+
 Buffer Buffer::read(std::string str) {
 
 	std::ifstream in(str, std::ios::binary);
