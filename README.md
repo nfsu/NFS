@@ -101,37 +101,36 @@ Before converting a file, make sure it is actually a file. The other variables a
 Here we are getting the ArchiveObject; which is the physical representation of a file/folder, it tells you where what kind of resource is located. One identifier you can use is the 'magicNumber'; which is the standard way, you can also use the type, which is used by a few ResourceHelper functions and the name (extension), however, magicNumber is the fastest in most cases. If you are sure the fso is actually an object that you can read, you can use the FileSystem's Archive's 'get' function, which requires a template parameter. If you cast incorrectly, it will throw an std::exception, so you could try & catch it instead of checking first, but that's bad practice. Then, you can use the GenericHeader*, which has a size and a few other variables, or you can use the `at<i>()` method for getting a section. NCLR for example has a TTLP (Palette data) and sometimes a PMCP (Palette count map). These are defined in 'ntypes.h'. If you want to get the palette data, you can use get<0>, to get the buffer which contains the data for that section.
 	
 	
-## (The following is from previous documentation and isn't implemented yet)	
+
 ### Traversing a folder
 'Traversing' is what I call searching through an entire folder; so traverse through /someFolder/something would give all of the folders and files in the directory and inside those folders. While the square brackets (or array operator) are used for obtaining folders/files directly inside a folder:
 ```cpp
-	std::vector<const FileSystemObject*> fsos = files.traverseFolder(files["fielddata"]);
+	std::vector<const FileSystemObject*> fsos = files.traverse(files["fielddata"]);
 	for (u32 i = 0; i < fsos.size(); ++i)
-		printf("%s\n", fsos[i]->path.c_str());
+		printf("%s\n", fsos[i]->name.c_str());
 ```
 `files["x"]` will get the fso at the position of x; that FSO can then be used to trace all files or get the files inside of that folder (if it is a folder). You could also traverse root; by using "/" as the folder, or simply by using `files[fso]`.
 ```cpp
 	std::vector<const FileSystemObject*> fsos = files[files["/"]];
 	for (u32 i = 0; i < fsos.size(); ++i)
-		printf("%s\n", fsos[i]->path.c_str());
+		printf("%s\n", fsos[i]->name.c_str());
 ```
 ### Reading resources
-You can automatically read resources from an archive/file system by simply converting an NDS to a file system or a NARC to a NArchive, like so:
+Before you can use a resource, you need to convert them to the type you want to use. You do this the same way as with Archive/FileSystem; you use the constructor of the type you want to convert to. For example:
 ```cpp
-	//Archives
-	NArchive arch;
-	NType::convert(narc, &arch);
-	//FileSystems
-	FileSystem fs;
-	NType::convert(nds, &fs);
+	NARC &narc = fs.get<NARC>(fs.getResource(*fs["a/b/test.NARC"]));
+	Archive arc(narc);
 ```
-NArchive contains a buffer with all of the types, while FileSystem also contains the names and relations of the files. These types can be converted again to get things like Texture2D, NArchive, etc.
+Above, you fetch the fso at "a/b/test.NARC", which could be nullptr (so you should only dereference when you're sure it's not). Then, you get that resource, which can be used to get the NARC. Then, you can convert it to an Archive; however, this should be prevented and only done when you REALLY need it. The FileSystem automatically parses NARC/CARCs inside of the file system, so there would be no need for this, seeing as it isn't a 'free' conversion, it takes a little time. There are however, conversions that do come for 'free' (as they are just detecting a type and not parsing anything). These include, but are not limited to, texture conversions (palette/tilemap/map).
 ```cpp
-	Texture2D tex;
-	NType::convert(nclr, &tex);
+	Texture2D tex(nclr);
+	PT2D tilemap(ncgr, nclr);
+	PTT2D map(nscr, ncgr, nclr);
 ```
+'Texture2D' is a simple 2D texture (could be any format; but in NDS it's BGR555 most of the time), 'PT2D' is Palette Texture 2D; so you have a palette linked to a texture, 'PTT2D' is Palette Tile Texture 2D, which is linked to a tilemap, which is linked to a palette.
 ### FileSystem's parent
 FileSystem is a unique object, it has a folder structure. But, it still remains a list of resources. This is why it uses NArchive as its parent. It stores both resources and file information. This means that you can use the archive's functions too, but those can't be used in combination with file names.
+## (The following is from previous documentation and isn't implemented yet)
 ### Archives
 As said before, an archive is basically a list of resources, which you can get types of and cast.
 ```cpp
