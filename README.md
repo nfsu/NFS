@@ -34,7 +34,7 @@ add_subdirectory(<name>)
 ```
 	
 ## How to use
-Down below you can see a simply use of the NFS API.
+Down below you can see a simple use of the NFS API.
 ### Reading raw ROM data
 ```cpp
 	using namespace nfs;
