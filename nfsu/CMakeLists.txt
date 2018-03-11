@@ -25,10 +25,10 @@ add_custom_command(
         TARGET nfsu POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
 				${CMAKE_CURRENT_SOURCE_DIR}/bin
-				${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE})
+				${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
 				
 add_custom_command(
         TARGET nfsu POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
 				${CMAKE_CURRENT_SOURCE_DIR}/resources
-				${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/resources)
+				${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/resources)
