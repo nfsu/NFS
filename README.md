@@ -34,7 +34,7 @@ add_subdirectory(<name>)
 ```
 	
 ## How to use
-Down below you can see a simply use of the NFS API.
+Down below you can see a simple use of the NFS API.
 ### Reading raw ROM data
 ```cpp
 	using namespace nfs;
@@ -47,7 +47,7 @@ Down below you can see a simply use of the NFS API.
 	}
 	buf.dealloc();
 ```
-If you've acquired your ROM, you have to load it into memory, so the program can read and modify it. This buffer can be deleted afterwards (and written to a folder, to save all changes made).  
+If you've acquired your ROM, you have to load it into memory, so the program can read and modify it. This buffer can be deleted once you don't want to use the FileSystem anymore.  
 NDS is a header file with the most important information about the ROM; such as, where the code and files are located and the name of the ROM.
 ### Converting the ROM into a FileSystem
 A ROM is like a ZIP; except it is used for storing game data (models, images, sounds, palettes, maps, binary data, text, code and more). This means that it stores the file names into the ROM; which we can use to extract the files we need and where they are. Above, you could see that converting to a FileSystem is done by simply using the constructor; so even fs = nds; is okay.
@@ -64,7 +64,7 @@ Fso stands for 'FileSystemObject' and it is what I call folders and files; this 
 - isFile
 - isFolder
 - isRoot
-- hasParent
+- hasParent  
 Before converting a file, make sure it is actually a file. The other variables are explained as following:
 - folders; the count of folders for this file
 - files; the count of files for this file  (Yes; even files can have subfiles, as .NARC and .CARC are still a file, but contain files)
@@ -98,7 +98,7 @@ Before converting a file, make sure it is actually a file. The other variables a
 				//It's not a file, but a folder or root folder
 			}
 ```
-Here we are getting the ArchiveObject; which is the physical representation of a file/folder, it tells you where what kind of resource is located. One identifier you can use is the 'magicNumber'; which is the standard way, you can also use the type, which is used by a few ResourceHelper functions and the name (extension), however, magicNumber is the fastest in most cases. If you are sure the fso is actually an object that you can read, you can use the FileSystem's Archive's 'get' function, which requires a template parameter. If you cast incorrectly, it will throw a std::exception, so you could surround it instead of checking first, but that's bad practice. Then, you can use the GenericHeader*, which has a size and a few other variables, or you can use the at<i> method for getting a section. NCLR for example has a TTLP (Palette data) and sometimes a PMCP (Palette count map). These are defined in 'ntypes.h'. If you want to get the palette data, you can use get<0>, to get the buffer which contains the data for that section.
+Here we are getting the ArchiveObject; which is the physical representation of a file/folder, it tells you where what kind of resource is located. One identifier you can use is the 'magicNumber'; which is the standard way, you can also use the type, which is used by a few ResourceHelper functions and the name (extension), however, magicNumber is the fastest in most cases. If you are sure the fso is actually an object that you can read, you can use the FileSystem's Archive's 'get' function, which requires a template parameter. If you cast incorrectly, it will throw an std::exception, so you could try & catch it instead of checking first, but that's bad practice. Then, you can use the GenericHeader*, which has a size and a few other variables, or you can use the `at<i>()` method for getting a section. NCLR for example has a TTLP (Palette data) and sometimes a PMCP (Palette count map). These are defined in 'ntypes.h'. If you want to get the palette data, you can use get<0>, to get the buffer which contains the data for that section.
 	
 	
 ## (The following is from previous documentation and isn't implemented yet)	
