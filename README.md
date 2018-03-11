@@ -7,32 +7,11 @@ NFS(U) stands for Nintendo File System (Utils) and is designed to read and inter
 # But why?
 Some time ago, I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician [LagMeester4000](https://github.com/LagMeester4000), I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
 # How to install
-The newest version of NFS uses cmake to generate the build projects for you, you can simply run 'reload.bat' and it will generate the files for you. With this, you can add new projects and depend on NFS/NFSU. Simply add the following cmake file (CMakeLists.txt) in your project <name>.
-```cmake
-include_directories(../nfs/include)
-include_directories(include)
-
-file(GLOB_RECURSE <name>_SRC
-	"include/*.h"
-	"src/*.c"
-	"include/*.hpp"
-	"src/*.cpp"
-)
-
-add_executable(
-	<name>
-	${<name>_SRC}
-)
-
-target_link_libraries(<name> nfs)
+The newest version of NFS uses cmake to generate the build projects for you, you can simply run 'reload.bat' and it will generate the files for you. With this, you can add new projects and depend on NFS/NFSU. Simply run the command;
+```bat
+addproject nfse nfs
 ```
-And add it to the list in the root cmake
-```cmake
-add_subdirectory(nfs)
-add_subdirectory(nfsu)
-add_subdirectory(<name>)
-```
-	
+The example above will automatically add the 'nfse' project to the CMakeLists and will create a basic header and source file for you. It then reloads the project, so your project is added. If you want to depend on nfsu instead, you change 'nfs' to 'nfsu'. If you want to make one yourself, you simply create a CMakeLists.child.txt file in the root of your project and then you put in everything an inherrited CMakeLists.txt would have, where <PROJECT_NAME> is a macro for the project name put in in addproject.
 ## How to use
 Down below you can see a simple use of the NFS API.
 ### Reading raw ROM data
@@ -124,66 +103,23 @@ Before you can use a resource, you need to convert them to the type you want to 
 Above, you fetch the fso at "a/b/test.NARC", which could be nullptr (so you should only dereference when you're sure it's not). Then, you get that resource, which can be used to get the NARC. Then, you can convert it to an Archive; however, this should be prevented and only done when you REALLY need it. The FileSystem automatically parses NARC/CARCs inside of the file system, so there would be no need for this, seeing as it isn't a 'free' conversion, it takes a little time. There are however, conversions that do come for 'free' (as they are just detecting a type and not parsing anything). These include, but are not limited to, texture conversions (palette/tilemap/map).
 ```cpp
 	Texture2D tex(nclr);
-	PT2D tilemap(ncgr, nclr);
-	PTT2D map(nscr, ncgr, nclr);
+	Texture2D tilemap(ncgr, nclr);
+	Texture2D map(nscr, ncgr, nclr);
 ```
-'Texture2D' is a simple 2D texture (could be any format; but in NDS it's BGR555 most of the time), 'PT2D' is Palette Texture 2D; so you have a palette linked to a texture, 'PTT2D' is Palette Tile Texture 2D, which is linked to a tilemap, which is linked to a palette.
+'Texture2D' is a simple 2D texture (could be any format; but in NDS it's BGR555, 4 bit or 8 bit most of the time). If you use any texture conversions (such as tilemap and map), don't forget to call '.dealloc' on the texture to free it from memory. This is because creating them this way will create a new texture with the correct data. If you don't want that, you have to create seperate textures and do the reading yourself.
 ### FileSystem's parent
 FileSystem is a unique object, it has a folder structure. But, it still remains a list of resources. This is why it uses NArchive as its parent. It stores both resources and file information. This means that you can use the archive's functions too, but those can't be used in combination with file names.
-## (The following is from previous documentation and isn't implemented yet)
 ### Archives
-As said before, an archive is basically a list of resources, which you can get types of and cast.
-```cpp
-	std::string name = arch.getTypeName(i);
-	u32 magicNumber = arch.getType(i);
-```
-The typeName and magicNumber aren't always correct, as an archive doesn't know about the extension of a file. It just knows that the first 4 bytes generally indicate the type of the file. You can't always rely on the typeName, but the magicNumber is valid (most of the time).
-```cpp
-	if (arch.getType(i) == MagicNumber::get<NCLR>)
-		NCLR &nclr = arch.operator[]<NCLR>(i);
-```
-It could also be done by using a try and catch;
-```cpp
-	try {
-		NCLR &nclr = arch.operator[]<NCLR>(i);
-		Texture2D someTex;
-		NType::convert(nclr, &someTex);
-		writeTexture(someTex, "SomeTex.png");
-	} catch (std::exception e) {}
-```
-This all means that you can simply loop through the archieve like an std::vector and use the types how you want:
-```cpp
-	for (u32 i = 0; i < arch.size(); ++i) {
-
-		printf("%u %s %u\n", i, arch.getTypeName(i).c_str(), arch.getType(i));
-		
-		try {
-			NCLR &nclr = arch.operator[]<NCLR>(i);
-			printf("Palette with %u colors!\n", nclr.contents.front.c_colors);
-		} catch (std::exception e) {
-
-		}
-	}
-```
+Archives kind of work like a FileSystem, only you don't have named files & folders, you just have files with indices (and extension). You can literally loop or iterate through the ArchiveObject's and read those values. 
 #### Flaws in resource reading
-Resource reading interprets the data of the ROM into a struct; which means that some data can't be interpreted when you try loading them. This will create a struct that can't be written or read and only exists when you run convert on a NARC file. This is called an 'NBUO' (Buffer Unknown Object) and it contains one section; 'NBIS' (Buffer Info Section). All variables except the NBIS's Buffer are 0. So you can still interpret unknown file formats yourself.
+Resource reading interprets the data of the ROM into a struct; which means that some data can't be interpreted when you try loading them. This will create an object named 'NBUO' (Buffer Unknown Object) and it is just a buffer, it has a pointer of what data it needs to parse and the length of the data. You can check for common types and try to parse them yourselves, when necessary.
 ```cpp
 	try {
-		NBUO &nclr = arch.operator[]<NBUO>(i);
-		printf("Undefined object at %u with size %u\n", i, nclr.contents.front.data.size);
+		NBUO &nbuo = arch.at<NBUO>(i);
+		printf("Undefined object at %u (%p) with size %u\n", i, nbuo.ptr, nbuo.size);
 	}
 	catch (std::exception e) {}
 ```
-The NBUO has a magicNumber of 0; making it undefined and so does its section. It is only so you can read the data in there:
-```cpp
-	try {
-		NBUO &nclr = arch.operator[]<NBUO>(i);
-		u32 magicNum = *(u32*)nclr.contents.front.data.data;
-		///Check if the magicNumber is actually a format that is implemented and interpret the buffer.
-	}
-	catch (std::exception e) {}
-```
-This is done so you can still edit file formats that might not be a standard, but are used in some ROMs.
 ### Adding a custom resource type
 ```cpp
   	//File allocation table
@@ -198,26 +134,15 @@ This is done so you can still edit file formats that might not be a standard, bu
 	struct GMIF : GenericSection { };
 
 	//Archive file
-	typedef GenericResource<BTAF, BTNF, GMIF> NARC;
+	typedef GenericResource<0x4352414E, BTAF, BTNF, GMIF> NARC;
 ```
 A NARC is defined as a resource containing a BTAF, BTNF and GMIF. The GMIF contains the archieve buffer, BTNF contains the offsets and buffer lengths.
-You also need to add the following code to MagicNumber and SectionLength; so the API can detect your custom file type and knows the sizes of the buffers for the sections.
+The first value is its magic number; it indicates how it can recognize a NARC in the ROM.
+Afterwards, they also need to be inserted into the ResourceTypes array, so the auto parser for the NArchive / FileSystem can recognize them.
 ```cpp
-//In MagicNumber
-		template<> constexpr static u32 get<GMIF> = 0x46494D47;
-		template<> constexpr static u32 get<BTAF> = 0x46415442;
-		template<> constexpr static u32 get<NARC> = 0x4352414E;
-		template<> constexpr static u32 get<BTNF> = 0x464E5442;
-//In SectionSize
-  		template<> constexpr static u32 get<GMIF> = 8;
-		template<> constexpr static u32 get<BTAF> = 12;
-		template<> constexpr static u32 get<BTNF> = 8;
+	typedef CompileTimeList<NCLR, NCGR, NSCR, NARC, NBUO> ResourceTypes;
 ```
-Afterwards, they also need to be inserted into the ArchieveTypes array, so the auto parser for the NArchive / FileSystem can recognize them.
-```cpp
-	//TypeList with all the archive types
-	typedef lag::TypeList<NARC, NCSR, NCGR, NCLR, NBUO> ArchiveTypes;
-```
+## (The following is from previous documentation and isn't implemented yet)
 ### Writing a resource type
 The reason this API is so fast is it never mallocs; all resources are structs or use the ROM buffer. This means that the rom is directly affected if you write to a GenericResource's buffer (or convert it to things like textures). The following is how you modify a 64x64 image:
 ```cpp
