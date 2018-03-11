@@ -40,3 +40,5 @@ nfs/nfs.dir/
 nfsu/nfsu.dir/
 *.cmake
 CMakeCache.txt
+!nfsu/bin
+!nfsu/lib
