@@ -2,7 +2,7 @@
 #include <QtWidgets/qapplication.h>
 #include <QtGui/qicon.h>
 
-#include <Settings.h>
+#include <settings.h>
 
 class MainWindow : public QWidget {
 

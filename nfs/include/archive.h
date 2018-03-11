@@ -60,7 +60,7 @@ namespace nfs {
 	}
 
 	template<typename T>
-	T &get(ArchiveObject &ao) {
+	T &Archive::get(ArchiveObject &ao) {
 
 		if (ao.info.magicNumber != ResourceHelper::getMagicNumber(T{}))
 			throw std::exception("Archive Couldn't cast; variables aren't of same type");

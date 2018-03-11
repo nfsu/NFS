@@ -1,4 +1,6 @@
 #include "filesystem.h"
+#include "settings.h"
+#include "timer.h"
 using namespace nfs;
 
 FileSystem::FileSystem() {}
@@ -7,6 +9,9 @@ FileSystem::FileSystem(NDS *rom) {
 	#ifdef USE_TIMER
 	oi::Timer t;
 	#endif
+
+	if (rom == nullptr)
+		throw std::exception("FileSystem Couldn't be created from null rom");
 
 	u8 *off = (u8*)rom;
 	off += rom->ftable_off;
@@ -132,7 +137,7 @@ FileSystem::FileSystem(NDS *rom) {
 			fso.indexInFolder = parentCount;
 			fso.folderHint = fso.fileHint = u16_MAX;
 
-			if (parent.fileHint == u32_MAX)
+			if (parent.fileHint == u16_MAX)
 				parent.fileHint = i;
 
 			++parent.files;
@@ -199,6 +204,9 @@ FileSystem::FileSystem(NDS *rom) {
 			narcs.push_back(i);*/
 	}
 
+	folders = rootFolders;
+	files = fileSystem.size() - rootFolders;
+
 	#ifdef USE_TIMER
 		t.lap("Intialize resources");
 	#endif
@@ -236,4 +244,63 @@ std::vector<FileSystemObject>::iterator FileSystem::end() { return fileSystem.en
 
 FileSystemObject &FileSystem::operator[](u32 i) {
 	return fileSystem[i];
+}
+
+ArchiveObject &FileSystem::getResource(FileSystemObject &fso) {
+	return Archive::operator[](fso.resource);
+}
+
+
+bool FileSystem_InParent(FileSystem &fs, FileSystemObject &fso, u32 i, u32 index, FileSystemObject *parent, std::vector<FileSystemObject*> *vec) {
+	
+	u32 in = fso.isFolder() ? i : i + parent->folders;
+	vec->operator[](in) = &fso;
+
+	return false;
+}
+
+std::vector<FileSystemObject*> FileSystem::operator[](FileSystemObject &fso) {
+
+	std::vector<FileSystemObject*> vec(fso.objects);
+	foreachInFolder(FileSystem_InParent, fso, &fso, &vec);
+
+	return vec;
+}
+
+std::vector<FileSystemObject*> FileSystem::traverse(FileSystemObject &root, bool includeDirs, bool includeSubfiles) {
+
+	std::vector<FileSystemObject*> fsov = (*this)[root];
+
+	for (u32 i = 0; i < fsov.size(); ++i) {
+
+		FileSystemObject &fso = *fsov[i];
+
+		if ((fso.isFile() && includeSubfiles) || (fso.isFolder() && includeDirs)) {
+			std::vector<FileSystemObject*> vfso = traverse(fso, includeDirs);
+			fsov.insert(fsov.end(), vfso.begin(), vfso.end());
+		}
+	}
+
+	return fsov;
+}
+
+u32 FileSystem::size() const { return fileSystem.size(); }
+u32 FileSystem::getFiles() const { return files; }
+u32 FileSystem::getFolders() const { return folders; }
+
+void FileSystem::clear() {
+	fileSystem.clear();
+	Archive::clear();
+}
+
+FileSystemObject *FileSystem::operator[](std::string path) {
+
+	auto it = std::find_if(fileSystem.begin(), fileSystem.end(), [path](FileSystemObject &fso) -> bool { return path == fso.name; });
+
+	if (it == fileSystem.end()) {
+		throw std::exception(("FileSystem Couldn't find file with path " + path).c_str());
+		return nullptr;
+	}
+
+	return &(*it);
 }

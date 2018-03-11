@@ -43,3 +43,4 @@ CMakeCache.txt
 !nfsu/bin
 !nfsu/lib
 bin/
+*.sln
