@@ -8,9 +8,9 @@ u8 *Buffer::end() { return size + ptr; }
 
 void Buffer::dealloc() {
 	if (ptr != nullptr) {
+		free(ptr);
 		size = 0;
 		ptr = nullptr;
-		free(ptr);
 	}
 }
 
