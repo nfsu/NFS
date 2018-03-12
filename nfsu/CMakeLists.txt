@@ -12,6 +12,7 @@ file(GLOB_RECURSE nfsu_SRC
 add_executable(
 	nfsu
 	${nfsu_SRC}
+	${CMAKE_CURRENT_SOURCE_DIR}/resources/logo.rc
 )
 
 target_link_libraries(nfsu nfs)

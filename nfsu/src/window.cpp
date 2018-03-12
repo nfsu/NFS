@@ -352,3 +352,6 @@ void Window::info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 	else
 		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs"));
 }
+
+//TODO: Right click resource; Info -> Documentation, Info = Pop-up for file location, etc.
+//TODO: Parse subresources
