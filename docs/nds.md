@@ -12,7 +12,7 @@ struct NDS {																//NDS file format
 		u8 reserved[7];
 		u8 unknown[2];			//Used by DSi titles
 		u8 version;
-		u8 flags;				//Flags such as auto start (Bit2)
+		u8 flags;			//Flags such as auto start (Bit2)
 		u32 arm9_offset;		//Rom offset for ARM9
 		u32 arm9_entry;			//Entry address for ARM9
 		u32 arm9_load;			//Load address for ARM9
@@ -32,17 +32,17 @@ struct NDS {																//NDS file format
 		u32 cardControl;		//Normal card control register settings
 		u32 sCardControl;		//Safe card control register settings
 		u32 iconOffset;
-		u16 sAC;				//Secure area checksum
-		u16 sALT;				//Secure area loading timeout
+		u16 sAC;			//Secure area checksum
+		u16 sALT;			//Secure area loading timeout
 		u32 arm9_ALLRA;			//Auto load list RAM address
 		u32 arm7_ALLRA;			//Auto load list RAM address
-		u64 sAD;				//Secure area disable
+		u64 sAD;			//Secure area disable
 		u32 romSize;
 		u32 romHeaderSize;
 		u8 reserved1[56];
 		u8 nLogo[156];
-		u16 nLC;				//Logo Checksum
-		u16 nHC;				//Header Checksum
+		u16 nLC;			//Logo Checksum
+		u16 nHC;			//Header Checksum
 		u32 dRomOff;			//Debug rom offset
 		u32 dRomSize;			//Debug rom size
 		u32 reserved2;
@@ -54,9 +54,9 @@ As described above, it contains various locations in the ROM, which can be used 
 The FNT (File Name Table) contains the following data:
 ```cpp
 struct FolderInfo {
-		u32 offset;
-		u16 firstFilePosition;
-		u16 relation;
+	u32 offset;
+	u16 firstFilePosition;
+	u16 relation;
 };
 ```
 Every folder has this struct and to find out how many folders there are, you jump into the root directory (FolderInfo at 0) and get the 'relation'. The root's 'firstFilePosition' is the offset which has to be added to a file's index to get the buffer through the file allocation table.
@@ -89,9 +89,9 @@ u8 var (isFolder = var & 0x80; nameLength = var & 0x7F)
 ```
 If however, var is 0x00, it means that it wants to jump to the next folder. For this, we use a 'current folder' variable, which indicates to which folder the object belongs. This starts out at 0; the root file. But when it encounters the next 0x00, it will increase it and jump to the first file in the directory. If that's not the case, it will follow with a char[nameLength], representing the name of the next object. Every file, the file offset increases and that variable 'fileOffset' is used to determine the buffer of that file.
 ```cpp
-			u32 &beg = *(u32*)(fpos.ptr + fileOffset * 8);
-			u32 &end = *(u32*)(fpos.ptr + fileOffset * 8 + 4);
-			u32 len = end - beg;
+	u32 &beg = *(u32*)(fpos.ptr + fileOffset * 8);
+	u32 &end = *(u32*)(fpos.ptr + fileOffset * 8 + 4);
+	u32 len = end - beg;
 
-			fso.buf = { len, ((u8*)rom) + beg };
+	fso.buf = { len, ((u8*)rom) + beg };
 ```
