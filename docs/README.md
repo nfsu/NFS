@@ -6,6 +6,6 @@ NCGR | 1 | Character Graphics Resource | 0x4E434752 | Tilemap / image | Texture2
 NSCR | 2 | SCreen Resource | 0x4E534352 | Map | Texture2D / TiledTexture2D | yes
 NARC | 3 | Archive | 0x4352414E | Archive | NArchive | yes
 NDS | - | Dual Screen | - | File system and code | FileSystem | no
-NBUO | - | - | - | Buffer | - | yes
+NBUO | 4 | - | 0x4E42554F | Buffer | - | yes
 <br>
 If your format is not on here, then you probably can't read the file without effort. You probably have to reverse engineer and/or implement it yourself.
