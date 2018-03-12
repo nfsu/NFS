@@ -38,14 +38,14 @@ namespace nfsu {
 			void importPatch();
 			void importPatch(QString file);
 
-			//void findFiles();
+			void findFile();
 
 			///View actions
 			void restore();
 
 			///Options actions
 
-			//void preferences();
+			void showPreferences();
 
 			///Help actions
 

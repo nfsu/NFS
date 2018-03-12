@@ -57,7 +57,7 @@ void Window::setupToolbar() {
 	connect(imp, &QAction::triggered, this, [&]() { this->importPatch(); });
 	connect(reload, &QAction::triggered, this, [&]() { this->reload(); });
 	connect(save, &QAction::triggered, this, [&]() { this->write(); });
-	//TODO: Implement 'find file'
+	connect(find, &QAction::triggered, this, [&]() { this->findFile(); });
 
 	///View
 	QAction *restore = view->addAction("Reset");
@@ -67,7 +67,7 @@ void Window::setupToolbar() {
 	///Options
 	QAction *preferences = options->addAction("Preferences");
 
-	//TODO: Implement 'preferences'
+	connect(preferences, &QAction::triggered, this, [&]() { this->showPreferences(); });
 
 	///Help
 	QAction *documentation = help->addAction("Documentation");
@@ -244,6 +244,10 @@ void Window::importPatch(QString file) {
 	rom = patched;
 }
 
+void Window::findFile() {
+	//TODO: Example; find files with extension, name, directory, in folder, that are supported, etc.
+}
+
 ///View
 
 void clearLayout(QLayout *layout) {
@@ -265,6 +269,13 @@ void clearLayout(QLayout *layout) {
 void Window::restore() {
 	clearLayout(layout);
 	setupUI();
+}
+
+///Options
+
+void Window::showPreferences() {
+	//TODO: Implement 'preferences'
+	//		Example; Home directory & Default ROM
 }
 
 ///Help
@@ -336,8 +347,8 @@ void Window::importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) 
 }
 
 void Window::info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
-	if(ao.info.magicNumber != ResourceHelper::getMagicNumber<NBUO>())
-		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs/resource" + QString(ao.info.type) + ".md"));
+	if (ao.info.magicNumber != ResourceHelper::getMagicNumber<NBUO>())
+		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs/resource" + QString::number(ao.info.type) + ".md"));
 	else
-		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs/README.md"));
+		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs"));
 }

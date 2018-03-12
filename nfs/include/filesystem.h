@@ -71,7 +71,7 @@ namespace nfs {
 		}
 
 		u32 fileC = 0;
-		for (u32 i = start.fileHint; i < files && fileC < start.files; ++i) {
+		for (u32 i = start.fileHint; i < folders + files && fileC < start.files; ++i) {
 
 			FileSystemObject &fso = fileSystem[i];
 			if (fso.parent == start.index) {

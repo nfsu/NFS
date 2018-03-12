@@ -178,7 +178,7 @@ FileSystem::FileSystem(NDS *rom) {
 	/*		u32 maxResourceFiles = ResourceHelper::getMaxResourceSize();*/
 	buffer = Buffer::alloc(siz /*+ subfiles * maxResourceFiles*/);
 	vec = std::vector<ArchiveObject>(filesAndFolders - rootFolders /*+ subfiles*/);
-	fileSystem.resize(fileSystem.size() /*+ subfiles*/);
+	//fileSystem.resize(fileSystem.size() + subfiles);
 
 	#ifdef USE_TIMER
 		t.lap("Resize buffer and fileSystem for subresources");
