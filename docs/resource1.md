@@ -47,7 +47,7 @@ struct NCGR {
 	u64 c_padding;					//0x0000000000000000
 	u32 tileDataSize;				//tileDataSize / 1024 = tileCount; tileDataSize * (2 - (tileDepth - 3)) = pixels
 	u32 c_padding0;					//0x00000018
-	char ttlp_data[size - sizeof(RAHC)];
+	char rahc_data[size - sizeof(RAHC)];
     
 	//SOPC (Not always present; only if sections > 1)
 	u32 magicNumber;				//MagicNumber; TTLP, PMCP, etc.
@@ -55,7 +55,7 @@ struct NCGR {
 	u32 c_padding;				    	//0x00000000
 	u16 tileWidth;				    	//= tileCount in RAHC
 	u16 tileHeight;				    	//= RAHC tileCount
-	char pmcp_data[size - sizeof(SOPC)];
+	char sopc_data[size - sizeof(SOPC)];
 };
 ```
 Note that the struct declared above is only for demonstration; it doesn't actually compile. I had to do some template magic to get this to work.
