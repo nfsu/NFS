@@ -87,7 +87,7 @@ As you can see above, the names aren't specified, that's because they come after
 ```
 u8 var (isFolder = var & 0x80; nameLength = var & 0x7F)
 ```
-If however, var is 0x00, it means that it wants to jump to the next folder. For this, we use a 'current folder' variable, which indicates to which folder the object belongs. This starts out at 0; the root file. But when it encounters the next 0x00, it will increase it and jump to the first file in the directory. If that's not the case, it will follow with a char[nameLength], representing the name of the next object. Every file, the file offset increases and that variable 'fileOffset' is used to determine the buffer of that file.
+If however, var is 0x00, it means that it wants to jump to the next folder. For this, we use a 'current folder' variable, which indicates to which folder the object belongs. This starts out at 0; the root file. But when it encounters the next 0x00, it will increase it and jump to the next directory. If that's not the case, it will follow with a `char[nameLength]`, representing the name of the next object. Every file, the file offset increases and that variable 'fileOffset' (initialized as value of startFile)  is used to determine the buffer of that file.
 ```cpp
 	u32 &beg = *(u32*)(fpos.ptr + fileOffset * 8);
 	u32 &end = *(u32*)(fpos.ptr + fileOffset * 8 + 4);
