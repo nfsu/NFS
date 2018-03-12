@@ -31,13 +31,13 @@ struct NCLR {
 	//GenericHeader
 	u32 magicNumber;					//MagicNumber; NCLR, NCGR, NSCR, etc.
 	u32 c_constant;
-	u32 size;							//Size of the header; including contents
+	u32 size;						//Size of the header; including contents
 	u16 c_headerSize;
 	u16 sections;						//Number of sections
     
 	//TTLP
 	u32 magicNumber;					//MagicNumber; TTLP, PMCP, etc.
-	u32 size;							//Size of section; including contents
+	u32 size;						//Size of section; including contents
 	u32 bitDepth;						//3 = 4 bits, 4 = 8 bits
 	u32 c_padding;						//0x00000000
 	u32 dataSize;						//size of palette data in bytes; if(size > 0x200) size = 0x200 - size;
@@ -46,8 +46,8 @@ struct NCLR {
     
 	//PMCP (Not always present; only if sections > 1)
 	u32 magicNumber;					//MagicNumber; TTLP, PMCP, etc.
-	u32 size;							//Size of section; including contents
-	u16 count;							//Count of palettes in file
+	u32 size;						//Size of section; including contents
+	u16 count;						//Count of palettes in file
 	u32 c_constant;						//0xEFBE08
 	u16 c_padding;						//0x0000
 	char pmcp_data[size - sizeof(PMCP)];
