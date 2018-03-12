@@ -34,15 +34,15 @@ struct NSCR {
 	//GenericHeader
 	u32 magicNumber;			        //MagicNumber; NCLR, NCGR, NSCR, etc.
 	u32 c_constant;
-	u32 size;						          //Size of the header; including contents
+	u32 size;					//Size of the header; including contents
 	u16 c_headerSize;
-	u16 sections;					        //Number of sections
+	u16 sections;					//Number of sections
     
 	//NCRS
-  u16 screenWidth;			        //Width of screen (pixels)
-  u16 screenHeight;			        //Height of screen (pixels)
-  u32 c_padding;				        //unknown
-  u32 screenDataSize;		        //Size of screen data buffer
+	u16 screenWidth;			        //Width of screen (pixels)
+	u16 screenHeight;			        //Height of screen (pixels)
+	u32 c_padding;				        //unknown
+	u32 screenDataSize;		       	 	//Size of screen data buffer
 	char ncrs_data[size - sizeof(NCRS)];
 };
 ```
@@ -56,12 +56,12 @@ Tile palette at 0xF000
 ```
 Tile position is the position in the tilemap; the following is how you calculate where the tile is positioned
 ```cpp
-  if (mirrorX)
-		pixInTileX = (tiles - 1) - pixInTileX;
+if (mirrorX)
+	pixInTileX = (tiles - 1) - pixInTileX;
 
-	if (mirrorY)
-		pixInTileY = (tiles - 1) - pixInTileY;
+if (mirrorY)
+	pixInTileY = (tiles - 1) - pixInTileY;
 
-	u32 tilemapX = (tilePos % tilesX) * tiles + offX;
-	u32 tilemapY = (tilePos / tilesX) * tiles + offY;
+u32 tilemapX = (tilePos % tilesX) * tiles + offX;
+u32 tilemapY = (tilePos / tilesX) * tiles + offY;
 ```
