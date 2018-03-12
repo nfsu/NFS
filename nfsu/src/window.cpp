@@ -1,4 +1,5 @@
 #include "window.h"
+#include "nexplorer.h"
 #include <patcher.h>
 #include <QtGui/qdesktopservices.h>
 #include <QtWidgets/qfiledialog.h>
@@ -7,6 +8,7 @@
 #include <QtWidgets/qmenubar.h>
 #include <QtWidgets/qlayout.h>
 using namespace nfsu;
+using namespace nfs;
 
 Window::Window() {
 
@@ -25,6 +27,7 @@ Window::~Window() {
 void Window::setupUI() {
 	setupLayout();
 	setupToolbar();
+	setupExplorer(layout);
 }
 
 void Window::setupLayout() {
@@ -57,7 +60,7 @@ void Window::setupToolbar() {
 	//TODO: Implement 'find file'
 
 	///View
-	QAction *restore = view->addAction("Restore");
+	QAction *restore = view->addAction("Reset");
 
 	connect(restore, &QAction::triggered, this, [&]() { this->restore(); });
 
@@ -71,6 +74,37 @@ void Window::setupToolbar() {
 
 	connect(documentation, &QAction::triggered, this, [&]() {this->documentation(); });
 
+}
+
+void Window::setupExplorer(QLayout *layout) {
+
+	explorer = new NExplorer(fileSystem);
+
+	NExplorerView *view = new NExplorerView(explorer);
+	layout->addWidget(view);
+
+	view->addResourceCallback(u32_MAX, [this](FileSystem &fs, FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
+		this->activateResource(fso, ao, point);
+	});
+}
+
+void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
+
+	QMenu contextMenu(tr(ao.name.c_str()), this);
+
+	QAction *view = contextMenu.addAction("View");
+	QAction *viewb = contextMenu.addAction("View data");
+	QAction *expr = contextMenu.addAction("Export resource");
+	QAction *impr = contextMenu.addAction("Import resource");
+	QAction *info = contextMenu.addAction("Info");
+
+	connect(view, &QAction::triggered, this, [&]() { this->viewResource(fso, ao); });
+	connect(viewb, &QAction::triggered, this, [&]() { this->viewData(fso, ao); });
+	connect(expr, &QAction::triggered, this, [&]() { this->exportResource(fso, ao); });
+	connect(impr, &QAction::triggered, this, [&]() { this->importResource(fso, ao); });
+	connect(info, &QAction::triggered, this, [&]() { this->info(fso, ao); });
+
+	contextMenu.exec(mapToGlobal(point));
 }
 
 ///File actions
@@ -110,10 +144,12 @@ void Window::reload() {
 	rom = Buffer::read(file.toStdString());
 
 	if (rom.ptr != nullptr) {
-		nfs::NDS *nds = (nfs::NDS*) rom.ptr;
+		NDS *nds = (NDS*) rom.ptr;
 		setWindowTitle(QString("File System Utilities: ") + nds->title);
 		fileSystem = nds;
 	}
+
+	restore();
 }
 
 void Window::write() {
@@ -158,7 +194,7 @@ void Window::exportPatch(QString file) {
 		return;
 	}
 
-	Buffer patch = nfs::Patcher::writePatch(original, rom);
+	Buffer patch = Patcher::writePatch(original, rom);
 	original.dealloc();
 	
 	if (patch.ptr == nullptr) {
@@ -202,7 +238,7 @@ void Window::importPatch(QString file) {
 		return;
 	}
 
-	Buffer patched = nfs::Patcher::patch(rom, buf);
+	Buffer patched = Patcher::patch(rom, buf);
 	buf.dealloc();
 	rom.dealloc();
 	rom = patched;
@@ -234,5 +270,74 @@ void Window::restore() {
 ///Help
 
 void Window::documentation() {
-	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS"));
+	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded"));
+}
+
+///Right click resource actions
+
+void Window::viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+	//TODO: Select all editors that can display the resource
+	//TODO: Make user pick if > 0
+}
+
+void Window::viewData(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+	//TODO: Select all editors that can display binary
+	//TODO: Make user pick if > 0
+}
+
+void Window::exportResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+
+	QString name = QString(ao.name.c_str()).split("/").last();
+	QString extension = name.split(".").last();
+
+	QString file = QFileDialog::getSaveFileName(this, tr("Save Resource"), "", tr((extension + " file (*." + extension + ")").toStdString().c_str()));
+
+	if (file == "" || !file.endsWith("." + extension, Qt::CaseInsensitive)) {
+		QMessageBox messageBox;
+		messageBox.critical(0, "Error", "Please select a valid ." + extension + " file to write to");
+		messageBox.setFixedSize(500, 200);
+		return;
+	}
+
+	if (!fso.buf.write(file.toStdString())) {
+		QMessageBox messageBox;
+		messageBox.critical(0, "Error", "Couldn't write resource");
+		messageBox.setFixedSize(500, 200);
+		return;
+	}
+}
+
+void Window::importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+
+	QString name = QString(ao.name.c_str()).split("/").last();
+	QString extension = name.split(".").last();
+
+	QString file = QFileDialog::getOpenFileName(this, tr("Load Resource"), "", tr((extension + " file (*." + extension + ")").toStdString().c_str()));
+
+	if (file == "" || !file.endsWith("." + extension, Qt::CaseInsensitive)) {
+		QMessageBox messageBox;
+		messageBox.critical(0, "Error", "Please select a valid ." + extension + " file to read from");
+		messageBox.setFixedSize(500, 200);
+		return;
+	}
+
+	Buffer buf = Buffer::read(file.toStdString());
+
+	if (buf.size != fso.buf.size) {
+		QMessageBox messageBox;
+		messageBox.critical(0, "Error", "Resources can't change size");
+		messageBox.setFixedSize(500, 200);
+		buf.dealloc();
+		return;
+	}
+
+	memcpy(fso.buf.ptr, buf.ptr, buf.size);
+	buf.dealloc();
+}
+
+void Window::info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+	if(ao.info.magicNumber != ResourceHelper::getMagicNumber<NBUO>())
+		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs/resource" + QString(ao.info.type) + ".md"));
+	else
+		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs/README.md"));
 }

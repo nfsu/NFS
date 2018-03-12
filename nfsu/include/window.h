@@ -4,6 +4,8 @@
 
 namespace nfsu {
 
+	class NExplorer;
+
 	class Window : public QWidget {
 
 	public:
@@ -16,35 +18,48 @@ namespace nfsu {
 		void setupUI();
 		void setupLayout();
 		void setupToolbar();
+		void setupExplorer(QLayout *layout);
 
-		///File actions
+		///Toolbar actions
 
-		void load();
-		void load(QString file);
+			///File actions
 
-		void reload();
+			void load();
+			void load(QString file);
 
-		void write();
-		void write(QString file);
+			void reload();
 
-		void exportPatch();
-		void exportPatch(QString file);
+			void write();
+			void write(QString file);
 
-		void importPatch();
-		void importPatch(QString file);
+			void exportPatch();
+			void exportPatch(QString file);
 
-		//void findFiles();
+			void importPatch();
+			void importPatch(QString file);
 
-		///View actions
-		void restore();
+			//void findFiles();
 
-		///Options actions
+			///View actions
+			void restore();
 
-		//void preferences();
+			///Options actions
 
-		///Help actions
+			//void preferences();
 
-		void documentation();
+			///Help actions
+
+			void documentation();
+
+		///Right click resource actions
+
+			void activateResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao, const QPoint &point);
+
+			void viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
+			void viewData(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
+			void exportResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
+			void importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
+			void info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
 
 	private:
 
@@ -52,6 +67,7 @@ namespace nfsu {
 		Buffer rom;
 		nfs::FileSystem fileSystem;
 
+		nfsu::NExplorer *explorer;
 
 		QLayout *layout;
 

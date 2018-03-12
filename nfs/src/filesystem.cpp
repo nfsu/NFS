@@ -239,6 +239,9 @@ std::vector<FileSystemObject> &FileSystem::getFileSystem() { return fileSystem; 
 
 void FileSystem::copy(const FileSystem &fs) {
 	fileSystem = fs.fileSystem;
+	files = fs.files;
+	folders = fs.folders;
+	Archive::copy(fs);
 }
 
 std::vector<FileSystemObject>::iterator FileSystem::begin() { return fileSystem.begin(); }

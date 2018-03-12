@@ -1,0 +1,2 @@
+# NCGR - Nintendo Character Graphics Resource
+The NCGR file is a tilemap resource, it contains the stores an image; where all values are indices into a palette. This resource can be 'tiled' and tiles can be used by an NSCR file (and mirrored / palette swapped) for optimization.
