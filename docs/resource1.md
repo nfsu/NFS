@@ -34,27 +34,27 @@ For those of you who are interested; the NCGR uses the following struct (simplif
 struct NCGR {
 
 	//GenericHeader
-	u32 magicNumber;					//MagicNumber; NCLR, NCGR, NSCR, etc.
+	u32 magicNumber;				//MagicNumber; NCLR, NCGR, NSCR, etc.
 	u32 c_constant;
-	u32 size;						      //Size of the header; including contents
+	u32 size;					//Size of the header; including contents
 	u16 c_headerSize;
-	u16 sections;						  //Number of sections
+	u16 sections;					//Number of sections
     
 	//RAHC
 	u16 tileHeight;
-  u16 tileWidth;
-  u32 tileDepth;					  //1 << (tileDepth - 1) = bit depth
-  u64 c_padding;					  //0x0000000000000000
-  u32 tileDataSize;				  //tileDataSize / 1024 = tileCount; tileDataSize * (2 - (tileDepth - 3)) = pixels
-  u32 c_padding0;					  //0x00000018
+	u16 tileWidth;
+	u32 tileDepth;					//1 << (tileDepth - 1) = bit depth
+	u64 c_padding;					//0x0000000000000000
+	u32 tileDataSize;				//tileDataSize / 1024 = tileCount; tileDataSize * (2 - (tileDepth - 3)) = pixels
+	u32 c_padding0;					//0x00000018
 	char ttlp_data[size - sizeof(RAHC)];
     
 	//SOPC (Not always present; only if sections > 1)
-	u32 magicNumber;					//MagicNumber; TTLP, PMCP, etc.
-	u32 size;						      //Size of section; including contents
-  u32 c_padding;				    //0x00000000
-  u16 tileWidth;				    //= tileCount in RAHC
-  u16 tileHeight;				    //= RAHC tileCount
+	u32 magicNumber;				//MagicNumber; TTLP, PMCP, etc.
+	u32 size;					//Size of section; including contents
+	u32 c_padding;				    	//0x00000000
+	u16 tileWidth;				    	//= tileCount in RAHC
+	u16 tileHeight;				    	//= RAHC tileCount
 	char pmcp_data[size - sizeof(SOPC)];
 };
 ```
