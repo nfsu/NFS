@@ -142,9 +142,8 @@ Afterwards, they also need to be inserted into the ResourceTypes array, so the a
 ```cpp
 	typedef CompileTimeList<NCLR, NCGR, NSCR, NARC, NBUO> ResourceTypes;
 ```
-## (The following is from previous documentation and isn't implemented yet)
 ### Writing a resource type
-The reason this API is so fast is it never mallocs; all resources are structs or use the ROM buffer. This means that the rom is directly affected if you write to a GenericResource's buffer (or convert it to things like textures). The following is how you modify a 64x64 image:
+The reason this API is so fast is it rarely mallocs; all resources are structs or use the ROM buffer. This means that the rom is directly affected if you write to a GenericResource's buffer (or convert it to things like textures). The following is how you modify a 64x64 image:
 ```cpp
 	Texture2D tex;
 	NType::convert(ncgr, &tex);
@@ -156,42 +155,36 @@ The reason this API is so fast is it never mallocs; all resources are structs or
 			deltaX /= 31.5;
 			deltaY /= 31.5;
 			f32 r = sqrt(pow(deltaX, 2) + pow(deltaY, 2));
-			setPixel(tex, i + 0, j + 0, 0x1 + r * 0xE);
+			tex.write(i, j, 0x1 + r * 0xE);
 		}
 ```
-'setPixel' doesn't just set the data in the texture; it also checks what kind of texture is used. If you are using a BGR555 texture, you input RGBA8 but it has to convert it first. 'getPixel' does the same; except it changes the output you receive. If you want the direct info, you can use fetchData or storeData; but it is not recommended.
+'write' doesn't just set the data in the texture; it also checks what kind of texture is used. If you are using a BGR555 texture, you input RGBA8 but it has to convert it first. 'read' does the same; except it changes the output you receive.
 ###  Writing textures
-Textures aren't that easy in NFS; palettes are always used and sometimes, they even use tilemaps. This means that fetching the data directly won't return an RGBA8 color, but rather an index to a palette or tile. If you want to output the actual image, you can create a new image that will read the ROM's image:
+Textures aren't that easy in NFS; palettes are always used and sometimes, they even use tilemaps. This means that fetching the data directly won't return an RGBA8 color, but rather an index to a palette or tile. If you want to output the actual image, you can create a new image that will be converted from the ROM's image.
 ```cpp
-	Texture2D tex2 = convertToRGBA8({ tex.width, tex.height, palette, tex });
-	writeTexture(tex2, "Final0.png");
-	deleteTexture(&tex2);
+	Texture2D tex2(ncgr, nclr);
+	tex2.write("Final0.png");
+	tex2.dealloc();
 ```
-Don't forget to delete the texture; as it uses a new malloc, because most of the time, the format is different from the source to the target. 
+Don't forget to dealloc the texture; as it uses a new malloc, because most of the time, the format is different from the source to the target. 
 ### Writing image filters
-If you'd want to add a new image filter, I've created a helpful function, which can be used as the following:
+If you'd want to add a new cpu 'shader', I've created a helpful function, which can be used as the following:
 ```cpp
-Texture2D convertToRGBA8(PaletteTexture2D pt2d) {
-	return runPixelShader<PaletteTexture2D>([](PaletteTexture2D t, u32 i, u32 j) -> u32 { 
-		u32 sample = getPixel(t.tilemap, i, j);
-		u32 x = sample & 0xF;
-		u32 y = (sample & 0xF0) >> 4;
-		return getPixel(t.palette, x, y);
-	}, pt2d);
+u32 convertFromNCGR_func(Texture2D t, u16 i, u16 j, Texture2D tilemap, Texture2D palette) { 
+	u32 sample = tilemap.fetch(i, j);
+	u32 x = sample & 0xF;
+	u32 y = (sample & 0xF0) >> 4;
+	return palette.read(x, y);
+}
+
+Texture2D convertFromNCGR(NCGR &ncgr, NCLR &nclr) {
+	Texture2D ncgrt = Texture2D(ncgr);
+	return fromShader(convertFromNCGR_func, (ncgrt.getWidth(), (ncgrt.getHeight(), ncgrt, Texture2D(nclr));
 }
 ```
-This function is called 'runPixelShader', which can be applied to any kind of object (default is Texture2D). It will expect width and height in the struct and will loop through all indices in the 'image'. In our case, you can use it to convert a PaletteTexture2D to a Texture2D; since it just reads the tilemap and finds it in the palette.
-RunPixelShader will however return a new texture and will put it into RGBA8 format.
-### Running the example
-Source.cpp is what I use to test if parts of the API work, however, I can't supply all dependencies. It is illegal to upload roms, so if you want to test it out, you have to obtain a rom first. Afterwards, you can use something like nitro explorer to find offsets of palettes, images, animations, models or other things you might use. All important things in Source.cpp have been suffixed by '//TODO: !!!', so please fix those before running.
+This function is called 'fromShader', it will create a new RGBA8 texture and for every pixel, it will run the function supplied. The function needs to return a u32 and take a Texture2D tex, u16 x, u16 y and the arguments you put in yourself. Remember to delete it when you don't need it anymore though.
 ## Supported file formats
-File extension | File name | Magic number | Data type | Conversion type | isResource
---- | --- | --- | --- | --- | ---
-NCLR | CoLor Resource | 0x4E434C52 | Palette | Texture2D | yes
-NCGR | Character Graphics Resource | 0x4E434752 | Tilemap / image | Texture2D / PaletteTexture2D | yes
-NSCR | SCreen Resource | 0x4E534352 | Map | Texture2D / TiledTexture2D | yes
-NARC | Archive | 0x4352414E | Archive | NArchive | yes
-NDS | Dual Screen | - | File system and code | FileSystem | no
+For supported file formats, check out the docs folder; this contains a description of every supported resource and their magicNumber/type id.
 ## Special thanks
 Thanks to /LagMeester4000 for creating magic templates that are used all the time in this API. Typelists are used from his repo at [/LagMeester4000/TypeList](https://github.com/LagMeester4000/TypeList).
 ## Nintendo policies
