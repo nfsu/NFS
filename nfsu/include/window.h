@@ -61,6 +61,8 @@ namespace nfsu {
 			void importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
 			void info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
 
+			void inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
+
 	private:
 
 		QString file;

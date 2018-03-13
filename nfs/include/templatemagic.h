@@ -3,6 +3,8 @@
 
 namespace nfs {
 
+	///Count arguments from ...args
+
 	template<typename T, typename ...args>
 	struct CountArgs {
 		static constexpr u32 get() {
@@ -16,6 +18,8 @@ namespace nfs {
 			return 1U;
 		}
 	};
+
+	///Return reference from j in ...args
 
 	template<u32 i, u32 j, typename T, typename ...args>
 	struct ReadObject {
@@ -39,6 +43,91 @@ namespace nfs {
 		}
 	};
 
+
+	///Find offset of j in ...args
+
+	template<u32 i, u32 j, typename T, typename ...args>
+	struct FindOffset {
+		static constexpr u32 get = i < j ? sizeof(T) + FindOffset<i + 1, j, args...>::get : 0;
+	};
+
+	template<u32 i, u32 j, typename T>
+	struct FindOffset<i, j, T> {
+		static constexpr u32 get = i < j ? sizeof(T) : 0;
+	};
+
+
+	///Run placement new everything in  ...args
+
+	template<typename T, typename ...args>
+	struct PlacementNew {
+
+		template<typename T2, typename ...args2>
+		struct PlacementNew_inter {
+
+			static void run(u8 *ptr, T2 t2, args2 ...arg) {
+
+				::new(ptr) T(t2);
+				PlacementNew<args...>::PlacementNew_inter<args2...>::run(ptr + (u32) sizeof(T), arg...);
+
+			}
+
+		};
+
+		template<typename T2>
+		struct PlacementNew_inter<T2> {
+
+			static void run(u8 *ptr, T2 t2) {
+
+				::new(ptr) T(t2);
+				PlacementNew<args...>::run(ptr + (u32) sizeof(T));
+
+			}
+
+		};
+
+		template<typename ...args2>
+		static void run(u8 *ptr, args2 ...arg) {
+			return PlacementNew_inter<args2...>::run(ptr, arg...);
+		}
+
+		template<>
+		static void run<>(u8 *ptr) {
+			::new(ptr) T();
+			PlacementNew<args...>::run(ptr);
+		}
+	};
+
+	template<typename T>
+	struct PlacementNew<T> {
+
+		template<typename T2>
+		struct PlacementNew_inter {
+
+			static void run(u8 *ptr, T2 t2) {
+
+				::new(ptr) T(t2);
+
+			}
+
+		};
+
+		template<typename T2>
+		static void run(u8 *ptr, T2 t2) {
+
+			::new(ptr) T(t2);
+
+		}
+
+		static void run(u8 *ptr) {
+
+			::new(ptr) T();
+
+		}
+	};
+
+	///Get buffer of j in ...args
+
 	template<u32 i, u32 j, typename T, typename ...args>
 	struct GetBuffer {
 
@@ -61,6 +150,8 @@ namespace nfs {
 		}
 	};
 
+	///Get the maximum size of anything in ...args
+
 	template<typename T, typename ...args>
 	struct MaxSize {
 
@@ -76,10 +167,12 @@ namespace nfs {
 
 	};
 
+	///List of compile time args
 
 	template<typename ...args>
 	struct CompileTimeList {};
 
+	//Class for Getting indices from a compile time list
 	struct CTLHelper {
 
 		template<typename T, u32 i, typename T2, typename ...args>

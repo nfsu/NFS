@@ -1,5 +1,6 @@
 #include "window.h"
 #include "nexplorer.h"
+#include "infowindow.h"
 #include <patcher.h>
 #include <QtGui/qdesktopservices.h>
 #include <QtWidgets/qfiledialog.h>
@@ -93,13 +94,13 @@ void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QP
 	QMenu contextMenu(tr(ao.name.c_str()), this);
 
 	QAction *view = contextMenu.addAction("View");
-	QAction *viewb = contextMenu.addAction("View data");
 	QAction *expr = contextMenu.addAction("Export resource");
 	QAction *impr = contextMenu.addAction("Import resource");
-	QAction *info = contextMenu.addAction("Info");
+	QAction *insp = contextMenu.addAction("Inspect");
+	QAction *info = contextMenu.addAction("Documentation");
 
 	connect(view, &QAction::triggered, this, [&]() { this->viewResource(fso, ao); });
-	connect(viewb, &QAction::triggered, this, [&]() { this->viewData(fso, ao); });
+	connect(insp, &QAction::triggered, this, [&]() { this->inspect(fso, ao); });
 	connect(expr, &QAction::triggered, this, [&]() { this->exportResource(fso, ao); });
 	connect(impr, &QAction::triggered, this, [&]() { this->importResource(fso, ao); });
 	connect(info, &QAction::triggered, this, [&]() { this->info(fso, ao); });
@@ -274,8 +275,18 @@ void Window::restore() {
 ///Options
 
 void Window::showPreferences() {
-	//TODO: Implement 'preferences'
-	//		Example; Home directory & Default ROM
+
+	//if (preferences == nullptr) {
+
+	//	//TODO: Create preference window
+	//	//		Example; Home directory & Default ROM
+
+	//} else {
+	//	//TODO: Focus preference window
+	//}
+
+	//TODO: On close; set preferences to nullptr
+
 }
 
 ///Help
@@ -353,5 +364,34 @@ void Window::info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs"));
 }
 
-//TODO: Right click resource; Info -> Documentation, Info = Pop-up for file location, etc.
+void Window::inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+
+	//TODO: Show location of file; etc
+
+	TBoxedStruct<u32, std::string, Buffer, u32, u32, u32, u32> data(
+		fso.index,
+		fso.name,
+		fso.buf,
+		fso.objects,
+		fso.folders,
+		fso.files,
+		ao.info.type
+	);
+
+	std::string names[] = { 
+		std::string(fso.isFile() ? "File" : "Folder") + " #%u",
+		"Name", 
+		"Data", 
+		"Contains %u objects",
+		"Has %u folders",
+		"Stores %u files",
+		"Has type id %u"
+	};
+
+	InfoWindow iw;
+	iw.display(data);
+
+}
+
+//TODO: 
 //TODO: Parse subresources
