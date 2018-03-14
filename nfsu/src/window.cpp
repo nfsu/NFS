@@ -8,12 +8,14 @@
 #include <QtCore/qurl.h>
 #include <QtWidgets/qmenubar.h>
 #include <QtWidgets/qlayout.h>
+#include "qhelper.h"
 using namespace nfsu;
 using namespace nfs;
 
 Window::Window() {
 
 	setWindowTitle("File System Utilities");
+	setMinimumSize(QSize(480, 480));
 
 	setupUI();
 }
@@ -28,6 +30,7 @@ Window::~Window() {
 void Window::setupUI() {
 	setupLayout();
 	setupToolbar();
+	setupInfoWindow(layout);
 	setupExplorer(layout);
 }
 
@@ -84,9 +87,21 @@ void Window::setupExplorer(QLayout *layout) {
 	NExplorerView *view = new NExplorerView(explorer);
 	layout->addWidget(view);
 
-	view->addResourceCallback(u32_MAX, [this](FileSystem &fs, FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
-		this->activateResource(fso, ao, point);
+	view->addResourceCallback(true, u32_MAX, [this, view](FileSystem &fs, FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
+		this->activateResource(fso, ao, view->mapToGlobal(point));
 	});
+
+	view->addExplorerCallback(false, [this](FileSystem &fs, FileSystemObject &fso, const QPoint &point) {
+		if (fso.isFile())
+			this->inspect(fso, fs.getResource(fso));
+		else
+			this->inspectFolder(fso);
+	});
+}
+
+void Window::setupInfoWindow(QLayout *layout) {
+	fileInspect = new InfoWindow("File properties", this);
+	layout->addWidget(fileInspect);
 }
 
 void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
@@ -96,16 +111,14 @@ void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QP
 	QAction *view = contextMenu.addAction("View");
 	QAction *expr = contextMenu.addAction("Export resource");
 	QAction *impr = contextMenu.addAction("Import resource");
-	QAction *insp = contextMenu.addAction("Inspect");
 	QAction *info = contextMenu.addAction("Documentation");
 
 	connect(view, &QAction::triggered, this, [&]() { this->viewResource(fso, ao); });
-	connect(insp, &QAction::triggered, this, [&]() { this->inspect(fso, ao); });
 	connect(expr, &QAction::triggered, this, [&]() { this->exportResource(fso, ao); });
 	connect(impr, &QAction::triggered, this, [&]() { this->importResource(fso, ao); });
 	connect(info, &QAction::triggered, this, [&]() { this->info(fso, ao); });
 
-	contextMenu.exec(mapToGlobal(point));
+	contextMenu.exec(point);
 }
 
 ///File actions
@@ -251,24 +264,8 @@ void Window::findFile() {
 
 ///View
 
-void clearLayout(QLayout *layout) {
-
-	while (QLayoutItem *item = layout->takeAt(0)) {
-
-		if (QWidget *widget = item->widget())
-			widget->deleteLater();
-
-		if (QLayout *childLayout = item->layout())
-			clearLayout(childLayout);
-
-		delete item;
-	}
-
-	delete layout;
-}
-
 void Window::restore() {
-	clearLayout(layout);
+	QHelper::clearLayout(layout);
 	setupUI();
 }
 
@@ -302,7 +299,7 @@ void Window::viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 	//TODO: Make user pick if > 0
 }
 
-void Window::viewData(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+void Window::viewData(Buffer buf) {
 	//TODO: Select all editors that can display binary
 	//TODO: Make user pick if > 0
 }
@@ -365,33 +362,45 @@ void Window::info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 }
 
 void Window::inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
-
-	//TODO: Show location of file; etc
-
-	TBoxedStruct<u32, std::string, Buffer, u32, u32, u32, u32> data(
+	
+	TBoxedStruct<u32, std::string, u8*, u32, u32, u32> data(
 		fso.index,
 		fso.name,
-		fso.buf,
-		fso.objects,
-		fso.folders,
+		(u8*)(fso.buf.ptr - rom.ptr),
+		fso.buf.size,
 		fso.files,
 		ao.info.type
 	);
 
 	std::string names[] = { 
-		std::string(fso.isFile() ? "File" : "Folder") + " #%u",
-		"Name", 
-		"Data", 
-		"Contains %u objects",
-		"Has %u folders",
-		"Stores %u files",
+		"File #%u",
+		"Location: %s", 
+		"Address: %p",
+		"Size: %u",
+		"Has %u files",
 		"Has type id %u"
 	};
 
-	InfoWindow iw;
-	iw.display(data);
-
+	inspector(data, names);
 }
 
-//TODO: 
+void Window::inspectFolder(nfs::FileSystemObject &fso) {
+
+	TBoxedStruct<u32, std::string, u32, u32> data(
+		fso.index,
+		fso.name,
+		fso.folders,
+		fso.files
+	);
+
+	std::string names[] = {
+		"Folder #%u",
+		"Location: %s",
+		"Has %u folders",
+		"Contains %u files"
+	};
+
+	inspector(data, names);
+}
+
 //TODO: Parse subresources

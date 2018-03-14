@@ -14,6 +14,7 @@ NExplorerView::NExplorerView(NExplorer *explorer) : exp(explorer), current(explo
 
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this, &QTreeView::customContextMenuRequested, this, &NExplorerView::customContextMenuRequested);
+	connect(this, &QTreeView::clicked, this, &NExplorerView::onLeftClick);
 }
 
 FileSystem &NExplorer::getFileSystem() const { return fs; }
@@ -122,8 +123,8 @@ Qt::ItemFlags NExplorer::flags(const QModelIndex &index) const {
 
 nfs::FileSystemObject *NExplorerView::getCurrent() { return current; }
 
-void NExplorerView::addExplorerCallback(ExplorerCallback callback) { ecall.push_back(callback); }
-void NExplorerView::addResourceCallback(u32 type, ResourceCallback callback) { rcall[type] = callback; }
+void NExplorerView::addExplorerCallback(bool isRightClick, ExplorerCallback callback) { callbacks[isRightClick].ecall.push_back(callback); }
+void NExplorerView::addResourceCallback(bool isRightClick, u32 type, ResourceCallback callback) { callbacks[isRightClick].rcall[type] = callback; }
 
 void NExplorerView::customContextMenuRequested(const QPoint &point) {
 
@@ -137,16 +138,41 @@ void NExplorerView::customContextMenuRequested(const QPoint &point) {
 		FileSystemObject &fso = *current;
 		ArchiveObject *ao = fso.isFile() ? &fs.getResource(fso) : nullptr;
 
-		for (auto a : ecall)
+		for (auto a : callbacks[true].ecall)
 			a(fs, fso, point);
 
 		if(ao != nullptr)
-		for (auto &a : rcall) {
+		for (auto &a : callbacks[true].rcall) {
 
 			if (a.first != ao->info.type && a.first != u32_MAX)
 				continue;
 
 			a.second(fs, fso, *ao, point);
 		}
+	}
+}
+
+void NExplorerView::onLeftClick(const QModelIndex &index) {
+
+	if (index.isValid()) {
+
+		FileSystemObject *current = (FileSystemObject*)index.internalPointer();
+		FileSystem &fs = exp->getFileSystem();
+		FileSystemObject &fso = *current;
+		ArchiveObject *ao = fso.isFile() ? &fs.getResource(fso) : nullptr;
+
+		QPoint point(-1, -1);
+
+		for (auto a : callbacks[false].ecall)
+			a(fs, fso, point);
+
+		if (ao != nullptr)
+			for (auto &a : callbacks[false].rcall) {
+
+				if (a.first != ao->info.type && a.first != u32_MAX)
+					continue;
+
+				a.second(fs, fso, *ao, point);
+			}
 	}
 }

@@ -54,23 +54,28 @@ namespace nfsu {
 
 		nfs::FileSystemObject *getCurrent();
 
-		private slots:
 		void customContextMenuRequested(const QPoint &point);
+		void onLeftClick(const QModelIndex &index);
 
 	public:
 
 		//Add an action on right click of an fso
-		void addExplorerCallback(ExplorerCallback callback);
+		void addExplorerCallback(bool isRightClick, ExplorerCallback callback);
 
 		//Add an action on right click of a resource (overrides current type callback)
-		void addResourceCallback(u32 type, ResourceCallback callback);
+		void addResourceCallback(bool isRightClick, u32 type, ResourceCallback callback);
 
 	private:
 
 		nfs::FileSystemObject *current;
 		NExplorer *exp;
 
-		std::vector<ExplorerCallback> ecall;
-		std::unordered_map<u32, ResourceCallback> rcall;
+		struct NExViewCallback {
+			std::vector<ExplorerCallback> ecall;
+			std::unordered_map<u32, ResourceCallback> rcall;
+		};
+
+		std::unordered_map<bool, NExViewCallback> callbacks;
+
 	};
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <QtWidgets/qwidget.h>
 #include <filesystem.h>
+#include "infowindow.h"
 
 namespace nfsu {
 
@@ -19,6 +20,7 @@ namespace nfsu {
 		void setupLayout();
 		void setupToolbar();
 		void setupExplorer(QLayout *layout);
+		void setupInfoWindow(QLayout *layout);
 
 		///Toolbar actions
 
@@ -56,12 +58,21 @@ namespace nfsu {
 			void activateResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao, const QPoint &point);
 
 			void viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
-			void viewData(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
+			void viewData(Buffer buf);
 			void exportResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
 			void importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
 			void info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
 
 			void inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
+			void inspectFolder(nfs::FileSystemObject &fso);
+
+			template<typename ...args>
+			void inspector(TBoxedStruct<args...> &data, std::string(&names)[nfs::CountArgs<args...>::get()]) {
+				fileInspect->clear();
+				fileInspect->display(data, names);
+				fileInspect->show();
+				fileInspect->activateWindow();
+			}
 
 	private:
 
@@ -69,9 +80,10 @@ namespace nfsu {
 		Buffer rom;
 		nfs::FileSystem fileSystem;
 
-		nfsu::NExplorer *explorer;
+		nfsu::NExplorer *explorer = nullptr;
+		nfsu::InfoWindow *fileInspect = nullptr;
 
-		QLayout *layout;
+		QLayout *layout = nullptr;
 
 	};
 
