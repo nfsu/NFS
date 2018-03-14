@@ -21,18 +21,34 @@ namespace nfs {
 
 	///Return reference from j in ...args
 
-	template<u32 i, u32 j, typename T, typename ...args>
-	struct ReadObject {
+	
+	template<u32 i, u32 j, typename T, typename ...args> struct ReadObject;
+	
+	template<bool isCorrect, u32 i, u32 j, typename T, typename ...args>
+	struct ReadObject_inter {
 
-		template<bool b = (i == j)>
 		static auto &at(u8 *ptr) {
 			return ReadObject<i + 1, j, args...>::at(ptr);
 		}
 
-		template<>
-		static auto &at<true>(u8 *ptr) {
+	};
+
+	template<u32 i, u32 j, typename T, typename ...args>
+	struct ReadObject_inter<true, i, j, T, args...> {
+
+		static auto &at(u8 *ptr) {
 			return *(T*)ptr;
 		}
+
+	};
+
+	template<u32 i, u32 j, typename T, typename ...args>
+	struct ReadObject {
+	
+		static auto &at(u8 *ptr) {
+			return ReadObject_inter<i == j, i, j, T, args...>::at(ptr);
+		}
+
 	};
 
 	template<u32 i, u32 j, typename T>
@@ -41,6 +57,7 @@ namespace nfs {
 		static T &at(u8 *ptr) {
 			return *(T*)ptr;
 		}
+
 	};
 
 
@@ -128,26 +145,42 @@ namespace nfs {
 
 	///Get buffer of j in ...args
 
-	template<u32 i, u32 j, typename T, typename ...args>
-	struct GetBuffer {
+	template<u32 i, u32 j, typename T, typename ...args> struct GetBuffer;
+	
+	template<bool isCorrect, u32 i, u32 j, typename T, typename ...args>
+	struct GetBuffer_inter {
 
-		template<bool b = (i == j)>
 		static Buffer at(u8 *ptr) {
 			return GetBuffer<i + 1, j, args...>::at(ptr);
 		}
 
-		template<>
-		static Buffer at<true>(u8 *ptr) {
-			return { ((T*)ptr)->size - (u32) sizeof(T), ptr + (u32) sizeof(T) };
+	};
+
+	template<u32 i, u32 j, typename T, typename ...args>
+	struct GetBuffer_inter<true, i, j, T, args...> {
+
+		static Buffer at(u8 *ptr) {
+			return { (u32) sizeof(T), ptr };
 		}
+
+	};
+
+	template<u32 i, u32 j, typename T, typename ...args>
+	struct GetBuffer {
+	
+		static Buffer at(u8 *ptr) {
+			return GetBuffer_inter<i == j, i, j, T, args...>::at(ptr);
+		}
+
 	};
 
 	template<u32 i, u32 j, typename T>
 	struct GetBuffer<i, j, T> {
 
 		static Buffer at(u8 *ptr) {
-			return { ((T*)ptr)->size - (u32) sizeof(T), ptr + (u32) sizeof(T) };
+			return { (u32) sizeof(T), ptr };
 		}
+
 	};
 
 	///Get the maximum size of anything in ...args
@@ -178,22 +211,15 @@ namespace nfs {
 		template<typename T, u32 i, typename T2, typename ...args>
 		struct Index {
 
-			template<bool b = std::is_same<T, T2>::value>
-			static constexpr u32 get() { return Index<T, i + 1, args...>::get(); }
-
-			template<>
-			static constexpr u32 get<true>() { return i; }
+			static constexpr u32 get() { return std::is_same<T, T2>::value ? i : Index<T, i + 1, args...>::get(); }
 
 		};
 
 		template<typename T, u32 i, typename T2>
 		struct Index<T, i, T2> {
 
-			template<bool b = std::is_same<T, T2>::value>
-			static constexpr u32 get() { return 0xFFFFFFFFU; }
+			static constexpr u32 get() { return std::is_same<T, T2>::value ? i : 0xFFFFFFFFU; }
 
-			template<>
-			static constexpr u32 get<true>() { return i; }
 		};
 
 		template<typename T, u32 i, typename ...args>

@@ -18,6 +18,8 @@ typedef unsigned long long u64;
 typedef float f32;
 typedef double f64;
 
+#define EXCEPTION(errror) throw std::runtime_error(errror)
+
 #ifdef _WIN64
 typedef u64 platformVar;
 constexpr platformVar platformVar_MAX = 0xFFFFFFFFFFFFFFFFU;

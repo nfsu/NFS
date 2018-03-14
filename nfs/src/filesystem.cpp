@@ -11,7 +11,7 @@ FileSystem::FileSystem(NDS *rom) {
 	#endif
 
 	if (rom == nullptr)
-		throw std::exception("FileSystem Couldn't be created from null rom");
+		EXCEPTION("FileSystem Couldn't be created from null rom");
 
 	u8 *off = (u8*)rom;
 	off += rom->ftable_off;
@@ -29,13 +29,13 @@ FileSystem::FileSystem(NDS *rom) {
 	FolderInfo &root = *folderArray;
 
 	if ((root.relation & 0xF000) != 0)
-		throw std::exception("FileSystem Couldn't find root folder");
+		EXCEPTION("FileSystem Couldn't find root folder");
 
 	u16 rootFolders = root.relation;
 	u16 startFile = root.firstFilePosition;
 
 	if (fnt.size < sizeof(FolderInfo) * rootFolders)
-		throw std::exception("FileSystem Out of bounds exception");
+		EXCEPTION("FileSystem Out of bounds exception");
 
 	#ifdef USE_TIMER
 		t.lap("Startup");
@@ -303,7 +303,7 @@ FileSystemObject *FileSystem::operator[](std::string path) {
 	auto it = std::find_if(fileSystem.begin(), fileSystem.end(), [path](FileSystemObject &fso) -> bool { return path == fso.name; });
 
 	if (it == fileSystem.end()) {
-		throw std::exception(("FileSystem Couldn't find file with path " + path).c_str());
+		EXCEPTION(("FileSystem Couldn't find file with path " + path).c_str());
 		return nullptr;
 	}
 

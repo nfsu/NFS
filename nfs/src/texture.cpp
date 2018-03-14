@@ -62,13 +62,13 @@ Texture2D Texture2D::read(std::string file) {
 void Texture2D::write(std::string file) {
 
 	if (type != (u16)TextureType::RGBA8 || flags != (u16)TextureTiles::NONE) 
-		throw std::exception("Texture2D Couldn't write image; please convert to RGBA8 first");
+		EXCEPTION("Texture2D Couldn't write image; please convert to RGBA8 first");
 
 	if (file.size() < 4 || std::string(file.end() - 4, file.end()) != ".png")
-		throw std::exception("Texture2D Couldn't write image; it only supports .png");
+		EXCEPTION("Texture2D Couldn't write image; it only supports .png");
 
 	if (!stbi_write_png(file.c_str(), (int)width, (int)height, 4, data, 4 * (int)width))
-		throw std::exception("Texture2D Couldn't write image");
+		EXCEPTION("Texture2D Couldn't write image");
 
 }
 

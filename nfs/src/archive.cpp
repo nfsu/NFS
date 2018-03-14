@@ -12,7 +12,7 @@ Archive::Archive(NARC &narc) {
 	Buffer btafb = narc.get<0>();
 
 	if (btafb.size != btaf.files * 8)
-		throw std::exception("Archive BTAF didn't match format");
+		EXCEPTION("Archive BTAF didn't match format");
 
 	Buffer gmifb = narc.get<2>();
 
@@ -69,7 +69,15 @@ u32 Archive::size() const { return (u32)vec.size(); }
 ArchiveObject &Archive::operator[](u32 i) {
 
 	if (i >= vec.size())
-		throw std::exception("Archive Couldn't find item");
+		EXCEPTION("Archive Couldn't find item");
+
+	return vec[i];
+}
+
+const ArchiveObject &Archive::operator[](u32 i) const {
+
+	if (i >= vec.size())
+		EXCEPTION("Archive Couldn't find item");
 
 	return vec[i];
 }

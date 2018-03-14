@@ -3,7 +3,14 @@ project(nfs)
 cmake_minimum_required(VERSION 3.9.0)
 
 set(CMAKE_BUILD_TYPE Debug)
+
+if(MSVC)
 set(CMAKE_CXX_FLAGS "-std=c++14 /EHsc")
+endif(MSVC)
+
+if(!MSVC)
+set(CMAKE_CXX_FLAGS "-std=c++14")
+endif(!MSVC)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

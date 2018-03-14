@@ -1,6 +1,6 @@
 #pragma once
 #include "resourcehelper.h"
-#include <exception>
+#include <vector>
 
 namespace nfs {
 
@@ -34,6 +34,7 @@ namespace nfs {
 		u32 size() const;
 
 		ArchiveObject &operator[](u32 i);
+		const ArchiveObject &operator[](u32 i) const;
 
 		std::vector<ArchiveObject> &getObjects();
 		Buffer getBuffer();
