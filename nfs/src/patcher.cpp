@@ -1,7 +1,11 @@
 #include "patcher.h"
 #include "timer.h"
+#include <thread>
 #include <future>
 #include "bitset.h"
+#include <math.h>
+#include <string.h>
+#include <algorithm>
 using namespace nfs;
 
 bool Patcher::patch(std::string original, std::string path, std::string out) {

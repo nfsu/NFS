@@ -400,6 +400,11 @@ void Window::inspectFolder(nfs::FileSystemObject &fso) {
 		"Contains %u files"
 	};
 
+	std::string &str = data.get<1>();
+	std::string str2 = data.get<1>();
+
+	TBoxedStruct<u32, std::string, u32, u32> test(data);
+
 	inspector(data, names);
 }
 

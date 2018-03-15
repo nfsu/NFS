@@ -1,4 +1,6 @@
 #include "bitset.h"
+#include <math.h>
+#include <cstring>
 using namespace oi;
 
 boolRef::boolRef(u32 *_ptr, u32 _off): loc(_ptr), offset(_off) { }

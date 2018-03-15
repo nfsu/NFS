@@ -36,11 +36,6 @@ namespace nfsu {
 			return nfs::ReadObject<0, i, args...>::at(data + nfs::FindOffset<0, i, args...>::get);
 		}
 
-		template<u32 i>
-		const auto &find() const {
-			return nfs::ReadObject<0, i, args...>::at(const_cast<u8*>(data) + nfs::FindOffset<0, i, args...>::get);
-		}
-
 		template< template<typename T2> typename F, typename ...args2>
 		void run(args2... arg) {
 			Run_inter<F, 0, args...>::run(arg...);
@@ -57,7 +52,7 @@ namespace nfsu {
 
 			static void run(TBoxedStruct &og, const TBoxedStruct &toCopy, u32 offset) {
 
-				::new(og.data + offset) T2(toCopy.find<i>());
+				::new(og.data + offset) T2(nfs::ReadObject<0, i, args...>::at(const_cast<u8*>(toCopy.data + offset)));
 				Copy_inter<i + 1, args2...>::run(og, toCopy, offset + sizeof(T2));
 
 			}
@@ -68,18 +63,18 @@ namespace nfsu {
 		struct Copy_inter<i, T2> {
 
 			static void run(TBoxedStruct &og, const TBoxedStruct &toCopy, u32 offset) {
-				::new(og.data + offset) T2(toCopy.find<i>());
+				::new(og.data + offset) T2(nfs::ReadObject<0, i, args...>::at(const_cast<u8*>(toCopy.data + offset)));
 			}
 
 		};
 
-		template< template<typename T2> typename F, u32 i, typename T, typename ...args>
+		template< template<typename T2> typename F, u32 i, typename T, typename ...args1>
 		struct Run_inter {
 
 			template<typename ...args2>
 			static void run(TBoxedStruct &boxs, args2... arg) {
 				F<T>::run(boxs.get<i>(), arg...);
-				Run_inter<F, i + 1, args...>::run(boxs, arg...);
+				Run_inter<F, i + 1, args1...>::run(boxs, arg...);
 			}
 		};
 

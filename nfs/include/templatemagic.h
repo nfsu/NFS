@@ -76,71 +76,55 @@ namespace nfs {
 
 	///Run placement new everything in  ...args
 
+	template<typename T, typename ...args> struct PlacementNew;
+
+	template<typename T, typename ...args>
+	struct PlacementNew_inter {
+
+		template<typename T2, typename ...args2>
+		static void run(u8 *ptr, T2 &t2, args2 &...arg) {
+			::new(ptr) T(t2);
+			PlacementNew<args...>::run(ptr + sizeof(T), arg...);
+		}
+
+	};
+
+	template<typename T>
+	struct PlacementNew_inter<T> {
+
+		template<typename T2>
+		static void run(u8 *ptr, T2 &t2) {
+			::new(ptr) T(t2);
+		}
+
+	};
+
 	template<typename T, typename ...args>
 	struct PlacementNew {
 
-		template<typename T2, typename ...args2>
-		struct PlacementNew_inter {
-
-			static void run(u8 *ptr, T2 t2, args2 ...arg) {
-
-				::new(ptr) T(t2);
-				PlacementNew<args...>::PlacementNew_inter<args2...>::run(ptr + (u32) sizeof(T), arg...);
-
-			}
-
-		};
-
-		template<typename T2>
-		struct PlacementNew_inter<T2> {
-
-			static void run(u8 *ptr, T2 t2) {
-
-				::new(ptr) T(t2);
-				PlacementNew<args...>::run(ptr + (u32) sizeof(T));
-
-			}
-
-		};
-
-		template<typename ...args2>
-		static void run(u8 *ptr, args2 ...arg) {
-			return PlacementNew_inter<args2...>::run(ptr, arg...);
+		static void run(u8 *ptr) {
+			::new(ptr) T();
+			PlacementNew<args...>::run(ptr + sizeof(T));
 		}
 
-		template<>
-		static void run<>(u8 *ptr) {
-			::new(ptr) T();
-			PlacementNew<args...>::run(ptr);
+		template<typename ...args2>
+		static void run(u8 *ptr, args2 &...arg) {
+			PlacementNew_inter<T, args...>::run(ptr, arg...);
 		}
 	};
 
 	template<typename T>
 	struct PlacementNew<T> {
 
-		template<typename T2>
-		struct PlacementNew_inter {
-
-			static void run(u8 *ptr, T2 t2) {
-
-				::new(ptr) T(t2);
-
-			}
-
-		};
-
-		template<typename T2>
-		static void run(u8 *ptr, T2 t2) {
-
-			::new(ptr) T(t2);
-
-		}
-
 		static void run(u8 *ptr) {
-
 			::new(ptr) T();
-
 		}
+
+		template<typename T2>
+		static void run(u8 *ptr, T2 &t2) {
+			::new(ptr) T(t2);
+		}
+
 	};
 
 	///Get buffer of j in ...args

@@ -1,5 +1,6 @@
 #include "generic.h"
 #include <fstream>
+#include <string.h>
 
 Buffer::Buffer(u32 _size, u8 *_ptr) : size(_size), ptr(_ptr) {}
 Buffer::Buffer() : Buffer(0, nullptr) {}
@@ -27,7 +28,7 @@ Buffer &Buffer::addOffset(u32 i) {
 u8 &Buffer::operator[](u32 i) {
 
 	if (i >= size)
-		throw std::exception("Buffer Out of bounds exception");
+		EXCEPTION("Buffer Out of bounds exception");
 
 	return ptr[i];
 }

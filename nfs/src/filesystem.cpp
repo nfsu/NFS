@@ -1,6 +1,7 @@
 #include "filesystem.h"
 #include "settings.h"
 #include "timer.h"
+#include <algorithm>
 using namespace nfs;
 
 FileSystem::FileSystem() {}

@@ -6,11 +6,9 @@ set(CMAKE_BUILD_TYPE Debug)
 
 if(MSVC)
 set(CMAKE_CXX_FLAGS "-std=c++14 /EHsc")
-endif(MSVC)
-
-if(!MSVC)
+else(MSVC)
 set(CMAKE_CXX_FLAGS "-std=c++14")
-endif(!MSVC)
+endif(MSVC)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

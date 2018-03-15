@@ -1,6 +1,7 @@
 #include "texture.h"
 #include "stbi_write.h"
 #include "stbi_load.h"
+#include <math.h>
 using namespace nfs;
 
 Texture2D::Texture2D(u8 *ptr, u16 w, u16 h, u32 _stride, TextureType tt, TextureTiles tti): data(ptr), width(w), height(h), stride(_stride), size(w * h), dataSize(w * h * stride), type((u16)tt), flags((u16)tti) {}
