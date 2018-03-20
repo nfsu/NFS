@@ -89,7 +89,7 @@ namespace nfsu {
 
 		layout = new QVBoxLayout(this);
 		u32 count = 0;
-		what.run<DisplayInter>(what, this, &count, names);
+		what.template run<DisplayInter>(what, this, &count, names);
 
 	}
 

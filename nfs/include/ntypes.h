@@ -1,5 +1,5 @@
 #pragma once
-#include "GenericResource.h"
+#include "genericresource.h"
 
 namespace nfs {
 

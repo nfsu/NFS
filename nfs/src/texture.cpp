@@ -2,6 +2,7 @@
 #include "stbi_write.h"
 #include "stbi_load.h"
 #include <math.h>
+#include <cstring>
 using namespace nfs;
 
 Texture2D::Texture2D(u8 *ptr, u16 w, u16 h, u32 _stride, TextureType tt, TextureTiles tti): data(ptr), width(w), height(h), stride(_stride), size(w * h), dataSize(w * h * stride), type((u16)tt), flags((u16)tti) {}
@@ -195,7 +196,7 @@ bool Texture2D::store(u16 i, u16 j, u32 k) {
 	else if (fourBit)
 		*ptr = (*ptr & 0xFU) | ((k & 0xFU) << 4U);
 	else
-		memcpy(ptr, &k, stride);
+		std::memcpy(ptr, &k, stride);
 
 	return true;
 }

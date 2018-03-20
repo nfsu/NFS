@@ -9,6 +9,8 @@ file(GLOB_RECURSE nfsu_SRC
 	"src/*.cpp"
 )
 
+link_directories(lib)
+
 add_executable(
 	nfsu
 	${nfsu_SRC}
@@ -17,14 +19,14 @@ add_executable(
 
 target_link_libraries(nfsu nfs)
 
-target_link_libraries(nfsu debug lib/Qt5Cored)
-target_link_libraries(nfsu optimized lib/Qt5Core)
-target_link_libraries(nfsu debug lib/Qt5Guid)
-target_link_libraries(nfsu optimized lib/Qt5Gui)
-target_link_libraries(nfsu debug lib/Qt5OpenGLd)
-target_link_libraries(nfsu optimized lib/Qt5OpenGL)
-target_link_libraries(nfsu debug lib/Qt5Widgetsd)
-target_link_libraries(nfsu optimized lib/Qt5Widgets)
+target_link_libraries(nfsu debug qt5cored)
+target_link_libraries(nfsu optimized qt5core)
+target_link_libraries(nfsu debug qt5guid)
+target_link_libraries(nfsu optimized qt5gui)
+target_link_libraries(nfsu debug qt5opengld)
+target_link_libraries(nfsu optimized qt5opengl)
+target_link_libraries(nfsu debug qt5widgetsd)
+target_link_libraries(nfsu optimized qt5widgets)
 
 add_custom_command(
         TARGET nfsu POST_BUILD
