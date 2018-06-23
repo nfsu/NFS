@@ -144,7 +144,7 @@ namespace nfs {
 	struct GetBuffer_inter<true, i, j, T, args...> {
 
 		static Buffer at(u8 *ptr) {
-			return { (u32) sizeof(T), ptr };
+			return { (u32)(((T*)ptr)->size - sizeof(T)), ptr + sizeof(T) };
 		}
 
 	};
@@ -162,7 +162,7 @@ namespace nfs {
 	struct GetBuffer<i, j, T> {
 
 		static Buffer at(u8 *ptr) {
-			return { (u32) sizeof(T), ptr };
+			return { (u32) (((T*)ptr)->size - sizeof(T)), ptr + sizeof(T) };
 		}
 
 	};

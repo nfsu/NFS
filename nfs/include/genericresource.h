@@ -19,14 +19,18 @@ namespace nfs {
 	template<u32 magicNumber, typename ...args>
 	struct GenericResource {
 
+		static constexpr u32 elements() {
+			return CountArgs<args...>::get();
+		}
+
 		GenericHeader *header = nullptr;
-		u8 *ptrs[CountArgs<args...>::get()] = {};
+		u8 *ptrs[elements()] = {};
 
 		//Get section struct
 		template<u32 i>
 		auto &at() {
 
-			static_assert(i < CountArgs<args...>::get(), "GenericResource::get<i> out of bounds");
+			static_assert(i < elements(), "GenericResource::get<i> out of bounds");
 
 			return ReadObject<0, i, args...>::at(ptrs[i]);
 		}
@@ -35,9 +39,26 @@ namespace nfs {
 		template<u32 i>
 		Buffer get() {
 
-			static_assert(i < CountArgs<args...>::get(), "GenericResource::get<i> out of bounds");
+			static_assert(i < elements(), "GenericResource::get<i> out of bounds");
 
 			return GetBuffer<0, i, args...>::at(ptrs[i]);
+		}
+
+		//Gives the size if all sections are present
+		static constexpr u32 maxSize() {
+			return FindOffset<elements(), elements(), args...>();
+		}
+
+		u32 size() {
+			return header->size;
+		}
+
+		u32 headerSize() {
+			return header->c_headerSize;
+		}
+
+		u32 contentSize() {
+			return size() - headerSize();
 		}
 
 		//Get identifier
