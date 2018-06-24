@@ -64,7 +64,7 @@ namespace nfs {
 	T &Archive::get(ArchiveObject &ao) {
 
 		if (ao.info.magicNumber != ResourceHelper::getMagicNumber(T{}))
-			throw std::exception("Archive Couldn't cast; variables aren't of same type");
+			EXCEPTION("Archive Couldn't cast; variables aren't of same type");
 
 		return *(T*) ao.position;
 	}

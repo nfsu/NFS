@@ -92,7 +92,7 @@ namespace nfs {
 		FileSystemObject *fso = (*this)[path];
 
 		if (fso == nullptr)
-			throw std::exception(("FileSystem Couldn't get fso at path \"" + path + "\"").c_str());
+			EXCEPTION(("FileSystem Couldn't get fso at path \"" + path + "\"").c_str());
 
 		return get<T>(*fso);
 	}
