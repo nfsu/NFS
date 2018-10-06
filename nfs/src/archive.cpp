@@ -39,6 +39,7 @@ Archive::Archive(NARC &narc) {
 		ArchiveObject &ao = vec[i];
 		u8 *rptr = gmifb.ptr + beg;
 
+		ao.buf = Buffer(len, rptr);
 		ao.info.type = ResourceHelper::getType(rptr);
 		ao.info.magicNumber = ResourceHelper::getMagicNum(ao.info.type);
 		ao.name = std::to_string(i) + "." + ResourceHelper::getName(rptr, ao.info.magicNumber);

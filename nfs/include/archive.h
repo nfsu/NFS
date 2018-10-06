@@ -8,6 +8,7 @@ namespace nfs {
 		ResourceInfo info;
 		std::string name;
 		u8 *position;
+		Buffer buf;
 	};
 
 	class Archive {

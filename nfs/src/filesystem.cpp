@@ -2,6 +2,7 @@
 #include "settings.h"
 #include "timer.h"
 #include <algorithm>
+#include <future>
 using namespace nfs;
 
 FileSystem::FileSystem() {}
@@ -42,6 +43,8 @@ FileSystem::FileSystem(NDS *rom) {
 		t.lap("Startup");
 	#endif
 
+	//Initialize all folders
+
 	fileSystem.resize(rootFolders);
 
 	for (u16 i = 0; i < rootFolders; ++i) {
@@ -58,14 +61,18 @@ FileSystem::FileSystem(NDS *rom) {
 		t.lap("Initialize folders");
 	#endif
 
+	//Initialize all files
+
 	Buffer next = fnt.offset(rootFolders * sizeof(FolderInfo));
 	u16 current = 0;
 	u16 i = rootFolders;
 	u16 fileOffset = startFile;
 
-	u32 siz = 0, subfiles = 0;
+	u32 siz = 0, subfiles = 0, supported = 0;
 
 	u8 narcDat[sizeof(NARC)];
+
+	std::vector<u32> subs;
 
 	while (next.size > 0) {
 
@@ -107,7 +114,6 @@ FileSystem::FileSystem(NDS *rom) {
 			FileSystemObject &fso = fileSystem[dir];
 			FileSystemObject &parent = fileSystem[fso.parent];
 
-			fso.files = fso.folders = 0;
 			fso.name = (parent.isRoot() ? "" : parent.name + "/") + str;
 
 			u16 &parentCount = parent.objects;
@@ -134,7 +140,6 @@ FileSystem::FileSystem(NDS *rom) {
 			fso.index = i;
 			fso.parent = dir;
 			fso.resource = fileOffset - startFile;
-			fso.files = fso.folders = 0;
 			fso.indexInFolder = parentCount;
 			fso.folderHint = fso.fileHint = u16_MAX;
 
@@ -145,8 +150,8 @@ FileSystem::FileSystem(NDS *rom) {
 			++parentCount;
 			++i;
 
-			u32 &beg = *(u32*)(fpos.ptr + fileOffset * 8);
-			u32 &end = *(u32*)(fpos.ptr + fileOffset * 8 + 4);
+			u32 beg = *(u32*)(fpos.ptr + fileOffset * 8);
+			u32 end = *(u32*)(fpos.ptr + fileOffset * 8 + 4);
 			u32 len = end - beg;
 
 			fso.buf = { len, ((u8*)rom) + beg };
@@ -154,12 +159,17 @@ FileSystem::FileSystem(NDS *rom) {
 			u32 type = ResourceHelper::getType(fso.buf.ptr);
 			siz += (u32) ResourceHelper::getSize(type);
 
-			if (ResourceHelper::isType<NARC>(fso.buf.ptr)) {
+			ResourceInfo inf = ResourceHelper::read(fso.buf.ptr, len, narcDat);
 
-				ResourceInfo inf = ResourceHelper::read(fso.buf.ptr, len, narcDat);
+			if (inf.magicNumber != NBUO_num)
+				++supported;
+
+			if (inf.magicNumber == ResourceHelper::getMagicNumber<NARC>()) {
 
 				NARC &narc = *(NARC*)narcDat;
 				BTAF &btaf = narc.at<0>();
+
+				subs.push_back(btaf.files);
 
 				subfiles += fso.files = btaf.files;
 			}
@@ -174,18 +184,24 @@ FileSystem::FileSystem(NDS *rom) {
 		t.lap("Initialize files");
 	#endif
 
+	//Resize buffers to support sub resources
+
 	u32 filesAndFolders = fileSystem.size();
 	
-	/*		u32 maxResourceFiles = ResourceHelper::getMaxResourceSize();*/
-	buffer = Buffer::alloc(siz /*+ subfiles * maxResourceFiles*/);
-	vec = std::vector<ArchiveObject>(filesAndFolders - rootFolders /*+ subfiles*/);
-	//fileSystem.resize(fileSystem.size() + subfiles);
+	constexpr u32 maxResourceFiles = ResourceHelper::getMaxResourceSize();
+	buffer = Buffer::alloc(siz + subfiles * maxResourceFiles);
+	vec = std::vector<ArchiveObject>(filesAndFolders - rootFolders + subfiles);
+	fileSystem.resize(fileSystem.size() + subfiles);
 
 	#ifdef USE_TIMER
 		t.lap("Resize buffer and fileSystem for subresources");
 	#endif
 
-	//std::vector<u32> narcs;
+	//Setup all resources and register all narcs
+
+	std::vector<u32> narcs;
+	narcs.reserve(filesAndFolders - rootFolders);
+
 	u32 offset = 0;
 
 	for (u32 i = rootFolders; i < filesAndFolders; ++i) {
@@ -195,14 +211,15 @@ FileSystem::FileSystem(NDS *rom) {
 
 		ArchiveObject &ao = vec[i - rootFolders];
 
+		ao.buf = buf;
 		ao.info = ResourceHelper::read(buf.ptr, buf.size, buffer.ptr + offset);
 
 		ao.name = fso.name;
 		ao.position = buffer.ptr + offset;
 		offset += (u32) ao.info.size;
 
-		/*if (ao.info.magicNumber == ResourceHelper::getMagicNumber(NARC{}))
-			narcs.push_back(i);*/
+		if (ao.info.magicNumber == ResourceHelper::getMagicNumber(NARC{}))
+			narcs.push_back(i);
 	}
 
 	folders = rootFolders;
@@ -212,18 +229,127 @@ FileSystem::FileSystem(NDS *rom) {
 		t.lap("Intialize resources");
 	#endif
 
-	//TODO: Subresources
+	//Spread out the work over as many cores as possible; since we're loading lots of NARCs
+
+	u32 threadCount = std::thread::hardware_concurrency();
+	std::vector<std::future<u32>> threads(threadCount);
+
+	//Object that specifies where we are reading and what
+
+	struct ThreadedNARC {
+		u32 narcCount, narcId, fileId, fileCount, dirs;
+		u32 *narcs;
+		ArchiveObject *start;
+		FileSystemObject *file;
+		Buffer dat;
+	};
+
+	u32 perThread = (u32)narcs.size() / threadCount;
+	u32 perThreadr = (u32)narcs.size() % threadCount;
+	u32 fileStart = filesAndFolders - rootFolders;
+
+	ThreadedNARC thread;
+	memset(&thread, 0, sizeof(thread));
+	thread.fileId = filesAndFolders;
+	thread.start = vec.data();
+	thread.file = fileSystem.data();
+	thread.dirs = rootFolders;
+
+	//Setup all threads
+
+	for (u32 i = 0; i < threadCount; ++i) {
+		
+		thread.narcCount = perThread + (i < perThreadr ? 1 : 0);
+		thread.narcs = narcs.data() + thread.narcId;
+		thread.fileCount = 0;
+
+		for (u32 j = thread.narcId, k = thread.narcId + thread.narcCount; j < k; ++j)
+			thread.fileCount += subs[j];
+
+		thread.dat = Buffer(thread.fileCount * maxResourceFiles, buffer.ptr + siz + (thread.fileId - fileStart) * maxResourceFiles);
+
+		threads[i] = std::move(std::async([](ThreadedNARC thread) -> u32 {	//Function call for loading all NARCs
+
+			u8 narcDat[sizeof(NARC)];
+			u8 resDat[ResourceHelper::getMaxResourceSize()];
+			u32 supported = 0;
+
+			for (u32 i = 0, j = thread.narcCount; i < j; ++i) {
+
+				u32 fileId = thread.narcs[i];
+				FileSystemObject *obj = thread.file + fileId;
+
+				ResourceHelper::read(obj->buf.ptr, obj->buf.size, narcDat);
+
+				NARC &narc = *(NARC*)narcDat;
+
+				try {
+
+					Archive arc(narc);
+
+					obj->files = obj->objects = arc.size();
+					obj->fileHint = thread.fileId;
+
+					Buffer arcb = arc.getBuffer();
+					memcpy(thread.dat.ptr, arcb.ptr, arcb.size);
+
+					u32 off = 0;
+
+					for (u32 k = 0; k < arc.size(); ++k) {
+
+						ArchiveObject &ao = arc[k];
+
+						FileSystemObject *file = thread.file + thread.fileId;
+
+						file->index = thread.fileId;
+						file->parent = obj->index;
+						file->indexInFolder = k;
+						file->resource = thread.fileId - thread.dirs;
+						file->name = obj->name + "/" + ao.name;
+						file->folderHint = file->fileHint = u16_MAX;
+						file->buf = ao.buf;
+
+						if (ao.info.magicNumber != NBUO_num)
+							++supported;
+
+						++thread.fileId;
+
+						ArchiveObject *arco = thread.start + file->resource;
+						arco->buf = ao.buf;
+						arco->name = ao.name;
+						arco->position = thread.dat.ptr + off;
+						arco->info = ResourceHelper::read(ao.buf.ptr, ao.buf.size, resDat);
+
+						off += arco->info.size;
+					}
+
+					thread.dat.addOffset(arcb.size);
+
+				} catch (std::runtime_error err) {
+					printf("Couldn't read NARC file \"%s\"\n", obj->name.c_str());
+				}
+
+
+			}
+
+			return supported;
+
+		}, thread));
+
+		thread.narcId += thread.narcCount;
+		thread.fileId += thread.fileCount;
+	}
+
+	for (auto &f : threads)
+		supported += f.get();
+
+	printf("Loaded FileSystem with %u files; %u were supported (%u%%)\n", (u32)(fileSystem.size() - rootFolders), supported, (u32)round((f32)supported / (fileSystem.size() - rootFolders) * 100));
 
 	#ifdef USE_TIMER
 		t.lap("Intialize subresource threads");
 	#endif
 
 	#ifdef USE_TIMER
-		t.lap("Intialize subresources");
-	#endif
-
-	#ifdef USE_TIMER
-		t.stop();
 		t.print();
 	#endif
 }
