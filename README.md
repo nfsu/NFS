@@ -16,15 +16,15 @@ The example above will automatically add the 'nfse' project to the CMakeLists an
 Down below you can see a simple use of the NFS API.
 ### Reading raw ROM data
 ```cpp
-	using namespace nfs;
-	Buffer buf = Buffer::read("ROM.nds");
-	try {
-		NDS *nds = (NDS*) buf.ptr;
-		FileSystem fs(nds);
-	} catch (std::exception e) {
-		printf("%s\n", e.what());
-	}
-	buf.dealloc();
+using namespace nfs;
+Buffer buf = Buffer::read("ROM.nds");
+try {
+	NDS *nds = (NDS*) buf.ptr;
+	FileSystem fs(nds);
+} catch (std::exception e) {
+	printf("%s\n", e.what());
+}
+buf.dealloc();
 ```
 If you've acquired your ROM, you have to load it into memory, so the program can read and modify it. This buffer can be deleted once you don't want to use the FileSystem anymore.  
 NDS is a header file with the most important information about the ROM; such as, where the code and files are located and the name of the ROM.
@@ -32,11 +32,11 @@ NDS is a header file with the most important information about the ROM; such as,
 A ROM is like a ZIP; except it is used for storing game data (models, images, sounds, palettes, maps, binary data, text, code and more). This means that it stores the file names into the ROM; which we can use to extract the files we need and where they are. Above, you could see that converting to a FileSystem is done by simply using the constructor; so even fs = nds; is okay.
 This will put the file data into the fs variable, which you can then loop through and use.
 ```cpp
-		for (auto iter = fs.begin(); iter != fs.end(); ++iter) {
+for (auto iter = fs.begin(); iter != fs.end(); ++iter) {
 
-			FileSystemObject &fso = *iter;
-			//More code...
-		}
+	FileSystemObject &fso = *iter;
+	//More code...
+}
 ```
 ### Checks for fso's
 Fso stands for 'FileSystemObject' and it is what I call folders and files; this means that fso isn't always a file, it could also be a folder. To distinguish them, you can use the following functions:
@@ -57,25 +57,25 @@ Before converting a file, make sure it is actually a file. The other variables a
 - buf; the buffer of the file, if it isn't a file, it's a null buffer
 ### Obtaining the resource of the file
 ```cpp
-			if (fso.isFile()) {
+if (fso.isFile()) {
 
-				ArchiveObject &ao = fs.getResource(fso);
-				if(ao.info.magicNumber == ResourceHelper::getMagicNumber<NBUO>()) {
-					//It is not supported
-				} else {	
-					//It is supported
-					printf("Supported object: %s (%s)\n", ao.name.c_str(), ao.info..c_str());
-					
-					if(ao.info.magicNumber == NCLR::getMagicNumber()){
-						NCLR &nclr = fs.get<NCLR>(ao);
-						u32 nclrSize = nclr.header->size;
-						//More stuff
-					}
-				}
-			}
-			else {
-				//It's not a file, but a folder or root folder
-			}
+	ArchiveObject &ao = fs.getResource(fso);
+	if(ao.info.magicNumber == ResourceHelper::getMagicNumber<NBUO>()) {
+		//It is not supported
+	} else {	
+		//It is supported
+		printf("Supported object: %s (%s)\n", ao.name.c_str(), ao.info..c_str());
+		
+		if(ao.info.magicNumber == NCLR::getMagicNumber()){
+			NCLR &nclr = fs.get<NCLR>(ao);
+			u32 nclrSize = nclr.header->size;
+			//More stuff
+		}
+	}
+}
+else {
+	//It's not a file, but a folder or root folder
+}
 ```
 Here we are getting the ArchiveObject; which is the physical representation of a file/folder, it tells you where what kind of resource is located. One identifier you can use is the 'magicNumber'; which is the standard way, you can also use the type, which is used by a few ResourceHelper functions and the name (extension), however, magicNumber is the fastest in most cases. If you are sure the fso is actually an object that you can read, you can use the FileSystem's Archive's 'get' function, which requires a template parameter. If you cast incorrectly, it will throw an std::exception, so you could try & catch it instead of checking first, but that's bad practice. Then, you can use the GenericHeader*, which has a size and a few other variables, or you can use the `at<i>()` method for getting a section. NCLR for example has a TTLP (Palette data) and sometimes a PMCP (Palette count map). These are defined in 'ntypes.h'. If you want to get the palette data, you can use get<0>, to get the buffer which contains the data for that section.
 	
@@ -84,27 +84,27 @@ Here we are getting the ArchiveObject; which is the physical representation of a
 ### Traversing a folder
 'Traversing' is what I call searching through an entire folder; so traverse through /someFolder/something would give all of the folders and files in the directory and inside those folders. While the square brackets (or array operator) are used for obtaining folders/files directly inside a folder:
 ```cpp
-	std::vector<const FileSystemObject*> fsos = files.traverse(files["fielddata"]);
-	for (u32 i = 0; i < fsos.size(); ++i)
-		printf("%s\n", fsos[i]->name.c_str());
+std::vector<const FileSystemObject*> fsos = files.traverse(files["fielddata"]);
+for (u32 i = 0; i < fsos.size(); ++i)
+	printf("%s\n", fsos[i]->name.c_str());
 ```
 `files["x"]` will get the fso at the position of x; that FSO can then be used to trace all files or get the files inside of that folder (if it is a folder). You could also traverse root; by using "/" as the folder, or simply by using `files[fso]`.
 ```cpp
-	std::vector<const FileSystemObject*> fsos = files[files["/"]];
-	for (u32 i = 0; i < fsos.size(); ++i)
-		printf("%s\n", fsos[i]->name.c_str());
+std::vector<const FileSystemObject*> fsos = files[files["/"]];
+for (u32 i = 0; i < fsos.size(); ++i)
+	printf("%s\n", fsos[i]->name.c_str());
 ```
 ### Reading resources
 Before you can use a resource, you need to convert them to the type you want to use. You do this the same way as with Archive/FileSystem; you use the constructor of the type you want to convert to. For example:
 ```cpp
-	NARC &narc = fs.get<NARC>(fs.getResource(*fs["a/b/test.NARC"]));
-	Archive arc(narc);
+NARC &narc = fs.get<NARC>(fs.getResource(*fs["a/b/test.NARC"]));
+Archive arc(narc);
 ```
 Above, you fetch the fso at "a/b/test.NARC", which could be nullptr (so you should only dereference when you're sure it's not). Then, you get that resource, which can be used to get the NARC. Then, you can convert it to an Archive; however, this should be prevented and only done when you REALLY need it. The FileSystem automatically parses NARC/CARCs inside of the file system, so there would be no need for this, seeing as it isn't a 'free' conversion, it takes a little time. There are however, conversions that do come for 'free' (as they are just detecting a type and not parsing anything). These include, but are not limited to, texture conversions (palette/tilemap/map).
 ```cpp
-	Texture2D tex(nclr);
-	Texture2D tilemap(ncgr, nclr);
-	Texture2D map(nscr, ncgr, nclr);
+Texture2D tex(nclr);
+Texture2D tilemap(ncgr, nclr);
+Texture2D map(nscr, ncgr, nclr);
 ```
 'Texture2D' is a simple 2D texture (could be any format; but in NDS it's BGR555, 4 bit or 8 bit most of the time). If you use any texture conversions (such as tilemap and map), don't forget to call '.dealloc' on the texture to free it from memory. This is because creating them this way will create a new texture with the correct data. If you don't want that, you have to create seperate textures and do the reading yourself.
 ### FileSystem's parent
@@ -114,57 +114,57 @@ Archives kind of work like a FileSystem, only you don't have named files & folde
 #### Flaws in resource reading
 Resource reading interprets the data of the ROM into a struct; which means that some data can't be interpreted when you try loading them. This will create an object named 'NBUO' (Buffer Unknown Object) and it is just a buffer, it has a pointer of what data it needs to parse and the length of the data. You can check for common types and try to parse them yourselves, when necessary.
 ```cpp
-	try {
-		NBUO &nbuo = arch.at<NBUO>(i);
-		printf("Undefined object at %u (%p) with size %u\n", i, nbuo.ptr, nbuo.size);
-	}
-	catch (std::exception e) {}
+try {
+	NBUO &nbuo = arch.at<NBUO>(i);
+	printf("Undefined object at %u (%p) with size %u\n", i, nbuo.ptr, nbuo.size);
+}
+catch (std::exception e) {}
 ```
 ### Adding a custom resource type
 ```cpp
-  	//File allocation table
-	struct BTAF : GenericSection {
-		u32 files;						//Count of files in archive
-	};
+//File allocation table
+struct BTAF : GenericSection {
+	u32 files;						//Count of files in archive
+};
 
-	//File name table
-	struct BTNF : GenericSection {};
+//File name table
+struct BTNF : GenericSection {};
 
-	//File image
-	struct GMIF : GenericSection { };
+//File image
+struct GMIF : GenericSection { };
 
-	//Archive file
-	typedef GenericResource<0x4352414E, BTAF, BTNF, GMIF> NARC;
+//Archive file
+typedef GenericResource<0x4352414E, BTAF, BTNF, GMIF> NARC;
 ```
 A NARC is defined as a resource containing a BTAF, BTNF and GMIF. The GMIF contains the archieve buffer, BTNF contains the offsets and buffer lengths.
 The first value is its magic number; it indicates how it can recognize a NARC in the ROM.
 Afterwards, they also need to be inserted into the ResourceTypes array, so the auto parser for the NArchive / FileSystem can recognize them.
 ```cpp
-	typedef CompileTimeList<NCLR, NCGR, NSCR, NARC, NBUO> ResourceTypes;
+typedef CompileTimeList<NCLR, NCGR, NSCR, NARC, NBUO> ResourceTypes;
 ```
 ### Writing a resource type
 The reason this API is so fast is it rarely mallocs; all resources are structs or use the ROM buffer. This means that the rom is directly affected if you write to a GenericResource's buffer (or convert it to things like textures). The following is how you modify a 64x64 image:
 ```cpp
-	Texture2D tex;
-	NType::convert(ncgr, &tex);
+Texture2D tex;
+NType::convert(ncgr, &tex);
 
-	for (u32 i = 0; i < 64; ++i)
-		for (u32 j = 0; j < 64; ++j) {
-			f32 deltaX = i - 31.5f;
-			f32 deltaY = j - 31.5;
-			deltaX /= 31.5;
-			deltaY /= 31.5;
-			f32 r = sqrt(pow(deltaX, 2) + pow(deltaY, 2));
-			tex.write(i, j, 0x1 + r * 0xE);
-		}
+for (u32 i = 0; i < 64; ++i)
+	for (u32 j = 0; j < 64; ++j) {
+		f32 deltaX = i - 31.5f;
+		f32 deltaY = j - 31.5;
+		deltaX /= 31.5;
+		deltaY /= 31.5;
+		f32 r = sqrt(pow(deltaX, 2) + pow(deltaY, 2));
+		tex.write(i, j, 0x1 + r * 0xE);
+	}
 ```
 'write' doesn't just set the data in the texture; it also checks what kind of texture is used. If you are using a BGR555 texture, you input RGBA8 but it has to convert it first. 'read' does the same; except it changes the output you receive.
 ###  Writing textures
 Textures aren't that easy in NFS; palettes are always used and sometimes, they even use tilemaps. This means that fetching the data directly won't return an RGBA8 color, but rather an index to a palette or tile. If you want to output the actual image, you can create a new image that will be converted from the ROM's image.
 ```cpp
-	Texture2D tex2(ncgr, nclr);
-	tex2.write("Final0.png");
-	tex2.dealloc();
+Texture2D tex2(ncgr, nclr);
+tex2.write("Final0.png");
+tex2.dealloc();
 ```
 Don't forget to dealloc the texture; as it uses a new malloc, because most of the time, the format is different from the source to the target. 
 ### Writing image filters
