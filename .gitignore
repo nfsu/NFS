@@ -45,3 +45,7 @@ CMakeCache.txt
 !nfsu/lib
 bin/
 *.sln
+nfs/x64/
+lib/
+*.user
+x64/

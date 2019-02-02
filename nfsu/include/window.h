@@ -41,13 +41,11 @@ namespace nfsu {
 			void importPatch(QString file);
 
 			void findFile();
+			void filterFiles();
+			void orderFiles();
 
 			///View actions
 			void restore();
-
-			///Options actions
-
-			void showPreferences();
 
 			///Help actions
 
@@ -65,14 +63,6 @@ namespace nfsu {
 
 			void inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao);
 			void inspectFolder(nfs::FileSystemObject &fso);
-
-			template<typename ...args>
-			void inspector(TBoxedStruct<args...> &data, std::string(&names)[nfs::CountArgs<args...>::get()]) {
-				fileInspect->clear();
-				fileInspect->display(data, names);
-				fileInspect->show();
-				fileInspect->activateWindow();
-			}
 
 	private:
 

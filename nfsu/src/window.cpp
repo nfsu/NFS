@@ -16,7 +16,7 @@ using namespace nfs;
 Window::Window() {
 
 	setWindowTitle("File System Utilities");
-	setMinimumSize(QSize(480, 480));
+	setMinimumSize(QSize(450, 700));
 
 	setupUI();
 }
@@ -51,11 +51,14 @@ void Window::setupToolbar() {
 
 	///File
 	QAction *load = file->addAction("Load");
+	QAction *save = file->addAction("Save");
 	QAction *exp = file->addAction("Export");
 	QAction *imp = file->addAction("Import");
 	QAction *reload = file->addAction("Reload");
-	QAction *save = file->addAction("Save");
+	file->addSeparator();
 	QAction *find = file->addAction("Find");
+	QAction *filter = file->addAction("Filter");
+	QAction *order = file->addAction("Order");
 
 	connect(load, &QAction::triggered, this, [&]() { this->load(); });
 	connect(exp, &QAction::triggered, this, [&]() { this->exportPatch(); });
@@ -63,16 +66,13 @@ void Window::setupToolbar() {
 	connect(reload, &QAction::triggered, this, [&]() { this->reload(); });
 	connect(save, &QAction::triggered, this, [&]() { this->write(); });
 	connect(find, &QAction::triggered, this, [&]() { this->findFile(); });
+	connect(filter, &QAction::triggered, this, [&]() { this->filterFiles(); });
+	connect(order, &QAction::triggered, this, [&]() { this->orderFiles(); });
 
 	///View
 	QAction *restore = view->addAction("Reset");
 
 	connect(restore, &QAction::triggered, this, [&]() { this->restore(); });
-
-	///Options
-	QAction *preferences = options->addAction("Preferences");
-
-	connect(preferences, &QAction::triggered, this, [&]() { this->showPreferences(); });
 
 	///Help
 	QAction *documentation = help->addAction("Documentation");
@@ -101,7 +101,7 @@ void Window::setupExplorer(QLayout *layout) {
 }
 
 void Window::setupInfoWindow(QLayout *layout) {
-	fileInspect = new InfoWindow("File properties", this);
+	fileInspect = new InfoWindow(this);
 	layout->addWidget(fileInspect);
 }
 
@@ -164,12 +164,19 @@ void Window::reload() {
 		setWindowTitle(QString("File System Utilities: ") + nds->title);
 		fileSystem = nds;
 
-		BMD0 bmd0 = fileSystem.get<BMD0>(*fileSystem["fielddata/build_model/build_model.narc/1.0DMB"]);
-		Model model(bmd0);
+		restore();
+
+		fileInspect->setString("Title", nds->title);
+		fileInspect->setString("Size", QString::number(nds->romSize));
+		fileInspect->setString("File", file);
+		fileInspect->setString("Folders", QString::number(fileSystem.getFolders()));
+		fileInspect->setString("Files", QString::number(fileSystem.getFiles()));
+		fileInspect->setString("Id", "");
+		fileInspect->setString("Type", "");
+		fileInspect->setString("Offset", "");
+		fileInspect->setString("Length", "");
 
 	}
-
-	restore();
 }
 
 void Window::write() {
@@ -262,10 +269,20 @@ void Window::importPatch(QString file) {
 	buf.dealloc();
 	rom.dealloc();
 	rom = patched;
+
+	reload();
 }
 
 void Window::findFile() {
 	//TODO: Example; find files with extension, name, directory, in folder, that are supported, etc.
+}
+
+void Window::filterFiles() {
+	//TODO: Example; filter on extension, supported
+}
+
+void Window::orderFiles() {
+	//TODO: Order on size, alphabetical, offset; ascending, descending
 }
 
 ///View
@@ -273,23 +290,6 @@ void Window::findFile() {
 void Window::restore() {
 	QHelper::clearLayout(layout);
 	setupUI();
-}
-
-///Options
-
-void Window::showPreferences() {
-
-	//if (preferences == nullptr) {
-
-	//	//TODO: Create preference window
-	//	//		Example; Home directory & Default ROM
-
-	//} else {
-	//	//TODO: Focus preference window
-	//}
-
-	//TODO: On close; set preferences to nullptr
-
 }
 
 ///Help
@@ -368,50 +368,36 @@ void Window::info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 }
 
 void Window::inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
-	
-	TBoxedStruct<u32, std::string, u8*, u32, u32, u32> data(
-		fso.index,
-		fso.name,
-		(u8*)(fso.buf.ptr - rom.ptr),
-		fso.buf.size,
-		fso.files,
-		ao.info.type
-	);
 
-	std::string names[] = { 
-		"File #%u",
-		"Location: %s", 
-		"Address: %p",
-		"Size: %u",
-		"Has %u files",
-		"Has type id %u"
-	};
+	QString fileName = QString::fromStdString(fso.name);
 
-	inspector(data, names);
+	fileInspect->setString("Folders", QString::number(fso.folders));
+	fileInspect->setString("Files", QString::number(fso.files));
+
+	fileInspect->setString("File", fileName);
+	fileInspect->setString("Id", QString::number(fso.index));
+
+	int occur = fileName.lastIndexOf(".");
+	fileInspect->setString("Type", fileName.mid(occur + 1, fileName.size() - occur - 1));
+
+	fileInspect->setString("Offset", QString("0x") + QString::number((u32)(fso.buf.ptr - rom.ptr), 16));
+	fileInspect->setString("Length", QString::number(fso.buf.size));
+
 }
 
 void Window::inspectFolder(nfs::FileSystemObject &fso) {
 
-	TBoxedStruct<u32, std::string, u32, u32> data(
-		fso.index,
-		fso.name,
-		fso.folders,
-		fso.files
-	);
+	QString fileName = QString::fromStdString(fso.name);
 
-	std::string names[] = {
-		"Folder #%u",
-		"Location: %s",
-		"Has %u folders",
-		"Contains %u files"
-	};
+	fileInspect->setString("Folders", QString::number(fso.folders));
+	fileInspect->setString("Files", QString::number(fso.files));
 
-	std::string &str = data.get<1>();
-	std::string str2 = data.get<1>();
+	fileInspect->setString("File", fileName);
+	fileInspect->setString("Id", QString::number(fso.index));
 
-	TBoxedStruct<u32, std::string, u32, u32> test(data);
+	fileInspect->setString("Type", "Folder");
 
-	inspector(data, names);
+	fileInspect->setString("Offset", "");
+	fileInspect->setString("Length", "");
+
 }
-
-//TODO: Parse subresources
