@@ -16,7 +16,7 @@ namespace nfs {
 		u32 size;							//Size of section; including contents
 	};
 
-	template<u32 magicNumber, typename ...args>
+	template<u32 magicNumber, bool sectionOffsets, typename ...args>
 	struct GenericResource {
 
 		static constexpr u32 elements() {

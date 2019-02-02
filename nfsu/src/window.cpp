@@ -8,6 +8,7 @@
 #include <QtCore/qurl.h>
 #include <QtWidgets/qmenubar.h>
 #include <QtWidgets/qlayout.h>
+#include "model.h"
 #include "qhelper.h"
 using namespace nfsu;
 using namespace nfs;
@@ -158,9 +159,14 @@ void Window::reload() {
 	rom = Buffer::read(file.toStdString());
 
 	if (rom.ptr != nullptr) {
+
 		NDS *nds = (NDS*) rom.ptr;
 		setWindowTitle(QString("File System Utilities: ") + nds->title);
 		fileSystem = nds;
+
+		BMD0 bmd0 = fileSystem.get<BMD0>(*fileSystem["fielddata/build_model/build_model.narc/1.0DMB"]);
+		Model model(bmd0);
+
 	}
 
 	restore();

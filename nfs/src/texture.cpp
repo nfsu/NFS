@@ -157,22 +157,12 @@ u32 Texture2D::fetch(u16 i, u16 j) {
 	return val;
 }
 
-u32 fromBGR5(u32 val) {
-	return (u32)(val / 31.f * 255);
-}
-
 u32 Texture2D::read(u16 i, u16 j) {
 
 	u32 pix = fetch(i, j);
 
-	if (type == (u16)TextureType::BGR5){
-
-		u32 b = fromBGR5(pix & 0x1FU);
-		u32 g = fromBGR5((pix & 0x3E0U) >> 5U);
-		u32 r = fromBGR5((pix & 0x7C00U) >> 10U);
-
-		pix = (0xFFU << 24U) | (r << 16U) | (g << 8U) | b;
-	}
+	if (type == (u16)TextureType::BGR5)
+		pix = CompressionHelper::samplePixel((u16)pix);
 
 	return pix;
 }
@@ -201,21 +191,11 @@ bool Texture2D::store(u16 i, u16 j, u32 k) {
 	return true;
 }
 
-u32 toBGR5(u32 val) {
-	return (u32)(val / 255.f * 31);
-}
-
 bool Texture2D::write(u16 i, u16 j, u32 k) {
 
 	
-	if (type == (u16)TextureType::BGR5) {
-
-		u32 r = toBGR5(k & 0xFFU);
-		u32 g = toBGR5((k & 0xFF00U) >> 8U);
-		u32 b = toBGR5((k & 0xFF0000U) >> 16U);
-
-		k = b | (g << 5U) | (r << 10U);
-	}
+	if (type == (u16)TextureType::BGR5)
+		k = CompressionHelper::storePixel(k);
 
 	return store(i, j, k);
 }

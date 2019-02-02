@@ -343,11 +343,11 @@ FileSystem::FileSystem(NDS *rom) {
 	for (auto &f : threads)
 		supported += f.get();
 
-	printf("Loaded FileSystem with %u files; %u were supported (%u%%)\n", (u32)(fileSystem.size() - rootFolders), supported, (u32)round((f32)supported / (fileSystem.size() - rootFolders) * 100));
-
 	#ifdef USE_TIMER
 		t.lap("Intialize subresource threads");
 	#endif
+
+	printf("Loaded FileSystem with %u files; %u were supported (%u%%)\n", (u32)(fileSystem.size() - rootFolders), supported, (u32)round((f32)supported / (fileSystem.size() - rootFolders) * 100));
 
 	#ifdef USE_TIMER
 		t.print();

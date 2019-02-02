@@ -3,17 +3,19 @@
 #include <string>
 #include <unordered_map>
 
-typedef signed char i8;
-typedef unsigned char u8;
+typedef signed __int8 i8;
+typedef unsigned __int8 u8;
 
-typedef signed short i16;
-typedef unsigned short u16;
+typedef signed __int16 i16;
+typedef unsigned __int16 u16;
 
-typedef signed int i32;
-typedef unsigned int u32;
+typedef u16 col16;
 
-typedef signed long long i64;
-typedef unsigned long long u64;
+typedef signed __int32 i32;
+typedef unsigned __int32 u32;
+
+typedef signed __int64 i64;
+typedef unsigned __int64 u64;
 
 typedef float f32;
 typedef double f64;

@@ -7,8 +7,8 @@ namespace nfs {
 
 	struct ResourceHelper {
 
-		template<u32 i, typename ...args>
-		static u32 getMagicNumber(GenericResource<i, args...> res) {
+		template<u32 i, bool b, typename ...args>
+		static u32 getMagicNumber(GenericResource<i, b, args...> res) {
 			return i;
 		}
 
@@ -130,20 +130,26 @@ namespace nfs {
 		struct Fill {
 
 			static void run(u8 *ptr, u8 *origin, u32 size) {
-				((T*)ptr)->header = (GenericHeader*)origin;
-				run_inter(*(T*)ptr, origin + sizeof(GenericHeader), size);
+				run(*(T*)ptr, origin, size);
 			}
 
-			template<u32 i, typename ...args>
-			static void run_inter(GenericResource<i, args...> &gr, u8 *origin, u32 size) {
+			template<u32 i, bool b, typename ...args>
+			static void run(GenericResource<i, b, args...> &gr, u8 *origin, u32 size) {
+				GenericHeader *head = (GenericHeader*)origin;
+				gr.header = head;
+				run_inter(gr, origin + sizeof(GenericHeader) + (b ? head->sections * 4 : 0), size);
+			}
+
+			template<u32 i, bool b, typename ...args>
+			static void run_inter(GenericResource<i, b, args...> &gr, u8 *origin, u32 size) {
 				FillContents<0, args...>::run(gr, origin, size, gr.header->sections);
 			}
 
 			template<u32 i, typename T2, typename ...args>
 			struct FillContents {
 
-				template<u32 j, typename ...args2>
-				static void run(GenericResource<j, args2...> &gr, u8 *origin, u32 size, u32 sections) {
+				template<u32 j, bool b, typename ...args2>
+				static void run(GenericResource<j, b, args2...> &gr, u8 *origin, u32 size, u32 sections) {
 					gr.ptrs[i] = i < sections ? origin : nullptr;
 					FillContents<i + 1, args...>::run(gr, origin + ((T2*)gr.ptrs[i])->size, size, sections);
 				}
@@ -153,8 +159,8 @@ namespace nfs {
 			template<u32 i, typename T2>
 			struct FillContents<i, T2> {
 
-				template<u32 j, typename ...args2>
-				static void run(GenericResource<j, args2...> &gr, u8 *origin, u32 size, u32 sections) {
+				template<u32 j, bool b, typename ...args2>
+				static void run(GenericResource<j, b, args2...> &gr, u8 *origin, u32 size, u32 sections) {
 					gr.ptrs[i] = i < sections ? origin : nullptr;
 				}
 

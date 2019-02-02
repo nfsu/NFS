@@ -1,5 +1,10 @@
 #pragma once
 #include "genericresource.h"
+#include "compressionhelper.h"
+#include "fpx.h"
+#include "b1.h"
+#include "ux.h"
+#include "sstruct.h"
 
 namespace nfs {
 
@@ -16,33 +21,33 @@ namespace nfs {
 		u16 c_padding;						//0x0000
 	};
 
-	typedef GenericResource<0x4E434C52, TTLP, PMCP> NCLR;						//Palette ("Color") resource
+	typedef GenericResource<0x4E434C52, false, TTLP, PMCP> NCLR;				//Palette ("Color") resource
 
 	struct RAHC : GenericSection {												//Character data
 		u16 tileHeight;
 		u16 tileWidth;
-		u32 tileDepth;					//1 << (tileDepth - 1) = bit depth
-		u64 c_padding;					//0x0000000000000000
-		u32 tileDataSize;				//tileDataSize / 1024 = tileCount; tileDataSize * (2 - (tileDepth - 3)) = pixels
-		u32 c_padding0;					//0x00000018
+		u32 tileDepth;						//1 << (tileDepth - 1) = bit depth
+		u64 c_padding;						//0x0000000000000000
+		u32 tileDataSize;					//tileDataSize / 1024 = tileCount; tileDataSize * (2 - (tileDepth - 3)) = pixels
+		u32 c_padding0;						//0x00000018
 	};
 
 	struct SOPC : GenericSection {												//Character info
-		u32 c_padding;				//0x00000000
-		u16 tileWidth;				//= tileCount in RAHC
-		u16 tileHeight;				//= RAHC tileCount
+		u32 c_padding;						//0x00000000
+		u16 tileWidth;						//= tileCount in RAHC
+		u16 tileHeight;						//= RAHC tileCount
 	};
 
-	typedef GenericResource<0x4E434752, RAHC, SOPC> NCGR;						//Graphics resource
+	typedef GenericResource<0x4E434752, false, RAHC, SOPC> NCGR;				//Graphics resource
 
 	struct NRCS : GenericSection {												//Screen resource
-		u16 screenWidth;				//Width of screen (pixels)
-		u16 screenHeight;				//Height of screen (pixels)
-		u32 c_padding;					//unknown
-		u32 screenDataSize;				//Size of screen data buffer
+		u16 screenWidth;					//Width of screen (pixels)
+		u16 screenHeight;					//Height of screen (pixels)
+		u32 c_padding;						//unknown
+		u32 screenDataSize;					//Size of screen data buffer
 	};
 
-	typedef GenericResource<0x4E534352, NRCS> NSCR;								//Screen resource
+	typedef GenericResource<0x4E534352, false, NRCS> NSCR;						//Screen resource
 
 	struct BTAF : GenericSection {												//File allocation table
 		u32 files;
@@ -51,11 +56,47 @@ namespace nfs {
 	struct BTNF : GenericSection {};											//File name table
 	struct GMIF : GenericSection {};											//File image
 
-	typedef GenericResource<0x4352414E, BTAF, BTNF, GMIF> NARC;					//Archive file
+	typedef GenericResource<0x4352414E, false, BTAF, BTNF, GMIF> NARC;			//Archive file
+
+	struct MDL0 : GenericSection { };
+
+	struct TEX0 : GenericSection {
+
+		u32 p0;								//0x0
+
+		u16 dataSize;						//<< 3
+		u16 infoOffset;						//0x3C
+
+		u32 p1;								//0x0
+
+		u32 dataOffset;
+
+		u32 p2;								//0x0
+
+		u16 compressedSize;					//<< 3
+		u16 compressedInfoOffset;			//0x3C
+
+		u32 p3;								//0x0
+
+		u32 compressedOffset;
+
+		u32 compressedDataInfoOffset;
+
+		u32 p4;								//0x0
+
+		u32 paletteSize;					//<< 3
+
+		u32 paletteInfoOffset;
+
+		u32 paletteOffset;
+
+	};
+
+	typedef GenericResource<0x30444D42, true, MDL0, TEX0> BMD0;
 
 	typedef Buffer NBUO;
 
-	typedef CompileTimeList<NCLR, NCGR, NSCR, NARC, NBUO> ResourceTypes;
+	typedef CompileTimeList<NCLR, NCGR, NSCR, NARC, BMD0, NBUO> ResourceTypes;
 
 	struct NDS {																//NDS file format
 		char title[12];
