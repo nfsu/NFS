@@ -1,5 +1,6 @@
 #pragma once
 #include <QtWidgets/qwidget.h>
+#include <QtWidgets/qsplitter.h>
 #include <filesystem.h>
 #include "infowindow.h"
 
@@ -21,6 +22,7 @@ namespace nfsu {
 		void setupToolbar();
 		void setupExplorer(QLayout *layout);
 		void setupInfoWindow(QLayout *layout);
+		void setupTabs(QLayout *layout);
 
 		///Toolbar actions
 
@@ -45,11 +47,14 @@ namespace nfsu {
 			void orderFiles();
 
 			///View actions
+
 			void restore();
+			void customize();
 
 			///Help actions
 
 			void documentation();
+			void about();
 
 		///Right click resource actions
 
@@ -73,7 +78,9 @@ namespace nfsu {
 		nfsu::NExplorer *explorer = nullptr;
 		nfsu::InfoWindow *fileInspect = nullptr;
 
-		QLayout *layout = nullptr;
+		QLayout *layout = nullptr, *leftLayout, *rightLayout;
+		QWidget *left, *right;
+		QSplitter *splitter;
 
 	};
 

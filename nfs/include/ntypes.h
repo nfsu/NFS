@@ -145,4 +145,33 @@ namespace nfs {
 		u8 reserved3[144];
 	};
 
+	struct NDSTitle {
+
+		std::wstring title;
+		std::wstring subtitle;
+		std::wstring publisher;
+
+		NDSTitle(std::wstring title, std::wstring subtitle, std::wstring publisher) :
+			title(title), subtitle(subtitle), publisher(publisher) {}
+
+		NDSTitle() : NDSTitle(L"", L"", L"") {}
+
+	};
+
+	struct NDSBanner {
+
+		u16 version;
+		u16 checksum;
+		u8 reserved[28];
+		u8 icon[32][32];	//NDS icon data (palette[i])
+		u16 palette[16];	//NDS icon palette (BGR5)
+		u16 titles[6][128];	//Title of game in 6 languages (unicode)
+
+		//Get banner from NDS file
+		static NDSBanner *get(NDS *nds);
+
+		std::vector<NDSTitle> getTitles();
+
+	};
+
 }

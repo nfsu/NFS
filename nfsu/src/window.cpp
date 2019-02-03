@@ -16,7 +16,63 @@ using namespace nfs;
 Window::Window() {
 
 	setWindowTitle("File System Utilities");
-	setMinimumSize(QSize(450, 700));
+	setMinimumSize(QSize(1200, 700));
+
+	setStyleSheet(
+
+		"QWidget {"
+			"background: #303030;"
+			"background-color: #303030;"
+			"color: Cyan;"
+			"border: 0px;"
+			"selection-background-color: #404040;"
+			"alternate-background-color: #303030;"
+			"font: 14px;"
+		"}"
+
+		"QMenu {"
+			"border: 1px solid #202020;"
+			"background: #404040;"
+		"}"
+
+		"QTreeView::item:hover, QAbstractItemView::item:hover, QMenuBar::item:hover, QMenu::item:hover, QTabBar::tab:hover {"
+			"color: DeepSkyBlue;"
+		"}"
+
+		"QTreeView::item:selected, QAbstractItemView::item:selected, QMenuBar::item:selected, QMenu::item:selected, QTabBar::tab:selected {"
+			"color: White;"
+			"background: #505050;"
+		"}"
+
+		"QTabWidget::pane {"
+			"border: 2px solid #101010;"
+		"}"
+
+		"QTabBar::tab, QTabBar::tab:selected {"
+			"background: #202020;"
+			"margin-right: 5px;"
+			"padding-top: 2px;"
+			"padding-bottom: 2px;"
+			"padding-left: 2px;"
+		"}"
+
+		"QTabBar::tab:selected {"
+			"background: #505050;"
+			"color: White;"
+		"}"
+
+		"QHeaderView::section {"
+			"background-color: #303030;"
+			"border: 0px #101010;"
+		"}"
+
+		"QTreeView, QTableView, QMenuBar {"
+			"border: 1px solid #101010;"
+		"}"
+
+	);
+
+	//TODO: Buttons
 
 	setupUI();
 }
@@ -31,18 +87,26 @@ Window::~Window() {
 void Window::setupUI() {
 	setupLayout();
 	setupToolbar();
-	setupInfoWindow(layout);
-	setupExplorer(layout);
+	setupInfoWindow(leftLayout);
+	setupExplorer(leftLayout);
+	setupTabs(rightLayout);
 }
 
 void Window::setupLayout() {
-	setLayout(layout = new QVBoxLayout);
+	setLayout(layout = new QHBoxLayout);
+	splitter = new QSplitter;
+	layout->addWidget(splitter);
+	splitter->addWidget(left = new QWidget);
+	splitter->addWidget(right = new QWidget);
+	left->setLayout(leftLayout = new QVBoxLayout);
+	left->setMaximumWidth(450);
+	right->setLayout(rightLayout = new QVBoxLayout);
 }
 
 void Window::setupToolbar() {
 
 	QMenuBar *qtb;
-	layout->addWidget(qtb = new QMenuBar());
+	leftLayout->addWidget(qtb = new QMenuBar());
 
 	QMenu *file = qtb->addMenu("File");
 	QMenu *view = qtb->addMenu("View");
@@ -59,6 +123,7 @@ void Window::setupToolbar() {
 	QAction *find = file->addAction("Find");
 	QAction *filter = file->addAction("Filter");
 	QAction *order = file->addAction("Order");
+	QAction *mapper = file->addAction("Mapping");	//TODO: Map file spaces (find available space, etc)
 
 	connect(load, &QAction::triggered, this, [&]() { this->load(); });
 	connect(exp, &QAction::triggered, this, [&]() { this->exportPatch(); });
@@ -71,13 +136,16 @@ void Window::setupToolbar() {
 
 	///View
 	QAction *restore = view->addAction("Reset");
+	QAction *customize = view->addAction("Customize");
 
 	connect(restore, &QAction::triggered, this, [&]() { this->restore(); });
 
 	///Help
 	QAction *documentation = help->addAction("Documentation");
+	QAction *about = help->addAction("About");
 
 	connect(documentation, &QAction::triggered, this, [&]() {this->documentation(); });
+	connect(about, &QAction::triggered, this, [&]() {this->about(); });
 
 }
 
@@ -103,6 +171,18 @@ void Window::setupExplorer(QLayout *layout) {
 void Window::setupInfoWindow(QLayout *layout) {
 	fileInspect = new InfoWindow(this);
 	layout->addWidget(fileInspect);
+}
+
+void Window::setupTabs(QLayout *layout) {
+	QTabWidget *tabs = new QTabWidget;
+	tabs->addTab(new QWidget, QIcon("resources/folder.png"), "Game editor");			//TODO: Edit icon, names, etc.
+	tabs->addTab(new QWidget, QIcon("resources/palette.png"), "Palette editor");		//TODO: Edit palette
+	tabs->addTab(new QWidget, QIcon("resources/tilemap.png"), "Tile editor");			//TODO: Edit tiles
+	tabs->addTab(new QWidget, QIcon("resources/map.png"), "Tilemap editor");			//TODO: Edit tilemap
+	tabs->addTab(new QWidget, QIcon("resources/model.png"), "Model editor");			//TODO: Edit model
+	tabs->addTab(new QWidget, QIcon("resources/binary.png"), "File editor");			//TODO: Edit binary or text
+	tabs->setCurrentIndex(1);
+	rightLayout->addWidget(tabs);
 }
 
 void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
@@ -164,19 +244,16 @@ void Window::reload() {
 		setWindowTitle(QString("File System Utilities: ") + nds->title);
 		fileSystem = nds;
 
-		restore();
-
-		fileInspect->setString("Title", nds->title);
-		fileInspect->setString("Size", QString::number(nds->romSize));
-		fileInspect->setString("File", file);
-		fileInspect->setString("Folders", QString::number(fileSystem.getFolders()));
-		fileInspect->setString("Files", QString::number(fileSystem.getFiles()));
-		fileInspect->setString("Id", "");
-		fileInspect->setString("Type", "");
-		fileInspect->setString("Offset", "");
-		fileInspect->setString("Length", "");
+		NDSBanner *banner = NDSBanner::get(nds);
+		auto strings = banner->getTitles();
+		//TODO: Display, icon
+		//TODO: Allow editing 
+		int dbg = 0;
 
 	}
+
+	restore();
+
 }
 
 void Window::write() {
@@ -288,14 +365,45 @@ void Window::orderFiles() {
 ///View
 
 void Window::restore() {
+
 	QHelper::clearLayout(layout);
 	setupUI();
+
+	NDS *nds = (NDS*)rom.ptr;
+
+	if (nds != nullptr) {
+		fileInspect->setString("Title", nds->title);
+		fileInspect->setString("Size", QString::number(nds->romSize));
+		fileInspect->setString("File", file);
+		fileInspect->setString("Folders", QString::number(fileSystem.getFolders()));
+		fileInspect->setString("Files", QString::number(fileSystem.getFiles()));
+	} else {
+		fileInspect->setString("Title", "");
+		fileInspect->setString("Size", "");
+		fileInspect->setString("File", "");
+		fileInspect->setString("Folders", "");
+		fileInspect->setString("Files", "");
+	}
+
+	fileInspect->setString("Id", "");
+	fileInspect->setString("Type", "");
+	fileInspect->setString("Offset", "");
+	fileInspect->setString("Length", "");
+
+}
+
+void Window::customize() {
+	//TODO: Customize style sheet
 }
 
 ///Help
 
 void Window::documentation() {
 	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded"));
+}
+
+void Window::about() {
+	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/nfsu"));
 }
 
 ///Right click resource actions

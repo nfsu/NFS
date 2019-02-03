@@ -6,7 +6,7 @@ using namespace nfsu;
 
 InfoWindow::InfoWindow(QWidget *parent): 
 	QTableWidget(parent) {
- 
+
 	setColumnCount(2);
 	setRowCount(9);
 
@@ -49,6 +49,9 @@ void InfoWindow::setString(QString key, QString value) {
 	table.push_back({ key, value });
 	setItem(i, 0, new QTableWidgetItem(key));
 	setItem(i, 1, new QTableWidgetItem(value));
+
+	item(i, 0)->setFlags(Qt::ItemIsEnabled);
+	item(i, 1)->setFlags(Qt::ItemIsEnabled);
 
 }
 

@@ -46,10 +46,8 @@ QVariant NExplorer::data(const QModelIndex &index, int role) const {
 	if (!index.isValid())
 		return QVariant();
 
-	if (role == Qt::BackgroundRole) {
-		QApplication *app = (QApplication*) QApplication::instance();
-		return app->palette().base();
-	}
+	if (role == Qt::BackgroundRole)
+		return QVariant();
 
 	if (role != Qt::DisplayRole && role != Qt::DecorationRole)
 		return QVariant();
