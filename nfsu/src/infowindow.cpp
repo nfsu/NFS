@@ -11,6 +11,7 @@ InfoWindow::InfoWindow(QWidget *parent):
 	setRowCount(9);
 
 	setFixedHeight(275);
+	setFixedWidth(430);
 
 	setString("Title", "");
 	setString("Size", "");

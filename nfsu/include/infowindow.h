@@ -3,7 +3,7 @@
 #include <QtWidgets/qwidget.h>
 #include <QtWidgets/qlayout.h>
 #include <QtWidgets/qtablewidget.h>
-#include "boxedstruct.h"
+#include "generic.h"
 
 namespace nfsu {
 

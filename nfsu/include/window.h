@@ -1,8 +1,9 @@
 #pragma once
 #include <QtWidgets/qwidget.h>
 #include <QtWidgets/qsplitter.h>
-#include <filesystem.h>
+#include "filesystem.h"
 #include "infowindow.h"
+#include "resourceeditor.h"
 
 namespace nfsu {
 
@@ -32,6 +33,7 @@ namespace nfsu {
 			void load(QString file);
 
 			void reload();
+			void reloadButton();
 
 			void write();
 			void write(QString file);
@@ -81,6 +83,9 @@ namespace nfsu {
 		QLayout *layout = nullptr, *leftLayout, *rightLayout;
 		QWidget *left, *right;
 		QSplitter *splitter;
+
+		std::vector<ResourceEditor*> editors;
+		ResourceEditor *selected;
 
 	};
 

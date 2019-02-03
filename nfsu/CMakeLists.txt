@@ -17,7 +17,7 @@ add_executable(
 	${CMAKE_CURRENT_SOURCE_DIR}/resources/logo.rc
 )
 
-target_link_libraries(nfsu nfs)
+target_link_libraries(nfsu nfs opengl32)
 
 target_link_libraries(nfsu debug qt5cored)
 target_link_libraries(nfsu optimized qt5core)

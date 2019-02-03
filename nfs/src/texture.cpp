@@ -58,12 +58,12 @@ Texture2D Texture2D::alloc(u16 w, u16 h, u32 stride, TextureType tt, TextureTile
 Texture2D Texture2D::read(std::string file) {
 	int x, y, channels;
 	u8 *ptr = (u8*) stbi_load(file.c_str(), &x, &y, &channels, 4);
-	return { ptr, (u16)x, (u16)y, 4U, TextureType::RGBA8, TextureTiles::NONE };
+	return { ptr, (u16)x, (u16)y, 4U, TextureType::ARGB8, TextureTiles::NONE };
 }
 
 void Texture2D::write(std::string file) {
 
-	if (type != (u16)TextureType::RGBA8 || flags != (u16)TextureTiles::NONE) 
+	if (type != (u16)TextureType::ARGB8 || flags != (u16)TextureTiles::NONE)
 		EXCEPTION("Texture2D Couldn't write image; please convert to RGBA8 first");
 
 	if (file.size() < 4 || std::string(file.end() - 4, file.end()) != ".png")
@@ -90,23 +90,23 @@ u32 Texture2D::getSize() { return size; }
 u32 Texture2D::getTiles() { return (u32) flags; }
 u32 Texture2D::getDataSize() { return width * height * stride; }
 
-u32 Texture2D::changeDimensions(u16 w, u16 h) {
+ChangeDimensionsResult Texture2D::changeDimensions(u16 w, u16 h) {
 
 	u32 siz = (u32)w * (u32)h;
 
 	if (size != siz) {
 		printf("Texture2D Couldn't change dimensions; sizes didn't match\n");
-		return 0;
+		return ChangeDimensionsResult::INVALID_PIXEL_COUNT;
 	}
 
 	if (getTiles() != 0 && !(w % getTiles() == 0 && h % getTiles() == 0)) {
 		printf("Texture2D Couldn't change dimensions; size(s) do(es)n't match the tiling\n");
-		return 1;
+		return ChangeDimensionsResult::INVALID_TILING;
 	}
 
 	width = w;
 	height = h;
-	return 2;
+	return ChangeDimensionsResult::SUCCESS;
 }
 
 u32 Texture2D::getIndex(u16 i, u16 j) {

@@ -10,13 +10,15 @@
 #include <QtWidgets/qlayout.h>
 #include "model.h"
 #include "qhelper.h"
+#include "paletteeditor.h"
+#include "tileeditor.h"
 using namespace nfsu;
 using namespace nfs;
 
 Window::Window() {
 
 	setWindowTitle("File System Utilities");
-	setMinimumSize(QSize(1200, 700));
+	setMinimumSize(QSize(1200, 750));
 
 	setStyleSheet(
 
@@ -28,6 +30,12 @@ Window::Window() {
 			"selection-background-color: #404040;"
 			"alternate-background-color: #303030;"
 			"font: 14px;"
+		"}"
+
+		
+		"QPushButton {"
+			"border: 1px solid #101010;"
+			"background: #202020;"
 		"}"
 
 		"QMenu {"
@@ -128,7 +136,7 @@ void Window::setupToolbar() {
 	connect(load, &QAction::triggered, this, [&]() { this->load(); });
 	connect(exp, &QAction::triggered, this, [&]() { this->exportPatch(); });
 	connect(imp, &QAction::triggered, this, [&]() { this->importPatch(); });
-	connect(reload, &QAction::triggered, this, [&]() { this->reload(); });
+	connect(reload, &QAction::triggered, this, [&]() { this->reloadButton(); });
 	connect(save, &QAction::triggered, this, [&]() { this->write(); });
 	connect(find, &QAction::triggered, this, [&]() { this->findFile(); });
 	connect(filter, &QAction::triggered, this, [&]() { this->filterFiles(); });
@@ -174,15 +182,33 @@ void Window::setupInfoWindow(QLayout *layout) {
 }
 
 void Window::setupTabs(QLayout *layout) {
+
+	editors.resize(6);
+
+	for (auto &elem : editors)
+		elem = nullptr;
+
+	PaletteEditor *paletteEditor = new PaletteEditor(16, 16, 40);
+	editors[1] = paletteEditor;
+
+	TileEditor *tileEditor = new TileEditor(2, 16);
+	editors[2] = tileEditor;
+
 	QTabWidget *tabs = new QTabWidget;
-	tabs->addTab(new QWidget, QIcon("resources/folder.png"), "Game editor");			//TODO: Edit icon, names, etc.
-	tabs->addTab(new QWidget, QIcon("resources/palette.png"), "Palette editor");		//TODO: Edit palette
-	tabs->addTab(new QWidget, QIcon("resources/tilemap.png"), "Tile editor");			//TODO: Edit tiles
+	tabs->addTab(new QWidget, QIcon("resources/folder.png"), "Game editor");			//TODO: Edit game
+	tabs->addTab(paletteEditor, QIcon("resources/palette.png"), "Palette editor");
+	tabs->addTab(tileEditor, QIcon("resources/tilemap.png"), "Tile editor");
 	tabs->addTab(new QWidget, QIcon("resources/map.png"), "Tilemap editor");			//TODO: Edit tilemap
 	tabs->addTab(new QWidget, QIcon("resources/model.png"), "Model editor");			//TODO: Edit model
 	tabs->addTab(new QWidget, QIcon("resources/binary.png"), "File editor");			//TODO: Edit binary or text
 	tabs->setCurrentIndex(1);
+
+	selected = editors[tabs->currentIndex()];
+
+	connect(tabs, &QTabWidget::currentChanged, this, [&](int idx) { this->selected = editors[idx]; });
+
 	rightLayout->addWidget(tabs);
+
 }
 
 void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
@@ -208,13 +234,13 @@ void Window::load() {
 
 	if (rom.ptr != nullptr) {
 
-		QMessageBox::StandardButton reply = QMessageBox::question(this, "Load ROM", "Loading a ROM will clear all resources and not save any progress. Do you want to continue?");
+		QMessageBox::StandardButton reply = QMessageBox::question(nullptr, "Load ROM", "Loading a ROM will clear all resources and discard any progress. Do you want to continue?");
 
 		if (reply == QMessageBox::No)
 			return;
 	}
 
-	QString file = QFileDialog::getOpenFileName(this, tr("Open ROM"), "", tr("NDS file (*.nds)"));
+	QString file = QFileDialog::getOpenFileName(nullptr, tr("Open ROM"), "", tr("NDS file (*.nds)"));
 	
 	if (file == "" || !file.endsWith(".nds", Qt::CaseInsensitive)) {
 		QMessageBox messageBox;
@@ -244,15 +270,23 @@ void Window::reload() {
 		setWindowTitle(QString("File System Utilities: ") + nds->title);
 		fileSystem = nds;
 
-		NDSBanner *banner = NDSBanner::get(nds);
-		auto strings = banner->getTitles();
-		//TODO: Display, icon
-		//TODO: Allow editing 
-		int dbg = 0;
-
 	}
 
 	restore();
+
+}
+
+void Window::reloadButton() {
+
+	if (rom.ptr != nullptr) {
+
+		QMessageBox::StandardButton reply = QMessageBox::question(nullptr, "Reload ROM", "Reloading a ROM will clear all resources and discard any progress. Do you want to continue?");
+
+		if (reply == QMessageBox::No)
+			return;
+	}
+
+	reload();
 
 }
 
@@ -314,12 +348,12 @@ void Window::exportPatch(QString file) {
 
 void Window::importPatch() {
 
-	QMessageBox::StandardButton reply = QMessageBox::question(this, "Import Patch", "Importing a patch might damage the ROM, or might not work if applied on the wrong ROM. Do you want to continue?");
+	QMessageBox::StandardButton reply = QMessageBox::question(nullptr, "Import Patch", "Importing a patch might damage the ROM, or might not work if applied on the wrong ROM. Do you want to continue?");
 
 	if (reply == QMessageBox::No)
 		return;
 
-	QString file = QFileDialog::getOpenFileName(this, tr("Apply Patch"), "", tr("NFS Patch file (*.NFSP)"));
+	QString file = QFileDialog::getOpenFileName(nullptr, tr("Apply Patch"), "", tr("NFS Patch file (*.NFSP)"));
 
 	if (file == "" || !file.endsWith(".NFSP", Qt::CaseInsensitive)) {
 		QMessageBox messageBox;
@@ -409,8 +443,12 @@ void Window::about() {
 ///Right click resource actions
 
 void Window::viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
-	//TODO: Select all editors that can display the resource
-	//TODO: Make user pick if > 0
+
+	if (selected == nullptr || !selected->allowsResource(ao))
+		return;
+
+	selected->inspectResource(fileSystem, ao);
+
 }
 
 void Window::viewData(Buffer buf) {
@@ -445,7 +483,7 @@ void Window::importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) 
 	QString name = QString(ao.name.c_str()).split("/").last();
 	QString extension = name.split(".").last();
 
-	QString file = QFileDialog::getOpenFileName(this, tr("Load Resource"), "", tr((extension + " file (*." + extension + ")").toStdString().c_str()));
+	QString file = QFileDialog::getOpenFileName(nullptr, tr("Load Resource"), "", tr((extension + " file (*." + extension + ")").toStdString().c_str()));
 
 	if (file == "" || !file.endsWith("." + extension, Qt::CaseInsensitive)) {
 		QMessageBox messageBox;
