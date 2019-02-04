@@ -74,7 +74,6 @@ const float quad[] = {
 //OpenGL functions
 
 PFNGLACTIVETEXTUREPROC glActiveTexture = nullptr;
-PFNGLUNIFORM1IPROC glUniform1i = nullptr;
 
 //Setup renderer
 
@@ -88,7 +87,6 @@ void TileRenderer::initializeGL() {
 
 	if (glActiveTexture == nullptr) {
 		glActiveTexture = (PFNGLACTIVETEXTUREPROC)wglGetProcAddress("glActiveTexture");
-		glUniform1i = (PFNGLUNIFORM1IPROC)wglGetProcAddress("glUniform1i");
 	}
 
 	//Setup shader
@@ -96,14 +94,6 @@ void TileRenderer::initializeGL() {
 	check("Couldn't compile vertex shader", !shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader));
 	check("Couldn't compile fragment shader", !shader.addShaderFromSourceCode(QGLShader::Fragment, fragShader));
 	check("Couldn't link shader", !shader.link());
-
-	tiledLocation = shader.uniformLocation("tiled");
-	textureLocation = shader.uniformLocation("tiledTexture");
-	paletteLocation = shader.uniformLocation("paletteTexture");
-	widthLocation = shader.uniformLocation("width");
-	heightLocation = shader.uniformLocation("height");
-	flagsLocation = shader.uniformLocation("flags");
-	sizeLocation = shader.uniformLocation("size");
 
 	//Setup vbo and vao
 
@@ -184,16 +174,14 @@ void TileRenderer::paintGL() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, gpalette);
 
-	glUniform1i(textureLocation, 0);
-	glUniform1i(paletteLocation, 1);
-
-	glUniform1i(widthLocation, texture.getWidth());
-	glUniform1i(heightLocation, texture.getHeight());
-	glUniform1i(tiledLocation, texture.getTiles());
-	glUniform1i(sizeLocation, texture.getDataSize());
-
-	glUniform1i(flagsLocation, 
-		(texture.getType() == TextureType::R4 ? 1 : 0) | 
+	shader.setUniformValue("tiledTexture", 0);
+	shader.setUniformValue("paletteTexture", 1);
+	shader.setUniformValue("width", (i32) texture.getWidth());
+	shader.setUniformValue("height", (i32) texture.getHeight());
+	shader.setUniformValue("tiled", (i32) texture.getTiles());
+	shader.setUniformValue("size", (i32) texture.getDataSize());
+	shader.setUniformValue("flags", 
+		(texture.getType() == TextureType::R4 ? 1 : 0) |
 		(gpalette != gtexture && palette ? 2 : 0)
 	);
 

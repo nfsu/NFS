@@ -36,14 +36,10 @@ namespace nfsu {
 		QGLShaderProgram shader;
 		QGLBuffer quadVBO;
 
-		GLuint 
+		GLuint
 
 			//OpenGL resources
-			gtexture = 0, gpalette = 0,
-
-			//Uniforms
-			textureLocation, paletteLocation, widthLocation, heightLocation,
-			tiledLocation, flagsLocation, sizeLocation;
+			gtexture = 0, gpalette = 0;
 
 	};
 
