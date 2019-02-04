@@ -1,4 +1,5 @@
 #include "tilerenderer.h"
+#include <QtGui/qevent.h>
 using namespace nfsu;
 using namespace nfs;
 
@@ -137,9 +138,23 @@ void TileRenderer::setupGTexture() {
 
 }
 
+//Settings
+
 void TileRenderer::usePalette(bool b) {
 	palette = b;
 	repaint();
+}
+
+void TileRenderer::setEditable(bool b) {
+	editable = b;
+}
+
+void TileRenderer::setCursor(u32 i) {
+	idx = i;
+}
+
+void TileRenderer::setCursorSize(u32 scale) {
+	cursorSize = scale;
 }
 
 //Render calls
@@ -173,4 +188,62 @@ void TileRenderer::paintGL() {
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
+}
+
+//Drawing
+
+void TileRenderer::mousePressEvent(QMouseEvent *e) {
+
+	if (e->button() == Qt::MouseButton::LeftButton) {
+		isMouseDown = true;
+		mouseMoveEvent(e);
+	}
+
+	//TODO: Fill tile? Or square editor?
+
+}
+
+void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
+
+	if (e->button() == Qt::MouseButton::LeftButton)
+		isMouseDown = false;
+
+	//TODO: Line editor?
+
+}
+
+void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
+
+	if (texture.getWidth() == 0 || !isMouseDown || !editable)
+		return;
+
+	//TODO: Stroke if there was a last position?
+
+	float px = (float) e->x() / width(), py = (float) e->y() / height();
+
+	i32 x = i32(px * texture.getWidth());
+	i32 y = i32((1 - py) * texture.getHeight());
+
+	i32 sx = x - cursorSize / 2;
+	i32 sy = y - cursorSize / 2;
+	i32 ex = x + cursorSize / 2;
+	i32 ey = y + cursorSize / 2;
+
+	if (sx == ex) {
+		++ex;
+		++ey;
+	}
+
+	for(i32 i = sx; i < ex; ++i)
+		for(i32 j = sy; j < ey; ++j){
+
+			if (i < 0 || j < 0 || i >= texture.getWidth() || j >= texture.getHeight())
+				continue;
+
+			texture.store(i, j, idx);
+		}
+
+	destroyGTexture();
+	setupGTexture();
+	repaint();
 }

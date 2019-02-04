@@ -77,6 +77,8 @@ namespace nfsu {
 		Buffer rom;
 		nfs::FileSystem fileSystem;
 
+		i32 selectedId = 1;
+
 		nfsu::NExplorer *explorer = nullptr;
 		nfsu::InfoWindow *fileInspect = nullptr;
 

@@ -116,6 +116,7 @@ void Window::setupToolbar() {
 	QMenuBar *qtb;
 	leftLayout->addWidget(qtb = new QMenuBar());
 
+	//TODO: Save last folder & file
 	QMenu *file = qtb->addMenu("File");
 	QMenu *view = qtb->addMenu("View");
 	QMenu *options = qtb->addMenu("Options");
@@ -201,11 +202,14 @@ void Window::setupTabs(QLayout *layout) {
 	tabs->addTab(new QWidget, QIcon("resources/map.png"), "Tilemap editor");			//TODO: Edit tilemap
 	tabs->addTab(new QWidget, QIcon("resources/model.png"), "Model editor");			//TODO: Edit model
 	tabs->addTab(new QWidget, QIcon("resources/binary.png"), "File editor");			//TODO: Edit binary or text
-	tabs->setCurrentIndex(1);
+	tabs->setCurrentIndex(selectedId);
 
 	selected = editors[tabs->currentIndex()];
 
-	connect(tabs, &QTabWidget::currentChanged, this, [&](int idx) { this->selected = editors[idx]; });
+	connect(tabs, &QTabWidget::currentChanged, this, [&](int idx) { 
+		this->selected = editors[idx]; 
+		this->selectedId = idx; 
+	});
 
 	rightLayout->addWidget(tabs);
 

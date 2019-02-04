@@ -18,9 +18,16 @@ namespace nfsu {
 		nfs::Texture2D getTexture();
 
 		void usePalette(bool b);
+		void setEditable(bool b);
+		
+		void setCursor(u32 idx);
+		void setCursorSize(u32 size);
 
 		void initializeGL() override;
 		void paintGL() override;
+		void mouseMoveEvent(QMouseEvent *e) override;
+		void mousePressEvent(QMouseEvent *e) override;
+		void mouseReleaseEvent(QMouseEvent *e) override;
 
 	protected:
 
@@ -31,8 +38,8 @@ namespace nfsu {
 
 		nfs::Texture2D texture;
 
-		u32 scale;
-		bool palette = false;
+		u32 scale, idx = 0, cursorSize = 5;
+		bool palette = false, editable = true, isMouseDown = false;
 		
 		QGLShaderProgram shader;
 		QGLBuffer quadVBO;
