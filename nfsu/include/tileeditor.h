@@ -22,6 +22,8 @@ namespace nfsu {
 		void setTiles(nfs::Texture2D tex);
 		nfs::Texture2D getTiles();
 
+		void usePalette(bool b);
+
 		bool allowsResource(nfs::ArchiveObject &ao) override;
 		void inspectResource(nfs::FileSystem &fileSystem, nfs::ArchiveObject &ao) override;
 

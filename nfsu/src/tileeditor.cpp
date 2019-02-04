@@ -12,6 +12,12 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 
 	addWidget(renderer = new TileRenderer(tileScale));
 
+	//TODO: Resize button
+	//TODO: Palette disable button
+	//TODO: Lookup palette & tile button/file explorer
+	//TODO: Test renderer on 8bit images
+	//TODO: Use Qt OpenGL syntax
+
 }
 
 void TileEditor::setPalette(Texture2D tex) {
@@ -28,6 +34,10 @@ Texture2D TileEditor::getPalette() {
 
 void TileEditor::setTiles(Texture2D tex) {
 	renderer->setTexture(tex);
+}
+
+void TileEditor::usePalette(bool b) {
+	renderer->usePalette(b);
 }
 
 Texture2D TileEditor::getTiles() {

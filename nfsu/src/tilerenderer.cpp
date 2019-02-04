@@ -25,20 +25,41 @@ char const *fragShader =
 
 	"uniform uint width;"
 	"uniform uint height;"
+	"uniform uint size;"
 	"uniform uint tiled;"
-	"uniform usampler1D tex;"
+	"uniform usampler1D tiledTexture;"
+	"uniform uint flags;"
+	"uniform sampler2D paletteTexture;"
 
 	"out vec4 color;"
 
 	"void main() {"
+
+		//Convert from pixel to tiled pixel space
+
 		"uvec2 px = uvec2(uv * vec2(width, height));"
 		"uvec2 tile = px % tiled;"
 		"uvec2 tiles = px / tiled;"
 		"uint pos = (tiles.x + tiles.y * width / tiled) * tiled * tiled + tile.y * tiled + tile.x;"
-		//"uint val = texture(tex, float(pos) / width / height).r;"
-		"uint pixel = px.x + px.y * width;"
-		"uint val = texture(tex, float(pos) / 2 / width / height).r;"
-		"color = vec4(val % 2U, val / 2U % 2U, val / 4U % 2U, 1);"
+
+		//Convert from pixel index to buffer index
+
+		"uint mod2x4 = (pos % 2U) * 4U;"
+
+		"if((flags & 0x1U) != 0U)"
+			"pos /= 2U;"
+
+		"uint val = texture(tiledTexture, float(pos) / size).r;"
+
+		"if((flags & 0x1U) != 0U)"
+			"val = (val & (0xFU << mod2x4)) >> mod2x4;"
+
+		//Convert from palette index to color
+
+		"if((flags & 0x2U) != 0U)"
+			"color = vec4(texture(paletteTexture, vec2(val & 0xFU, (val & 0xF0U) >> 4U) / vec2(16, 16)).rgb, 1);"
+		"else "
+			"color = vec4(vec2((val & 0xFU) << 4U, val & 0xF0U) / vec2(255, 255), 0, 1);"
 	"}";
 
 //Quad
@@ -163,9 +184,12 @@ void TileRenderer::initializeGL() {
 	glDeleteShader(fragment);
 
 	tiledLocation = glGetUniformLocation(shader, "tiled");
-	textureLocation = glGetUniformLocation(shader, "tex");
+	textureLocation = glGetUniformLocation(shader, "tiledTexture");
+	paletteLocation = glGetUniformLocation(shader, "paletteTexture");
 	widthLocation = glGetUniformLocation(shader, "width");
 	heightLocation = glGetUniformLocation(shader, "height");
+	flagsLocation = glGetUniformLocation(shader, "flags");
+	sizeLocation = glGetUniformLocation(shader, "size");
 
 	//Setup vbo and vao
 
@@ -229,6 +253,16 @@ void TileRenderer::setupGTexture() {
 
 	glTexImage1D(GL_TEXTURE_1D, 0, GL_R8UI, texture.getDataSize(), 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, texture.getPtr());
 
+	gpalette = gtexture;	//TODO: Setup palette
+
+	repaint();
+
+}
+
+void TileRenderer::usePalette(bool b) {
+
+	palette = b;
+
 	repaint();
 
 }
@@ -243,11 +277,21 @@ void TileRenderer::paintGL() {
 	glUseProgram(shader);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_1D, gtexture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, gpalette);
 
 	glUniform1i(textureLocation, 0);
+	glUniform1i(paletteLocation, 1);
+
 	glUniform1ui(widthLocation, texture.getWidth());
 	glUniform1ui(heightLocation, texture.getHeight());
 	glUniform1ui(tiledLocation, texture.getTiles());
+	glUniform1ui(sizeLocation, texture.getDataSize());
+
+	glUniform1ui(flagsLocation, 
+		(texture.getType() == TextureType::R4 ? 1 : 0) | 
+		(gpalette != gtexture && palette ? 2 : 0)
+	);
 
 	glBindVertexArray(quadVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 6);

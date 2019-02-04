@@ -49,3 +49,4 @@ nfs/x64/
 lib/
 *.user
 x64/
+enc_temp_folder/

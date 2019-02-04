@@ -14,6 +14,8 @@ namespace nfsu {
 		void setTexture(nfs::Texture2D texture);
 		nfs::Texture2D getTexture();
 
+		void usePalette(bool b);
+
 		void initializeGL() override;
 		void paintGL() override;
 
@@ -27,9 +29,16 @@ namespace nfsu {
 		nfs::Texture2D texture;
 
 		u32 scale;
+		bool palette = true;
+		
+		GLuint 
 
-		GLuint shader, quadVAO, quadVBO, gtexture,
-			textureLocation, widthLocation, heightLocation, tiledLocation;
+			//OpenGL resources
+			shader, quadVAO, quadVBO, gtexture, gpalette,
+
+			//Uniforms
+			textureLocation, paletteLocation, widthLocation, heightLocation,
+			tiledLocation, flagsLocation, sizeLocation;
 
 	};
 
