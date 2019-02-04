@@ -71,23 +71,13 @@ const float quad[] = {
 	1,1, 1,0, 0,0
 };
 
-//OpenGL functions
-
-PFNGLACTIVETEXTUREPROC glActiveTexture = nullptr;
-
 //Setup renderer
 
-TileRenderer::TileRenderer(u32 scale) : gtexture(0), texture(nullptr, 0, 0, 0), scale(scale) {
+TileRenderer::TileRenderer(u32 scale) : texture(nullptr, 0, 0, 0), scale(scale) {
 	setFixedSize(256 * scale, 256 * scale);
 }
 
 void TileRenderer::initializeGL() {
-
-	//Setup OpenGL functions
-
-	if (glActiveTexture == nullptr) {
-		glActiveTexture = (PFNGLACTIVETEXTUREPROC)wglGetProcAddress("glActiveTexture");
-	}
 
 	//Setup shader
 
@@ -113,7 +103,6 @@ Texture2D TileRenderer::getTexture() {
 //Clean up resources
 
 TileRenderer::~TileRenderer() {
-
 	shader.deleteLater();
 	quadVBO.destroy();
 	destroyGTexture();
@@ -125,42 +114,32 @@ void TileRenderer::setTexture(Texture2D tex) {
 	texture = tex;
 	destroyGTexture();
 	setupGTexture();
-	//setFixedSize(tex.getWidth() * scale, tex.getHeight() * scale);
 }
 
 void TileRenderer::destroyGTexture() {
 
-	if (gtexture == 0)
-		return;
+	if (tiledTexture == nullptr) return;
 
-	glDeleteTextures(1, &gtexture);
-
+	tiledTexture->destroy();
+	delete tiledTexture;
 }
 
 void TileRenderer::setupGTexture() {
 
-	glGenTextures(1, &gtexture);
-	glBindTexture(GL_TEXTURE_1D, gtexture);
-
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R8UI, texture.getDataSize(), 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, texture.getPtr());
-
-	gpalette = gtexture;	//TODO: Setup palette
+	tiledTexture = new QOpenGLTexture(QOpenGLTexture::Target1D);
+	tiledTexture->setMinMagFilters(QOpenGLTexture::NearestMipMapNearest, QOpenGLTexture::Nearest);
+	tiledTexture->setFormat(QOpenGLTexture::R8U);
+	tiledTexture->setSize(texture.getDataSize());
+	tiledTexture->allocateStorage(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8);
+	tiledTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, texture.getPtr());
 
 	repaint();
 
 }
 
 void TileRenderer::usePalette(bool b) {
-
 	palette = b;
-
 	repaint();
-
 }
 
 //Render calls
@@ -169,10 +148,11 @@ void TileRenderer::paintGL() {
 
 	shader.bind();
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_1D, gtexture);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, gpalette);
+	if(tiledTexture)
+		tiledTexture->bind(0);
+
+	//if(paletteTexture)
+	//	paletteTexture->bind(1);
 
 	shader.setUniformValue("tiledTexture", 0);
 	shader.setUniformValue("paletteTexture", 1);
@@ -182,7 +162,7 @@ void TileRenderer::paintGL() {
 	shader.setUniformValue("size", (i32) texture.getDataSize());
 	shader.setUniformValue("flags", 
 		(texture.getType() == TextureType::R4 ? 1 : 0) |
-		(gpalette != gtexture && palette ? 2 : 0)
+		(palette ? 2 : 0)
 	);
 
 	quadVBO.bind();

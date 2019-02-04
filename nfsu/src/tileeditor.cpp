@@ -15,7 +15,6 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 	//TODO: Resize button (also allow disabling upscaling)
 	//TODO: Palette disable button
 	//TODO: Lookup palette & tile button/file explorer
-	//TODO: Use Qt OpenGL syntax
 	//TODO: Predict size; get a few sizes, if the border is 0 of an image, it probably is the correct size
 	//TODO: Somewhere there's a memory leak? Why is there 300 MiB allocated and not 128
 

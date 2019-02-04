@@ -2,6 +2,7 @@
 #include <QtWidgets/qopenglwidget.h>
 #include <QtOpenGL/qglshaderprogram.h>
 #include <QtOpenGL/qglbuffer.h>
+#include <QtGui/qopengltexture.h>
 #include "texture.h"
 
 namespace nfsu {
@@ -31,15 +32,12 @@ namespace nfsu {
 		nfs::Texture2D texture;
 
 		u32 scale;
-		bool palette = true;
+		bool palette = false;
 		
 		QGLShaderProgram shader;
 		QGLBuffer quadVBO;
 
-		GLuint
-
-			//OpenGL resources
-			gtexture = 0, gpalette = 0;
+		QOpenGLTexture *tiledTexture = nullptr;
 
 	};
 
