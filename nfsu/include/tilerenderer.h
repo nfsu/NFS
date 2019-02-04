@@ -1,6 +1,7 @@
 #pragma once
 #include <QtWidgets/qopenglwidget.h>
 #include <QtOpenGL/qglshaderprogram.h>
+#include <QtOpenGL/qglbuffer.h>
 #include "texture.h"
 
 namespace nfsu {
@@ -33,11 +34,12 @@ namespace nfsu {
 		bool palette = true;
 		
 		QGLShaderProgram shader;
+		QGLBuffer quadVBO;
 
 		GLuint 
 
 			//OpenGL resources
-			quadVBO = 0, gtexture, gpalette,
+			gtexture = 0, gpalette = 0,
 
 			//Uniforms
 			textureLocation, paletteLocation, widthLocation, heightLocation,

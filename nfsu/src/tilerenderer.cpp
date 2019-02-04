@@ -76,10 +76,6 @@ const float quad[] = {
 PFNGLACTIVETEXTUREPROC glActiveTexture = nullptr;
 PFNGLUNIFORM1IPROC glUniform1i = nullptr;
 PFNGLUNIFORM1UIPROC glUniform1ui = nullptr;
-PFNGLDELETEBUFFERSPROC glDeleteBuffers = nullptr;
-PFNGLGENBUFFERSPROC glGenBuffers = nullptr;
-PFNGLBINDBUFFERPROC glBindBuffer = nullptr;
-PFNGLBUFFERDATAPROC glBufferData = nullptr;
 
 //Setup renderer
 
@@ -95,10 +91,6 @@ void TileRenderer::initializeGL() {
 		glActiveTexture = (PFNGLACTIVETEXTUREPROC)wglGetProcAddress("glActiveTexture");
 		glUniform1i = (PFNGLUNIFORM1IPROC)wglGetProcAddress("glUniform1i");
 		glUniform1ui = (PFNGLUNIFORM1UIPROC)wglGetProcAddress("glUniform1ui");
-		glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)wglGetProcAddress("glDeleteBuffers");
-		glGenBuffers = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
-		glBindBuffer = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
-		glBufferData = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
 	}
 
 	//Setup shader
@@ -117,9 +109,10 @@ void TileRenderer::initializeGL() {
 
 	//Setup vbo and vao
 
-	glGenBuffers(1, &quadVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
+	quadVBO = QGLBuffer(QGLBuffer::VertexBuffer);
+	quadVBO.create();
+	quadVBO.bind();
+	quadVBO.allocate(quad, sizeof(quad));
 
 }
 
@@ -133,11 +126,9 @@ Texture2D TileRenderer::getTexture() {
 
 TileRenderer::~TileRenderer() {
 
-	if (quadVBO == 0)
-		return;
-
+	shader.deleteLater();
+	quadVBO.destroy();
 	destroyGTexture();
-	glDeleteBuffers(1, &quadVBO);
 }
 
 //Texture functions
@@ -188,9 +179,6 @@ void TileRenderer::usePalette(bool b) {
 
 void TileRenderer::paintGL() {
 
-	glClearColor(255, 0, 0, 255);
-	glClear(GL_COLOR_BUFFER_BIT);
-
 	shader.bind();
 
 	glActiveTexture(GL_TEXTURE0);
@@ -211,7 +199,7 @@ void TileRenderer::paintGL() {
 		(gpalette != gtexture && palette ? 2 : 0)
 	);
 
-	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	quadVBO.bind();
 
 	int pos = shader.attributeLocation("pos");
 	shader.enableAttributeArray(pos);
