@@ -37,7 +37,7 @@ namespace nfsu {
 		GLuint 
 
 			//OpenGL resources
-			quadVAO = 0, quadVBO, gtexture, gpalette,
+			quadVBO = 0, gtexture, gpalette,
 
 			//Uniforms
 			textureLocation, paletteLocation, widthLocation, heightLocation,

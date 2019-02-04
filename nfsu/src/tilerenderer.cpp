@@ -76,15 +76,10 @@ const float quad[] = {
 PFNGLACTIVETEXTUREPROC glActiveTexture = nullptr;
 PFNGLUNIFORM1IPROC glUniform1i = nullptr;
 PFNGLUNIFORM1UIPROC glUniform1ui = nullptr;
-PFNGLBINDVERTEXARRAYPROC glBindVertexArray = nullptr;
 PFNGLDELETEBUFFERSPROC glDeleteBuffers = nullptr;
-PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays = nullptr;
-PFNGLGENVERTEXARRAYSPROC glGenVertexArrays = nullptr;
 PFNGLGENBUFFERSPROC glGenBuffers = nullptr;
 PFNGLBINDBUFFERPROC glBindBuffer = nullptr;
 PFNGLBUFFERDATAPROC glBufferData = nullptr;
-PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer = nullptr;
-PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray = nullptr;
 
 //Setup renderer
 
@@ -100,15 +95,10 @@ void TileRenderer::initializeGL() {
 		glActiveTexture = (PFNGLACTIVETEXTUREPROC)wglGetProcAddress("glActiveTexture");
 		glUniform1i = (PFNGLUNIFORM1IPROC)wglGetProcAddress("glUniform1i");
 		glUniform1ui = (PFNGLUNIFORM1UIPROC)wglGetProcAddress("glUniform1ui");
-		glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
 		glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)wglGetProcAddress("glDeleteBuffers");
-		glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)wglGetProcAddress("glDeleteVertexArrays");
-		glGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
 		glGenBuffers = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
 		glBindBuffer = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
 		glBufferData = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
-		glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
-		glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
 	}
 
 	//Setup shader
@@ -127,14 +117,9 @@ void TileRenderer::initializeGL() {
 
 	//Setup vbo and vao
 
-	glGenVertexArrays(1, &quadVAO);
-	glBindVertexArray(quadVAO);
-
-	glEnableVertexAttribArray(0);
 	glGenBuffers(1, &quadVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8, 0);
 
 }
 
@@ -148,11 +133,10 @@ Texture2D TileRenderer::getTexture() {
 
 TileRenderer::~TileRenderer() {
 
-	if (quadVAO == 0)
+	if (quadVBO == 0)
 		return;
 
 	destroyGTexture();
-	glDeleteVertexArrays(1, &quadVAO);
 	glDeleteBuffers(1, &quadVBO);
 }
 
@@ -208,6 +192,7 @@ void TileRenderer::paintGL() {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	shader.bind();
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_1D, gtexture);
 	glActiveTexture(GL_TEXTURE1);
@@ -226,7 +211,12 @@ void TileRenderer::paintGL() {
 		(gpalette != gtexture && palette ? 2 : 0)
 	);
 
-	glBindVertexArray(quadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+
+	int pos = shader.attributeLocation("pos");
+	shader.enableAttributeArray(pos);
+	shader.setAttributeBuffer(pos, GL_FLOAT, 0, 2);
+
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 }
