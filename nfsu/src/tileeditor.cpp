@@ -15,8 +15,8 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 	//TODO: Resize button
 	//TODO: Palette disable button
 	//TODO: Lookup palette & tile button/file explorer
-	//TODO: Test renderer on 8bit images
 	//TODO: Use Qt OpenGL syntax
+	//TODO: Predict size; get a few sizes, if the border is 0 of an image, it probably is the correct size
 
 }
 

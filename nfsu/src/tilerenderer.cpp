@@ -2,6 +2,8 @@
 using namespace nfsu;
 using namespace nfs;
 
+#define check(errCode, ...) if(__VA_ARGS__) throw std::runtime_error(errCode);
+
 //Shader source
 
 char const *vertShader = 
@@ -71,16 +73,6 @@ const float quad[] = {
 
 //OpenGL functions
 
-PFNGLCREATEPROGRAMPROC glCreateProgram = nullptr;
-PFNGLDELETEPROGRAMPROC glDeleteProgram = nullptr;
-PFNGLCREATESHADERPROC glCreateShader = nullptr;
-PFNGLDELETESHADERPROC glDeleteShader = nullptr;
-PFNGLSHADERSOURCEPROC glShaderSource = nullptr;
-PFNGLCOMPILESHADERPROC glCompileShader = nullptr;
-PFNGLATTACHSHADERPROC glAttachShader = nullptr;
-PFNGLLINKPROGRAMPROC glLinkProgram = nullptr;
-PFNGLUSEPROGRAMPROC glUseProgram = nullptr;
-PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation = nullptr;
 PFNGLACTIVETEXTUREPROC glActiveTexture = nullptr;
 PFNGLUNIFORM1IPROC glUniform1i = nullptr;
 PFNGLUNIFORM1UIPROC glUniform1ui = nullptr;
@@ -93,12 +85,10 @@ PFNGLBINDBUFFERPROC glBindBuffer = nullptr;
 PFNGLBUFFERDATAPROC glBufferData = nullptr;
 PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer = nullptr;
 PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray = nullptr;
-PFNGLGETSHADERIVPROC glGetShaderiv = nullptr;
-PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog = nullptr;
 
 //Setup renderer
 
-TileRenderer::TileRenderer(u32 scale) : gtexture(0), shader(0), texture(nullptr, 0, 0, 0), scale(scale) {
+TileRenderer::TileRenderer(u32 scale) : gtexture(0), texture(nullptr, 0, 0, 0), scale(scale) {
 	setFixedSize(256 * scale, 256 * scale);
 }
 
@@ -106,17 +96,7 @@ void TileRenderer::initializeGL() {
 
 	//Setup OpenGL functions
 
-	if (glCreateProgram == nullptr) {
-		glCreateProgram = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
-		glDeleteProgram = (PFNGLDELETEPROGRAMPROC)wglGetProcAddress("glDeleteProgram");
-		glCreateShader = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
-		glDeleteShader = (PFNGLDELETESHADERPROC)wglGetProcAddress("glDeleteShader");
-		glShaderSource = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
-		glCompileShader = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
-		glAttachShader = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
-		glLinkProgram = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
-		glUseProgram = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
-		glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
+	if (glActiveTexture == nullptr) {
 		glActiveTexture = (PFNGLACTIVETEXTUREPROC)wglGetProcAddress("glActiveTexture");
 		glUniform1i = (PFNGLUNIFORM1IPROC)wglGetProcAddress("glUniform1i");
 		glUniform1ui = (PFNGLUNIFORM1UIPROC)wglGetProcAddress("glUniform1ui");
@@ -129,67 +109,21 @@ void TileRenderer::initializeGL() {
 		glBufferData = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
 		glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
 		glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
-		glGetShaderiv = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
-		glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
 	}
 
 	//Setup shader
 
-	GLint lengths[] = { strlen(vertShader), strlen(fragShader) };
+	check("Couldn't compile vertex shader", !shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader));
+	check("Couldn't compile fragment shader", !shader.addShaderFromSourceCode(QGLShader::Fragment, fragShader));
+	check("Couldn't link shader", !shader.link());
 
-	GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex, 1, (GLchar**)&vertShader, lengths);
-	glCompileShader(vertex);
-
-	GLint isCompiled = GL_FALSE;
-	glGetShaderiv(vertex, GL_COMPILE_STATUS, &isCompiled);
-	
-	if (!isCompiled) {
-
-		GLint length = 0;
-		glGetShaderiv(vertex, GL_INFO_LOG_LENGTH, &length);
-
-		std::vector<GLchar> errorLog(length);
-		glGetShaderInfoLog(vertex, length, &length, errorLog.data());
-
-		printf("%s\n", errorLog.data());
-
-		throw std::runtime_error("Couldn't compile vertex shader");
-	}
-
-	GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment, 1, (GLchar**)&fragShader, lengths + 1);
-	glCompileShader(fragment);
-
-	glGetShaderiv(fragment, GL_COMPILE_STATUS, &isCompiled);
-
-	if (!isCompiled) {
-
-		GLint length = 0;
-		glGetShaderiv(fragment, GL_INFO_LOG_LENGTH, &length);
-
-		std::vector<GLchar> errorLog(length);
-		glGetShaderInfoLog(fragment, length, &length, errorLog.data());
-
-		printf("%s\n", errorLog.data());
-
-		throw std::runtime_error("Couldn't compile fragment shader");
-	}
-
-	shader = glCreateProgram();
-	glAttachShader(shader, vertex);
-	glAttachShader(shader, fragment);
-	glLinkProgram(shader);
-	glDeleteShader(vertex);
-	glDeleteShader(fragment);
-
-	tiledLocation = glGetUniformLocation(shader, "tiled");
-	textureLocation = glGetUniformLocation(shader, "tiledTexture");
-	paletteLocation = glGetUniformLocation(shader, "paletteTexture");
-	widthLocation = glGetUniformLocation(shader, "width");
-	heightLocation = glGetUniformLocation(shader, "height");
-	flagsLocation = glGetUniformLocation(shader, "flags");
-	sizeLocation = glGetUniformLocation(shader, "size");
+	tiledLocation = shader.uniformLocation("tiled");
+	textureLocation = shader.uniformLocation("tiledTexture");
+	paletteLocation = shader.uniformLocation("paletteTexture");
+	widthLocation = shader.uniformLocation("width");
+	heightLocation = shader.uniformLocation("height");
+	flagsLocation = shader.uniformLocation("flags");
+	sizeLocation = shader.uniformLocation("size");
 
 	//Setup vbo and vao
 
@@ -214,11 +148,10 @@ Texture2D TileRenderer::getTexture() {
 
 TileRenderer::~TileRenderer() {
 
-	if (shader == 0)
+	if (quadVAO == 0)
 		return;
 
 	destroyGTexture();
-	glDeleteProgram(shader);
 	glDeleteVertexArrays(1, &quadVAO);
 	glDeleteBuffers(1, &quadVBO);
 }
@@ -274,7 +207,7 @@ void TileRenderer::paintGL() {
 	glClearColor(255, 0, 0, 255);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glUseProgram(shader);
+	shader.bind();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_1D, gtexture);
 	glActiveTexture(GL_TEXTURE1);

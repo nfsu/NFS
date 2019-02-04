@@ -88,7 +88,7 @@ u16 Texture2D::getWidth() { return width; }
 u16 Texture2D::getHeight() { return height; }
 u32 Texture2D::getSize() { return size; }
 u32 Texture2D::getTiles() { return (u32) flags; }
-u32 Texture2D::getDataSize() { return width * height * stride; }
+u32 Texture2D::getDataSize() { return dataSize; }
 
 ChangeDimensionsResult Texture2D::changeDimensions(u16 w, u16 h) {
 
