@@ -25,12 +25,12 @@ char const *fragShader =
 
 	"in vec2 uv;"
 
-	"uniform uint width;"
-	"uniform uint height;"
-	"uniform uint size;"
-	"uniform uint tiled;"
+	"uniform int width;"
+	"uniform int height;"
+	"uniform int size;"
+	"uniform int tiled;"
 	"uniform usampler1D tiledTexture;"
-	"uniform uint flags;"
+	"uniform int flags;"
 	"uniform sampler2D paletteTexture;"
 
 	"out vec4 color;"
@@ -39,29 +39,29 @@ char const *fragShader =
 
 		//Convert from pixel to tiled pixel space
 
-		"uvec2 px = uvec2(uv * vec2(width, height));"
-		"uvec2 tile = px % tiled;"
-		"uvec2 tiles = px / tiled;"
-		"uint pos = (tiles.x + tiles.y * width / tiled) * tiled * tiled + tile.y * tiled + tile.x;"
+		"ivec2 px = ivec2(uv * vec2(width, height));"
+		"ivec2 tile = px % tiled;"
+		"ivec2 tiles = px / tiled;"
+		"int pos = (tiles.x + tiles.y * width / tiled) * tiled * tiled + tile.y * tiled + tile.x;"
 
 		//Convert from pixel index to buffer index
 
-		"uint mod2x4 = (pos % 2U) * 4U;"
+		"int mod2x4 = (pos % 2) * 4;"
 
-		"if((flags & 0x1U) != 0U)"
-			"pos /= 2U;"
+		"if((flags & 1) != 0)"
+			"pos /= 2;"
 
-		"uint val = texture(tiledTexture, float(pos) / size).r;"
+		"int val = int(texture(tiledTexture, float(pos) / size).r);"
 
-		"if((flags & 0x1U) != 0U)"
-			"val = (val & (0xFU << mod2x4)) >> mod2x4;"
+		"if((flags & 1) != 0)"
+			"val = (val & (0xF << mod2x4)) >> mod2x4;"
 
 		//Convert from palette index to color
 
-		"if((flags & 0x2U) != 0U)"
-			"color = vec4(texture(paletteTexture, vec2(val & 0xFU, (val & 0xF0U) >> 4U) / vec2(16, 16)).rgb, 1);"
+		"if((flags & 2) != 0)"
+			"color = vec4(texture(paletteTexture, vec2(val & 0xF, (val & 0xF0) >> 4) / vec2(16, 16)).rgb, 1);"
 		"else "
-			"color = vec4(vec2((val & 0xFU) << 4U, val & 0xF0U) / vec2(255, 255), 0, 1);"
+			"color = vec4(vec2((val & 0xF) << 4, val & 0xF0) / vec2(255, 255), 0, 1);"
 	"}";
 
 //Quad
@@ -75,7 +75,6 @@ const float quad[] = {
 
 PFNGLACTIVETEXTUREPROC glActiveTexture = nullptr;
 PFNGLUNIFORM1IPROC glUniform1i = nullptr;
-PFNGLUNIFORM1UIPROC glUniform1ui = nullptr;
 
 //Setup renderer
 
@@ -90,7 +89,6 @@ void TileRenderer::initializeGL() {
 	if (glActiveTexture == nullptr) {
 		glActiveTexture = (PFNGLACTIVETEXTUREPROC)wglGetProcAddress("glActiveTexture");
 		glUniform1i = (PFNGLUNIFORM1IPROC)wglGetProcAddress("glUniform1i");
-		glUniform1ui = (PFNGLUNIFORM1UIPROC)wglGetProcAddress("glUniform1ui");
 	}
 
 	//Setup shader
@@ -189,12 +187,12 @@ void TileRenderer::paintGL() {
 	glUniform1i(textureLocation, 0);
 	glUniform1i(paletteLocation, 1);
 
-	glUniform1ui(widthLocation, texture.getWidth());
-	glUniform1ui(heightLocation, texture.getHeight());
-	glUniform1ui(tiledLocation, texture.getTiles());
-	glUniform1ui(sizeLocation, texture.getDataSize());
+	glUniform1i(widthLocation, texture.getWidth());
+	glUniform1i(heightLocation, texture.getHeight());
+	glUniform1i(tiledLocation, texture.getTiles());
+	glUniform1i(sizeLocation, texture.getDataSize());
 
-	glUniform1ui(flagsLocation, 
+	glUniform1i(flagsLocation, 
 		(texture.getType() == TextureType::R4 ? 1 : 0) | 
 		(gpalette != gtexture && palette ? 2 : 0)
 	);
