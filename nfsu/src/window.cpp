@@ -80,8 +80,6 @@ Window::Window() {
 
 	);
 
-	//TODO: Buttons
-
 	setupUI();
 }
 
@@ -235,6 +233,8 @@ void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QP
 ///File actions
 
 void Window::load() {
+
+	//TODO: Somewhere there's a memory leak? Why is there 300 MiB allocated and not 128
 
 	if (rom.ptr != nullptr) {
 

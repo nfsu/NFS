@@ -93,6 +93,8 @@ void TileRenderer::initializeGL() {
 	quadVBO.bind();
 	quadVBO.allocate(quad, sizeof(quad));
 
+	//TODO: Allow right click
+
 }
 
 //Get texture
@@ -157,6 +159,10 @@ void TileRenderer::setCursorSize(u32 scale) {
 	cursorSize = scale;
 }
 
+void TileRenderer::setPaintTool(TilePaintTool t) {
+	tool = t;
+}
+
 //Render calls
 
 void TileRenderer::paintGL() {
@@ -190,52 +196,76 @@ void TileRenderer::paintGL() {
 
 }
 
-//Drawing
+//Drawing on tilemap
+
+QPoint TileRenderer::globalToTexture(QPoint pos) {
+	return QPoint((float)pos.x() / width() * texture.getWidth(), (1 - (float)pos.y() / height()) * texture.getHeight());
+}
 
 void TileRenderer::mousePressEvent(QMouseEvent *e) {
 
 	if (e->button() == Qt::MouseButton::LeftButton) {
-		isMouseDown = true;
-		mouseMoveEvent(e);
-	}
 
-	//TODO: Fill tile? Or square editor?
+		isMouseDown = true;
+		prev = globalToTexture(e->pos());
+
+		if (tool == TilePaintTool::FILL){
+			fill(prev);
+		} else
+			mouseMoveEvent(e);
+	}
 
 }
 
 void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 
-	if (e->button() == Qt::MouseButton::LeftButton)
-		isMouseDown = false;
+	if (e->button() == Qt::MouseButton::LeftButton) {
 
-	//TODO: Line editor?
+		if (tool == TilePaintTool::LINE) {
+
+			//TODO: Draw overlay so you can see what line you're drawing
+			//TODO: Allow cancel
+
+			drawLine(prev, globalToTexture(e->pos()));
+			refresh();
+
+		} else if(tool == TilePaintTool::SQUARE){
+
+			//TODO: Draw overlay so you can see what square you're drawing
+			//TODO: Allow cancel
+			
+			drawSquare(prev, globalToTexture(e->pos()));
+			refresh();
+
+		}
+
+		isMouseDown = false;
+	}
 
 }
 
-void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
+void TileRenderer::drawPoint(QPoint point, u32 size) {
 
-	if (texture.getWidth() == 0 || !isMouseDown || !editable)
+	if (!editable || point.x() >= width() || point.y() >= height())
 		return;
 
-	//TODO: Stroke if there was a last position?
+	if (size == 0)
+		size = cursorSize;
 
-	float px = (float) e->x() / width(), py = (float) e->y() / height();
+	i32 x = point.x(), y = point.y();
 
-	i32 x = i32(px * texture.getWidth());
-	i32 y = i32((1 - py) * texture.getHeight());
-
-	i32 sx = x - cursorSize / 2;
-	i32 sy = y - cursorSize / 2;
-	i32 ex = x + cursorSize / 2;
-	i32 ey = y + cursorSize / 2;
+	i32 sx = x - size / 2;
+	i32 sy = y - size / 2;
+	i32 ex = x + size / 2;
+	i32 ey = y + size / 2;
 
 	if (sx == ex) {
 		++ex;
 		++ey;
 	}
 
-	for(i32 i = sx; i < ex; ++i)
-		for(i32 j = sy; j < ey; ++j){
+	for (i32 i = sx; i < ex; ++i)
+		for (i32 j = sy; j < ey; ++j) {
 
 			if (i < 0 || j < 0 || i >= texture.getWidth() || j >= texture.getHeight())
 				continue;
@@ -243,7 +273,104 @@ void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
 			texture.store(i, j, idx);
 		}
 
+}
+
+void TileRenderer::fill(i32 x, i32 y, u32 mask) {
+
+	if (!editable || x < 0 || y < 0 || x >= texture.getWidth() || y >= texture.getHeight())
+		return;
+
+	u32 val = texture.fetch(x, y);
+
+	if (val != mask)
+		return;
+
+	texture.store(x, y, idx);
+
+	fill(x - 1, y, mask);
+	fill(x + 1, y, mask);
+	fill(x, y - 1, mask);
+	fill(x, y + 1, mask);
+
+}
+
+void TileRenderer::fill(QPoint p0) {
+
+	if (!editable || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
+		return;
+
+	u32 mask = texture.fetch(p0.x(), p0.y());
+
+	if(mask != idx)
+		fill(p0.x(), p0.y(), mask);
+
+	refresh();
+
+}
+
+void TileRenderer::drawLine(QPoint p0, QPoint p1, u32 size) {
+
+	if (p0 == p1) {
+		drawPoint(p0, size);
+		return;
+	}
+
+	QPoint dif = p1 - p0;
+
+	i32 length = dif.x() * dif.x() + dif.y() * dif.y();
+
+	float dx = float(dif.x()) / length, dy = float(dif.y()) / length;
+
+	for (i32 i = 0; i < length; ++i)
+		drawPoint(QPoint(i32(p0.x() + dx * i), i32(p0.y() + dy * i)), size);
+
+}
+
+void TileRenderer::drawSquare(QPoint p0, QPoint p1) {
+
+	i32 x0 = p0.x(), y0 = p0.y(), x1 = p1.x(), y1 = p1.y();
+
+	i32 mix = x0 < x1 ? x0 : x1;
+	i32 miy = y0 < y1 ? y0 : y1;
+	i32 max = x0 > x1 ? x0 : x1;
+	i32 may = y0 > y1 ? y0 : y1;
+
+	if (mix == max)
+		max = mix + 1;
+
+	if (miy == may)
+		may = miy + 1;
+
+	for(i32 x = mix; x < max; ++x)
+		for (i32 y = miy; y < may; ++y) {
+
+			if (x < 0 || y < 0 || x >= texture.getWidth() || y >= texture.getHeight())
+				continue;
+
+			texture.store(x, y, idx);
+
+		}
+
+}
+
+void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
+
+	if (texture.getWidth() == 0 || !isMouseDown || !editable || tool != TilePaintTool::BRUSH)
+		return;
+
+	QPoint next = globalToTexture(e->pos());
+
+	drawLine(prev, next);
+	prev = next;
+
+	refresh();
+
+}
+
+void TileRenderer::refresh() {
+
 	destroyGTexture();
 	setupGTexture();
+
 	repaint();
 }

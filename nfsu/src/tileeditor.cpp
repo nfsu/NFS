@@ -16,7 +16,7 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 	//TODO: Palette disable button
 	//TODO: Lookup palette & tile button/file explorer
 	//TODO: Predict size; get a few sizes, if the border is 0 of an image, it probably is the correct size
-	//TODO: Somewhere there's a memory leak? Why is there 300 MiB allocated and not 128
+	//TODO: Allow changing size, tool, color
 
 }
 
