@@ -28,6 +28,9 @@ namespace nfsu {
 		
 		void setCursorSize(u32 size);
 
+		//If the image is 4-bit, use as y offset into palette
+		void setPaletteOffset(u8 y);
+
 		void setPaintTool(TilePaintTool tool);
 
 		void initializeGL() override;
@@ -46,6 +49,7 @@ namespace nfsu {
 		QPoint globalToTexture(QPoint pos);
 
 		void setScale(u32 scale);
+		u32 getSelectedPalette();
 
 		//Re-initialize texture & repaint
 		void updateTexture();
@@ -59,8 +63,10 @@ namespace nfsu {
 
 
 		u32 cursorSize = 1, scale = 0;
-		bool palette = true, editable = true, isMouseDown = false;
+		bool palette = true, editable = true, isMouseDown = false, isLeft = false;
 		TilePaintTool tool = TilePaintTool::BRUSH;
+
+		u8 yOffset = 0;
 
 		PaletteRenderer *paletteRenderer;
 		nfs::Texture2D texture;

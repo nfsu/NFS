@@ -18,7 +18,7 @@ using namespace nfs;
 Window::Window() {
 
 	setWindowTitle("File System Utilities");
-	setMinimumSize(QSize(1200, 750));
+	setMinimumSize(QSize(1300, 750));
 
 	setStyleSheet(
 

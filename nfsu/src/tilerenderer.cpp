@@ -22,6 +22,7 @@ void TileRenderer::paintGL() {
 	shader.setUniformValue("height", (i32)texture.getHeight());
 	shader.setUniformValue("tiled", (i32)texture.getTiles());
 	shader.setUniformValue("size", (i32)texture.getDataSize());
+	shader.setUniformValue("paletteY", (i32) yOffset);
 	shader.setUniformValue("flags",
 		(texture.getType() == TextureType::R4 ? 1 : 0) |
 		(palette && paletteRenderer->getGPUTexture() != nullptr ? 2 : 0)
@@ -71,8 +72,10 @@ void TileRenderer::initializeGL() {
 		"uniform int height;"
 		"uniform int size;"
 		"uniform int tiled;"
-		"uniform usampler2D tiledTexture;"
 		"uniform int flags;"
+		"uniform int paletteY;"
+
+		"uniform usampler2D tiledTexture;"
 		"uniform usampler2D paletteTexture;"
 
 		"out vec4 color;"
@@ -108,6 +111,9 @@ void TileRenderer::initializeGL() {
 
 			"if((flags & 2) != 0) {"
 
+				//Palette offset
+				"if((flags & 1) != 0) val |= paletteY << 4;"
+
 				//Get palette color
 				"vec2 coord = vec2(val & 0xF, (val & 0xF0) >> 4) / vec2(16, 16);"
 				"uint value = texture(paletteTexture, coord).r;"
@@ -136,7 +142,6 @@ void TileRenderer::initializeGL() {
 
 	//TODO: Allow right click
 	//TODO: Some images still don't render well; looking at tv demo .narc as well as unsized images, detect resolution!
-	//TODO: Allow swapping palettes for R4
 
 }
 
@@ -202,6 +207,11 @@ void TileRenderer::setCursorSize(u32 scale) {
 	repaint();
 }
 
+void TileRenderer::setPaletteOffset(u8 j) {
+	yOffset = j % 16;
+	repaint();
+}
+
 void TileRenderer::setPaintTool(TilePaintTool t) {
 	tool = t;
 	repaint();
@@ -218,9 +228,16 @@ void TileRenderer::setScale(u32 s) {
 		if(s == 0)
 			s = 512 / (texture.getHeight() > texture.getWidth() ? texture.getHeight() : texture.getWidth());
 		
+		if (s == 0)
+			s = 1;
+
 		setFixedSize(texture.getWidth() * s, texture.getHeight() * s);
 	}
 
+}
+
+u32 TileRenderer::getSelectedPalette() {
+	return isLeft ? paletteRenderer->getPrimary() : paletteRenderer->getSecondary();
 }
 
 //Drawing on tilemap
@@ -231,44 +248,48 @@ QPoint TileRenderer::globalToTexture(QPoint pos) {
 
 void TileRenderer::mousePressEvent(QMouseEvent *e) {
 
-	if (e->button() == Qt::MouseButton::LeftButton) {
+	if (isMouseDown || !(e->button() == Qt::LeftButton || e->button() == Qt::RightButton))
+		return;
 
-		isMouseDown = true;
-		prev = globalToTexture(e->pos());
+	isLeft = e->button() == Qt::LeftButton;
 
-		if (tool == TilePaintTool::FILL){
-			fill(prev);
-		} else
-			mouseMoveEvent(e);
-	}
+	isMouseDown = true;
+	prev = globalToTexture(e->pos());
+
+	if (tool == TilePaintTool::FILL){
+		fill(prev);
+	} else
+		mouseMoveEvent(e);
 
 }
 
 void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 
-	if (e->button() == Qt::MouseButton::LeftButton) {
+	if (!isMouseDown || isLeft != (e->button() == Qt::LeftButton))
+		return;
 
-		if (tool == TilePaintTool::LINE) {
+	if (tool == TilePaintTool::LINE) {
 
-			//TODO: Draw overlay so you can see what line you're drawing
-			//TODO: Show tool when you hover
-			//TODO: Allow cancel
+		//TODO: Draw overlay so you can see what line you're drawing
+		//TODO: Show tool when you hover
+		//TODO: Allow cancel
 
-			drawLine(prev, globalToTexture(e->pos()));
-			updateTexture();
+		drawLine(prev, globalToTexture(e->pos()));
+		updateTexture();
 
-		} else if(tool == TilePaintTool::SQUARE){
+	} else if(tool == TilePaintTool::SQUARE){
 
-			//TODO: Draw overlay so you can see what square you're drawing
-			//TODO: Allow cancel
-			
-			drawSquare(prev, globalToTexture(e->pos()));
-			updateTexture();
+		//TODO: Draw overlay so you can see what square you're drawing
+		//TODO: Allow cancel
+		
+		drawSquare(prev, globalToTexture(e->pos()));
+		updateTexture();
 
-		}
-
-		isMouseDown = false;
 	}
+
+	//TODO: Color pipet
+
+	isMouseDown = false;
 
 }
 
@@ -298,7 +319,7 @@ void TileRenderer::drawPoint(QPoint point, u32 size) {
 			if (i < 0 || j < 0 || i >= texture.getWidth() || j >= texture.getHeight())
 				continue;
 
-			texture.store(i, j, paletteRenderer->getPrimary());
+			texture.store(i, j, getSelectedPalette());
 		}
 
 }
@@ -313,7 +334,7 @@ void TileRenderer::fill(i32 x, i32 y, u32 mask) {
 	if (val != mask)
 		return;
 
-	texture.store(x, y, paletteRenderer->getPrimary());
+	texture.store(x, y, getSelectedPalette());
 
 	fill(x - 1, y, mask);
 	fill(x + 1, y, mask);
@@ -329,7 +350,7 @@ void TileRenderer::fill(QPoint p0) {
 
 	u32 mask = texture.fetch(p0.x(), p0.y());
 
-	if(mask != paletteRenderer->getPrimary())
+	if(mask != getSelectedPalette())
 		fill(p0.x(), p0.y(), mask);
 
 	updateTexture();
@@ -375,7 +396,7 @@ void TileRenderer::drawSquare(QPoint p0, QPoint p1) {
 			if (x < 0 || y < 0 || x >= texture.getWidth() || y >= texture.getHeight())
 				continue;
 
-			texture.store(x, y, paletteRenderer->getPrimary());
+			texture.store(x, y, getSelectedPalette());
 
 		}
 
