@@ -8,12 +8,13 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 
 	QSplitter *leftWidget = new QSplitter;
 	addWidget(leftWidget);
-	leftWidget->addWidget(palette = new PaletteEditor(16, 16, paletteScale));
+	leftWidget->addWidget(palette = new PaletteEditor(paletteScale));
 
-	addWidget(renderer = new TileRenderer(tileScale));
+	addWidget(renderer = new TileRenderer(palette->getRenderer()));
+	renderer->setFixedSize(512, 512);
 
 	//TODO: Resize button (also allow disabling upscaling)
-	//TODO: Palette disable button
+	//TODO: Palette disable button, palette grid, tile grid
 	//TODO: Lookup palette & tile button/file explorer
 	//TODO: Predict size; get a few sizes, if the border is 0 of an image, it probably is the correct size
 	//TODO: Allow changing size, tool, color
@@ -22,10 +23,6 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 
 void TileEditor::setPalette(Texture2D tex) {
 	palette->setPalette(tex);
-}
-
-void TileEditor::clearPalette() {
-	palette->clearPalette();
 }
 
 Texture2D TileEditor::getPalette() {
@@ -52,7 +49,9 @@ void TileEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
 
 	if (ao.info.magicNumber == NCGR::getMagicNumber())
 		setTiles(Texture2D(fileSystem.get<NCGR>(ao)));
-	else
+	else {
 		palette->inspectResource(fileSystem, ao);
+		renderer->refresh();
+	}
 
 }

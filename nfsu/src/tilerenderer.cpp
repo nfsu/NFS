@@ -1,97 +1,130 @@
 #include "tilerenderer.h"
+#include "paletterenderer.h"
 #include <QtGui/qevent.h>
 using namespace nfsu;
 using namespace nfs;
 
-#define check(errCode, ...) if(__VA_ARGS__) throw std::runtime_error(errCode);
+//Render
 
-//Shader source
+void TileRenderer::paintGL() {
 
-char const *vertShader = 
+	shader.bind();
 
-	"#version 330 core\r\n"
+	if (tiledTexture)
+		tiledTexture->bind(0);
 
-	"layout(location=0) in vec2 pos;"
+	if(paletteRenderer->getGPUTexture())
+		paletteRenderer->getGPUTexture()->bind(1);
 
-	"out vec2 uv;"
+	shader.setUniformValue("tiledTexture", 0);
+	shader.setUniformValue("paletteTexture", 1);
+	shader.setUniformValue("width", (i32)texture.getWidth());
+	shader.setUniformValue("height", (i32)texture.getHeight());
+	shader.setUniformValue("tiled", (i32)texture.getTiles());
+	shader.setUniformValue("size", (i32)texture.getDataSize());
+	shader.setUniformValue("flags",
+		(texture.getType() == TextureType::R4 ? 1 : 0) |
+		(palette && paletteRenderer->getGPUTexture() != nullptr ? 2 : 0)
+	);
 
-	"void main() {"
-		"uv = pos;"
-		"gl_Position = vec4(pos * 2 - 1, 0, 1);"
-	"}";
+	paletteRenderer->getQuad().bind();
 
-char const *fragShader =
+	int pos = shader.attributeLocation("pos");
+	shader.enableAttributeArray(pos);
+	shader.setAttributeBuffer(pos, GL_FLOAT, 0, 2);
 
-	"#version 330 core\r\n"
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 
-	"in vec2 uv;"
-
-	"uniform int width;"
-	"uniform int height;"
-	"uniform int size;"
-	"uniform int tiled;"
-	"uniform usampler1D tiledTexture;"
-	"uniform int flags;"
-	"uniform sampler2D paletteTexture;"
-
-	"out vec4 color;"
-
-	"void main() {"
-
-		//Convert from pixel to tiled pixel space
-
-		"ivec2 px = ivec2(uv * vec2(width, height));"
-		"ivec2 tile = px % tiled;"
-		"ivec2 tiles = px / tiled;"
-		"int pos = (tiles.x + tiles.y * width / tiled) * tiled * tiled + tile.y * tiled + tile.x;"
-
-		//Convert from pixel index to buffer index
-
-		"int mod2x4 = (pos % 2) * 4;"
-
-		"if((flags & 1) != 0)"
-			"pos /= 2;"
-
-		"int val = int(texture(tiledTexture, float(pos) / size).r);"
-
-		"if((flags & 1) != 0)"
-			"val = (val & (0xF << mod2x4)) >> mod2x4;"
-
-		//Convert from palette index to color
-
-		"if((flags & 2) != 0)"
-			"color = vec4(texture(paletteTexture, vec2(val & 0xF, (val & 0xF0) >> 4) / vec2(16, 16)).rgb, 1);"
-		"else "
-			"color = vec4(vec2((val & 0xF) << 4, val & 0xF0) / vec2(255, 255), 0, 1);"
-	"}";
-
-//Quad
-
-const float quad[] = {
-	0,0, 0,1, 1,1,
-	1,1, 1,0, 0,0
-};
+}
 
 //Setup renderer
 
-TileRenderer::TileRenderer(u32 scale) : texture(nullptr, 0, 0, 0), scale(scale) {
-	setFixedSize(256 * scale, 256 * scale);
-}
+TileRenderer::TileRenderer(PaletteRenderer *palette): paletteRenderer(palette) { }
 
 void TileRenderer::initializeGL() {
 
 	//Setup shader
 
-	check("Couldn't compile vertex shader", !shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader));
-	check("Couldn't compile fragment shader", !shader.addShaderFromSourceCode(QGLShader::Fragment, fragShader));
-	check("Couldn't link shader", !shader.link());
+	
+	char const *vertShader = 
 
-	//Setup vbo and vao
+		"#version 330 core\r\n"
 
-	quadVBO = QGLBuffer(QGLBuffer::VertexBuffer);
-	quadVBO.create();
-	quadVBO.bind();
-	quadVBO.allocate(quad, sizeof(quad));
+		"layout(location=0) in vec2 pos;"
+
+		"out vec2 uv;"
+
+		"void main() {"
+			"uv = vec2(pos.x, 1 - pos.y);"
+			"gl_Position = vec4(pos * 2 - 1, 0, 1);"
+		"}";
+
+	char const *fragShader =
+
+		"#version 330 core\r\n"
+
+		"in vec2 uv;"
+
+		"uniform int width;"
+		"uniform int height;"
+		"uniform int size;"
+		"uniform int tiled;"
+		"uniform usampler1D tiledTexture;"
+		"uniform int flags;"
+		"uniform usampler2D paletteTexture;"
+
+		"out vec4 color;"
+
+		"void main() {"
+
+			//Convert from pixel to tiled pixel space
+
+			"ivec2 px = ivec2(uv * vec2(width, height));"
+			"ivec2 tile = px % tiled;"
+			"ivec2 tiles = px / tiled;"
+			"int pos = (tiles.x + tiles.y * width / tiled) * tiled * tiled + tile.y * tiled + tile.x;"
+
+			//Convert from pixel index to buffer index
+
+			"int mod2x4 = (pos % 2) * 4;"
+
+			"if((flags & 1) != 0)"
+				"pos /= 2;"
+
+			"int val = int(texture(tiledTexture, float(pos) / size).r);"
+
+			"if((flags & 1) != 0)"
+				"val = (val & (0xF << mod2x4)) >> mod2x4;"
+
+			//Convert from palette index to color
+
+			"if((flags & 2) != 0) {"
+
+				//Get palette color
+				"vec2 coord = vec2(val & 0xF, (val & 0xF0) >> 4) / vec2(16, 16);"
+				"uint value = texture(paletteTexture, coord).r;"
+
+				"uint r = value & 0x1FU;"
+				"uint g = (value & 0x3E0U) >> 5U;"
+				"uint b = (value & 0x7C00U) >> 10U;"
+
+				//Sample from texture
+				"color = vec4(r / 31.0f, g / 31.0f, b / 31.0f, 1);"
+
+			"} else if((flags & 1) != 0)"
+				"color = vec4((val & 0xF) / 15.0f, 0, 0, 1);"
+			"else "
+				"color = vec4((val & 0xF) / 15.f, ((val & 0xF0) >> 4) / 15.f, 0, 1);"
+		"}";
+
+	if(!shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader))
+		throw std::runtime_error("Couldn't compile vertex shader");
+
+	if (!shader.addShaderFromSourceCode(QGLShader::Fragment, fragShader))
+		throw std::runtime_error("Couldn't compile fragment shader");
+
+	if (!shader.link())
+		throw std::runtime_error("Couldn't link shader");
 
 	//TODO: Allow right click
 
@@ -107,7 +140,6 @@ Texture2D TileRenderer::getTexture() {
 
 TileRenderer::~TileRenderer() {
 	shader.deleteLater();
-	quadVBO.destroy();
 	destroyGTexture();
 }
 
@@ -115,8 +147,7 @@ TileRenderer::~TileRenderer() {
 
 void TileRenderer::setTexture(Texture2D tex) {
 	texture = tex;
-	destroyGTexture();
-	setupGTexture();
+	refresh();
 }
 
 void TileRenderer::destroyGTexture() {
@@ -132,8 +163,8 @@ void TileRenderer::setupGTexture() {
 	tiledTexture = new QOpenGLTexture(QOpenGLTexture::Target1D);
 	tiledTexture->setMinMagFilters(QOpenGLTexture::NearestMipMapNearest, QOpenGLTexture::Nearest);
 	tiledTexture->setFormat(QOpenGLTexture::R8U);
-	tiledTexture->setSize(texture.getDataSize());
-	tiledTexture->allocateStorage(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8);
+	tiledTexture->setSize(texture.getDataSize());		//TODO: use 2D!
+	tiledTexture->allocateStorage();
 	tiledTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, texture.getPtr());
 
 	repaint();
@@ -149,57 +180,23 @@ void TileRenderer::usePalette(bool b) {
 
 void TileRenderer::setEditable(bool b) {
 	editable = b;
-}
-
-void TileRenderer::setCursor(u32 i) {
-	idx = i;
+	repaint();
 }
 
 void TileRenderer::setCursorSize(u32 scale) {
 	cursorSize = scale;
+	repaint();
 }
 
 void TileRenderer::setPaintTool(TilePaintTool t) {
 	tool = t;
-}
-
-//Render calls
-
-void TileRenderer::paintGL() {
-
-	shader.bind();
-
-	if(tiledTexture)
-		tiledTexture->bind(0);
-
-	//if(paletteTexture)
-	//	paletteTexture->bind(1);
-
-	shader.setUniformValue("tiledTexture", 0);
-	shader.setUniformValue("paletteTexture", 1);
-	shader.setUniformValue("width", (i32) texture.getWidth());
-	shader.setUniformValue("height", (i32) texture.getHeight());
-	shader.setUniformValue("tiled", (i32) texture.getTiles());
-	shader.setUniformValue("size", (i32) texture.getDataSize());
-	shader.setUniformValue("flags", 
-		(texture.getType() == TextureType::R4 ? 1 : 0) |
-		(palette ? 2 : 0)
-	);
-
-	quadVBO.bind();
-
-	int pos = shader.attributeLocation("pos");
-	shader.enableAttributeArray(pos);
-	shader.setAttributeBuffer(pos, GL_FLOAT, 0, 2);
-
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-
+	repaint();
 }
 
 //Drawing on tilemap
 
 QPoint TileRenderer::globalToTexture(QPoint pos) {
-	return QPoint((float)pos.x() / width() * texture.getWidth(), (1 - (float)pos.y() / height()) * texture.getHeight());
+	return QPoint((float)pos.x() / width() * texture.getWidth(), (float)pos.y() / height() * texture.getHeight());
 }
 
 void TileRenderer::mousePressEvent(QMouseEvent *e) {
@@ -246,7 +243,7 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 
 void TileRenderer::drawPoint(QPoint point, u32 size) {
 
-	if (!editable || point.x() >= width() || point.y() >= height())
+	if (!editable || point.x() < 0 || point.y() < 0 || point.x() >= width() || point.y() >= height())
 		return;
 
 	if (size == 0)
@@ -270,7 +267,7 @@ void TileRenderer::drawPoint(QPoint point, u32 size) {
 			if (i < 0 || j < 0 || i >= texture.getWidth() || j >= texture.getHeight())
 				continue;
 
-			texture.store(i, j, idx);
+			texture.store(i, j, paletteRenderer->getPrimary());
 		}
 
 }
@@ -285,7 +282,7 @@ void TileRenderer::fill(i32 x, i32 y, u32 mask) {
 	if (val != mask)
 		return;
 
-	texture.store(x, y, idx);
+	texture.store(x, y, paletteRenderer->getPrimary());
 
 	fill(x - 1, y, mask);
 	fill(x + 1, y, mask);
@@ -296,12 +293,12 @@ void TileRenderer::fill(i32 x, i32 y, u32 mask) {
 
 void TileRenderer::fill(QPoint p0) {
 
-	if (!editable || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
+	if (!editable || p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
 		return;
 
 	u32 mask = texture.fetch(p0.x(), p0.y());
 
-	if(mask != idx)
+	if(mask != paletteRenderer->getPrimary())
 		fill(p0.x(), p0.y(), mask);
 
 	refresh();
@@ -347,7 +344,7 @@ void TileRenderer::drawSquare(QPoint p0, QPoint p1) {
 			if (x < 0 || y < 0 || x >= texture.getWidth() || y >= texture.getHeight())
 				continue;
 
-			texture.store(x, y, idx);
+			texture.store(x, y, paletteRenderer->getPrimary());
 
 		}
 
@@ -368,9 +365,6 @@ void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
 }
 
 void TileRenderer::refresh() {
-
 	destroyGTexture();
 	setupGTexture();
-
-	repaint();
 }

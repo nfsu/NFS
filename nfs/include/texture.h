@@ -22,6 +22,7 @@ namespace nfs {
 
 	public:
 
+		Texture2D();
 		Texture2D(u8 *ptr, u16 w, u16 h, u32 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);
 		Texture2D(NCLR &palette);
 		Texture2D(NCGR &tilemap);

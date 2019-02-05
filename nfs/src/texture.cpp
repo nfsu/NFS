@@ -5,7 +5,10 @@
 #include <cstring>
 using namespace nfs;
 
-Texture2D::Texture2D(u8 *ptr, u16 w, u16 h, u32 _stride, TextureType tt, TextureTiles tti): data(ptr), width(w), height(h), stride(_stride), size(w * h), dataSize(w * h * stride), type((u16)tt), flags((u16)tti) {}
+Texture2D::Texture2D(u8 *ptr, u16 w, u16 h, u32 _stride, TextureType tt, TextureTiles tti): 
+	data(ptr), width(w), height(h), stride(_stride), size(w * h), dataSize(w * h * stride), type((u16)tt), flags((u16)tti) {}
+
+Texture2D::Texture2D() : Texture2D(nullptr, 0, 0, 0) {}
 
 Texture2D::Texture2D(NCLR &palette): flags((u16)TextureTiles::NONE), type((u16)TextureType::BGR5), stride(2U) {
 	TTLP &ttlp = palette.at<0>();

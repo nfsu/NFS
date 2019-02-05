@@ -16,7 +16,6 @@ namespace nfsu {
 		TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent = nullptr);
 
 		void setPalette(nfs::Texture2D tex);
-		void clearPalette();
 		nfs::Texture2D getPalette();
 
 		void setTiles(nfs::Texture2D tex);

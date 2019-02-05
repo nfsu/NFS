@@ -187,7 +187,7 @@ void Window::setupTabs(QLayout *layout) {
 	for (auto &elem : editors)
 		elem = nullptr;
 
-	PaletteEditor *paletteEditor = new PaletteEditor(16, 16, 40);
+	PaletteEditor *paletteEditor = new PaletteEditor(16);
 	editors[1] = paletteEditor;
 
 	TileEditor *tileEditor = new TileEditor(2, 16);
