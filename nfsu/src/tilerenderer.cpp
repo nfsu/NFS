@@ -39,7 +39,9 @@ void TileRenderer::paintGL() {
 
 //Setup renderer
 
-TileRenderer::TileRenderer(PaletteRenderer *palette): paletteRenderer(palette) { }
+TileRenderer::TileRenderer(PaletteRenderer *palette): paletteRenderer(palette) {
+	setScale(0);
+}
 
 void TileRenderer::initializeGL() {
 
@@ -69,7 +71,7 @@ void TileRenderer::initializeGL() {
 		"uniform int height;"
 		"uniform int size;"
 		"uniform int tiled;"
-		"uniform usampler1D tiledTexture;"
+		"uniform usampler2D tiledTexture;"
 		"uniform int flags;"
 		"uniform usampler2D paletteTexture;"
 
@@ -87,11 +89,17 @@ void TileRenderer::initializeGL() {
 			//Convert from pixel index to buffer index
 
 			"int mod2x4 = (pos % 2) * 4;"
+			"int texWidth = width;"
 
-			"if((flags & 1) != 0)"
+			"if((flags & 1) != 0){"
 				"pos /= 2;"
+				"texWidth /= 2;"
+			"}"
 
-			"int val = int(texture(tiledTexture, float(pos) / size).r);"
+			"int x = pos % texWidth;"
+			"int y = pos / texWidth;"
+
+			"int val = int(texture(tiledTexture, vec2(x, y) / vec2(texWidth, height)).r);"
 
 			"if((flags & 1) != 0)"
 				"val = (val & (0xF << mod2x4)) >> mod2x4;"
@@ -127,6 +135,8 @@ void TileRenderer::initializeGL() {
 		throw std::runtime_error("Couldn't link shader");
 
 	//TODO: Allow right click
+	//TODO: Some images still don't render well; looking at tv demo .narc as well as unsized images, detect resolution!
+	//TODO: Allow swapping palettes for R4
 
 }
 
@@ -147,7 +157,8 @@ TileRenderer::~TileRenderer() {
 
 void TileRenderer::setTexture(Texture2D tex) {
 	texture = tex;
-	refresh();
+	setScale(scale);
+	updateTexture();
 }
 
 void TileRenderer::destroyGTexture() {
@@ -160,10 +171,13 @@ void TileRenderer::destroyGTexture() {
 
 void TileRenderer::setupGTexture() {
 
-	tiledTexture = new QOpenGLTexture(QOpenGLTexture::Target1D);
+	if (texture.getWidth() == 0)
+		return;
+
+	tiledTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
 	tiledTexture->setMinMagFilters(QOpenGLTexture::NearestMipMapNearest, QOpenGLTexture::Nearest);
 	tiledTexture->setFormat(QOpenGLTexture::R8U);
-	tiledTexture->setSize(texture.getDataSize());		//TODO: use 2D!
+	tiledTexture->setSize(texture.getDataSize() / texture.getHeight(), texture.getHeight());
 	tiledTexture->allocateStorage();
 	tiledTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, texture.getPtr());
 
@@ -191,6 +205,22 @@ void TileRenderer::setCursorSize(u32 scale) {
 void TileRenderer::setPaintTool(TilePaintTool t) {
 	tool = t;
 	repaint();
+}
+
+void TileRenderer::setScale(u32 s) {
+
+	scale = s;
+
+	if(texture.getWidth() == 0)
+		setFixedSize(512, 512);		//TODO: Take maximum size
+	else {
+
+		if(s == 0)
+			s = 512 / (texture.getHeight() > texture.getWidth() ? texture.getHeight() : texture.getWidth());
+		
+		setFixedSize(texture.getWidth() * s, texture.getHeight() * s);
+	}
+
 }
 
 //Drawing on tilemap
@@ -221,10 +251,11 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 		if (tool == TilePaintTool::LINE) {
 
 			//TODO: Draw overlay so you can see what line you're drawing
+			//TODO: Show tool when you hover
 			//TODO: Allow cancel
 
 			drawLine(prev, globalToTexture(e->pos()));
-			refresh();
+			updateTexture();
 
 		} else if(tool == TilePaintTool::SQUARE){
 
@@ -232,7 +263,7 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 			//TODO: Allow cancel
 			
 			drawSquare(prev, globalToTexture(e->pos()));
-			refresh();
+			updateTexture();
 
 		}
 
@@ -301,7 +332,7 @@ void TileRenderer::fill(QPoint p0) {
 	if(mask != paletteRenderer->getPrimary())
 		fill(p0.x(), p0.y(), mask);
 
-	refresh();
+	updateTexture();
 
 }
 
@@ -360,11 +391,11 @@ void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
 	drawLine(prev, next);
 	prev = next;
 
-	refresh();
+	updateTexture();
 
 }
 
-void TileRenderer::refresh() {
+void TileRenderer::updateTexture() {
 	destroyGTexture();
 	setupGTexture();
 }

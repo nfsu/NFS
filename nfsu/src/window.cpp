@@ -187,7 +187,7 @@ void Window::setupTabs(QLayout *layout) {
 	for (auto &elem : editors)
 		elem = nullptr;
 
-	PaletteEditor *paletteEditor = new PaletteEditor(16);
+	PaletteEditor *paletteEditor = new PaletteEditor(32);
 	editors[1] = paletteEditor;
 
 	TileEditor *tileEditor = new TileEditor(2, 16);
@@ -205,8 +205,13 @@ void Window::setupTabs(QLayout *layout) {
 	selected = editors[tabs->currentIndex()];
 
 	connect(tabs, &QTabWidget::currentChanged, this, [&](int idx) { 
-		this->selected = editors[idx]; 
+
+		this->selected = editors[idx];
 		this->selectedId = idx; 
+
+		if (this->selected != nullptr)
+			this->selected->onSwap();
+
 	});
 
 	rightLayout->addWidget(tabs);
@@ -233,8 +238,6 @@ void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QP
 ///File actions
 
 void Window::load() {
-
-	//TODO: Somewhere there's a memory leak? Why is there 300 MiB allocated and not 128
 
 	if (rom.ptr != nullptr) {
 

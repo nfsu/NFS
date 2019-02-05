@@ -9,7 +9,7 @@ namespace nfs {
 	};
 
 	enum class TextureTiles {
-		NONE = 0, TILED8 = 8
+		NONE = 1, TILED8 = 8
 	};
 
 	enum class ChangeDimensionsResult {

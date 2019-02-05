@@ -45,8 +45,10 @@ namespace nfsu {
 
 		QPoint globalToTexture(QPoint pos);
 
+		void setScale(u32 scale);
+
 		//Re-initialize texture & repaint
-		void refresh();
+		void updateTexture();
 
 	protected:
 
@@ -56,7 +58,7 @@ namespace nfsu {
 	private:
 
 
-		u32 cursorSize = 1;
+		u32 cursorSize = 1, scale = 0;
 		bool palette = true, editable = true, isMouseDown = false;
 		TilePaintTool tool = TilePaintTool::BRUSH;
 

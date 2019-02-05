@@ -27,14 +27,30 @@ Texture2D::Texture2D(NCGR &tilemap): flags((u16)TextureTiles::TILED8), stride(1U
 
 	dataSize = rahc.tileDataSize;
 	size = dataSize * (fourBit ? 2U : 1U);
+
+	u16 tileWidth = rahc.tileWidth, tileHeight = rahc.tileHeight;
 	
-	if (rahc.tileWidth == u16_MAX || rahc.tileHeight == u16_MAX) {
+	if (tileWidth == u16_MAX || tileHeight == u16_MAX) {
+
 		width = (u32) sqrt(size);
 		height = width;
+
+		if (size == 2048) {
+			width = 32;
+			height = 64;
+		}
+
+		if (width * height != size)
+			throw std::runtime_error("Couldn't find a valid size for a texture");
+
+		if (width % 8 != 0 || height % 8 != 0)
+			throw std::runtime_error("Couldn't find a valid size for a texture (tiled failed)");
+
 		printf("Texture2D Warning; Non-Sized Texture2D found with NCGR. Resizing to %u %u, please call 'changeDimensions' if this size is incorrect\n", width, height);
+
 	} else {
-		width = rahc.tileWidth * 8U;
-		height = rahc.tileHeight * 8U;
+		width = tileWidth * 8U;
+		height = tileHeight * 8U;
 	}
 
 	data = tilemap.get<0>().ptr;

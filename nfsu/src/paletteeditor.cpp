@@ -14,7 +14,7 @@ PaletteEditor::PaletteEditor(u32 scale, QWidget *parent) : QWidget(parent) {
 
 	setFixedSize(scale * 16, scale * 16);
 
-	//TODO: Button for showing / disabling grid
+	//TODO: Button for showing / disabling grid, grid color and size
 	//TODO: Show properties of palette
 
 }
@@ -37,4 +37,8 @@ bool PaletteEditor::allowsResource(ArchiveObject &ao) {
 
 void PaletteEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
 	setPalette(Texture2D(fileSystem.get<NCLR>(ao)));
+}
+
+void PaletteEditor::onSwap() {
+	renderer->updateTexture();
 }

@@ -20,6 +20,9 @@ namespace nfsu {
 		QGLBuffer getQuad();
 
 		void setShowGrid(bool b);
+		void setGridColor(QColor color);
+		void setGridSize(f32 percToPix);
+
 		void setEditable(bool b);
 
 		void initializeGL() override;
@@ -31,7 +34,7 @@ namespace nfsu {
 		QPoint globalToTexture(QPoint pos);
 
 		//Re-initialize texture & repaint
-		void refresh();
+		void updateTexture();
 
 		///selected palette index
 
@@ -48,7 +51,10 @@ namespace nfsu {
 		nfs::Texture2D texture;
 
 		u8 primary = 0, secondary = 0;
-		bool showGrid = false, editable = true;
+		bool showGrid = true, editable = true;
+
+		i32 gridColor = 0xFFFFFF;
+		f32 gridSize = 0.075f;
 
 		QGLShaderProgram shader;
 		QGLBuffer quad;

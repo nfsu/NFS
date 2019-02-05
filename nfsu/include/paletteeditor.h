@@ -23,6 +23,8 @@ namespace nfsu {
 		bool allowsResource(nfs::ArchiveObject &ao) override;
 		void inspectResource(nfs::FileSystem &fileSystem, nfs::ArchiveObject &ao) override;
 
+		void onSwap() override;
+
 	private:
 
 		PaletteRenderer *renderer;

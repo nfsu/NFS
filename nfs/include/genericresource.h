@@ -35,6 +35,14 @@ namespace nfs {
 			return ReadObject<0, i, args...>::at(ptrs[i]);
 		}
 
+		template<u32 i>
+		bool contains() {
+
+			static_assert(i < elements(), "GenericResource::get<i> out of bounds");
+
+			return ptrs[i] != nullptr;
+		}
+
 		//Get data of section
 		template<u32 i>
 		Buffer get() {
