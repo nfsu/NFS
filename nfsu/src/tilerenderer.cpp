@@ -99,10 +99,8 @@ void TileRenderer::initializeGL() {
 				"texWidth /= 2;"
 			"}"
 
-			"int x = pos % texWidth;"
-			"int y = pos / texWidth;"
-
-			"int val = int(texture(tiledTexture, vec2(x, y) / vec2(texWidth, height)).r);"
+		
+			"int val = int(texelFetch(tiledTexture, ivec2(pos % texWidth, pos / texWidth), 0).r);"
 
 			"if((flags & 1) != 0)"
 				"val = (val & (0xF << mod2x4)) >> mod2x4;"
