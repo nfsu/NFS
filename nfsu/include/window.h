@@ -1,6 +1,7 @@
 #pragma once
 #include <QtWidgets/qwidget.h>
 #include <QtWidgets/qsplitter.h>
+#include <QtWidgets/qtabwidget.h>
 #include "filesystem.h"
 #include "infowindow.h"
 #include "resourceeditor.h"
@@ -77,7 +78,7 @@ namespace nfsu {
 		Buffer rom;
 		nfs::FileSystem fileSystem;
 
-		i32 selectedId = 1;
+		i32 selectedId = 0;
 
 		nfsu::NExplorer *explorer = nullptr;
 		nfsu::InfoWindow *fileInspect = nullptr;
@@ -88,6 +89,7 @@ namespace nfsu {
 
 		std::vector<ResourceEditor*> editors;
 		ResourceEditor *selected;
+		QTabWidget *tabs;
 
 	};
 

@@ -32,8 +32,12 @@ PaletteRenderer *PaletteEditor::getRenderer() {
 	return renderer;
 }
 
-bool PaletteEditor::allowsResource(ArchiveObject &ao) {
+bool PaletteEditor::allowsResource(FileSystemObject &fso, ArchiveObject &ao) {
 	return ao.info.magicNumber == NCLR::getMagicNumber();
+}
+
+bool PaletteEditor::isPrimaryEditor(FileSystemObject &fso, ArchiveObject &ao) {
+	return allowsResource(fso, ao);
 }
 
 void PaletteEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {

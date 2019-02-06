@@ -273,5 +273,6 @@ void PaletteRenderer::mousePressEvent(QMouseEvent *e) {
 	repaint();
 
 	//TODO: Allow painting in palette
+	//TODO: Palette history
 
 }

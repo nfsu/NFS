@@ -114,7 +114,7 @@ void Window::setupToolbar() {
 	QMenuBar *qtb;
 	leftLayout->addWidget(qtb = new QMenuBar());
 
-	//TODO: Save last folder & file
+	//TODO: Save last folder & file & tab as preference
 	QMenu *file = qtb->addMenu("File");
 	QMenu *view = qtb->addMenu("View");
 	QMenu *options = qtb->addMenu("Options");
@@ -122,10 +122,12 @@ void Window::setupToolbar() {
 
 	///File
 	QAction *load = file->addAction("Load");
-	QAction *save = file->addAction("Save");
+	QAction *save = file->addAction("Save As");
+	QAction *saveCurrent = file->addAction("Save");
+	QAction *reload = file->addAction("Reload");
+	file->addSeparator();
 	QAction *exp = file->addAction("Export");
 	QAction *imp = file->addAction("Import");
-	QAction *reload = file->addAction("Reload");
 	file->addSeparator();
 	QAction *find = file->addAction("Find");
 	QAction *filter = file->addAction("Filter");
@@ -137,6 +139,7 @@ void Window::setupToolbar() {
 	connect(imp, &QAction::triggered, this, [&]() { this->importPatch(); });
 	connect(reload, &QAction::triggered, this, [&]() { this->reloadButton(); });
 	connect(save, &QAction::triggered, this, [&]() { this->write(); });
+	connect(saveCurrent, &QAction::triggered, this, [&]() { this->write(this->file); });
 	connect(find, &QAction::triggered, this, [&]() { this->findFile(); });
 	connect(filter, &QAction::triggered, this, [&]() { this->filterFiles(); });
 	connect(order, &QAction::triggered, this, [&]() { this->orderFiles(); });
@@ -193,7 +196,7 @@ void Window::setupTabs(QLayout *layout) {
 	TileEditor *tileEditor = new TileEditor(2, 16);
 	editors[2] = tileEditor;
 
-	QTabWidget *tabs = new QTabWidget;
+	tabs = new QTabWidget;
 	tabs->addTab(new QWidget, QIcon("resources/folder.png"), "Game editor");			//TODO: Edit game
 	tabs->addTab(paletteEditor, QIcon("resources/palette.png"), "Palette editor");
 	tabs->addTab(tileEditor, QIcon("resources/tilemap.png"), "Tile editor");
@@ -222,12 +225,16 @@ void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QP
 
 	QMenu contextMenu(tr(ao.name.c_str()), this);
 
-	QAction *view = contextMenu.addAction("View");
+	QAction *view = contextMenu.addAction("View resource");
+	QAction *viewData = contextMenu.addAction("View data");
+	contextMenu.addSeparator();
 	QAction *expr = contextMenu.addAction("Export resource");
 	QAction *impr = contextMenu.addAction("Import resource");
+	contextMenu.addSeparator();
 	QAction *info = contextMenu.addAction("Documentation");
 
 	connect(view, &QAction::triggered, this, [&]() { this->viewResource(fso, ao); });
+	connect(viewData, &QAction::triggered, this, [&]() { this->viewData(ao.buf); });
 	connect(expr, &QAction::triggered, this, [&]() { this->exportResource(fso, ao); });
 	connect(impr, &QAction::triggered, this, [&]() { this->importResource(fso, ao); });
 	connect(info, &QAction::triggered, this, [&]() { this->info(fso, ao); });
@@ -451,8 +458,25 @@ void Window::about() {
 
 void Window::viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 
-	if (selected == nullptr || !selected->allowsResource(ao))
+	if (selected == nullptr)
 		return;
+
+	inspect(fso, ao);
+
+	if (!selected->allowsResource(fso, ao)) {
+
+		u32 i = 0;
+
+		for(ResourceEditor *editor : editors)
+			if (editor != nullptr && editor->isPrimaryEditor(fso, ao)) {
+				tabs->setCurrentIndex(i);
+				break;
+			} else ++i;
+
+		if(i == editors.size())
+			return;
+
+	}
 
 	selected->inspectResource(fileSystem, ao);
 

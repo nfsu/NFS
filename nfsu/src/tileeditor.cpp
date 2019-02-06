@@ -40,8 +40,8 @@ Texture2D TileEditor::getTiles() {
 	return renderer->getTexture();
 }
 
-bool TileEditor::allowsResource(ArchiveObject &ao) {
-	return ao.info.magicNumber == NCGR::getMagicNumber() || palette->allowsResource(ao);
+bool TileEditor::allowsResource(FileSystemObject &fso, ArchiveObject &ao) {
+	return ao.info.magicNumber == NCGR::getMagicNumber() || palette->allowsResource(fso, ao);
 }
 
 void TileEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
@@ -53,6 +53,10 @@ void TileEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
 		renderer->updateTexture();
 	}
 
+}
+
+bool TileEditor::isPrimaryEditor(FileSystemObject &fso, ArchiveObject &ao) {
+	return ao.info.magicNumber == NCGR::getMagicNumber();
 }
 
 void TileEditor::onSwap() {

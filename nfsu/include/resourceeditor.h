@@ -8,9 +8,23 @@ namespace nfsu {
 
 	public:
 
-		virtual bool allowsResource(nfs::ArchiveObject &ao) = 0;
+		//Whether or not the editor can display the file or resource type
+		virtual bool allowsResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
+
+		//Handle displaying the resource internally
 		virtual void inspectResource(nfs::FileSystem &fileSystem, nfs::ArchiveObject &ao) = 0;
+
+		//Whenever the tab is switched to
 		virtual void onSwap() = 0;
+
+		//Whether or not the editor is made specifically for the file or resource type
+		virtual bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
+
+		//Whether or not the editor can show pure data
+		virtual bool allowsData() { return false; }
+
+		//Handle displaying & editing data internally
+		virtual void inspectData(Buffer data) {}
 
 	};
 

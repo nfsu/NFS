@@ -23,10 +23,12 @@ namespace nfsu {
 
 		void usePalette(bool b);
 
-		bool allowsResource(nfs::ArchiveObject &ao) override;
+		bool allowsResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
 		void inspectResource(nfs::FileSystem &fileSystem, nfs::ArchiveObject &ao) override;
 
 		void onSwap() override;
+
+		bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
 
 	private:
 
