@@ -192,11 +192,13 @@ void TileRenderer::destroyGTexture() {
 
 	tiledTexture->destroy();
 	delete tiledTexture;
+	tiledTexture = nullptr;
 
 	if (magicTexture == nullptr) return;
 
 	magicTexture->destroy();
 	delete magicTexture;
+	magicTexture = nullptr;
 
 }
 

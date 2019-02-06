@@ -169,6 +169,8 @@ void PaletteRenderer::destroyGTexture() {
 
 	paletteTexture->destroy();
 	delete paletteTexture;
+	paletteTexture = nullptr;
+
 }
 
 void PaletteRenderer::setupGTexture() {

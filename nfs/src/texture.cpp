@@ -314,13 +314,19 @@ bool Texture2D::store(u16 i, u16 j, u32 k) {
 
 	u8 *ptr = data + index * stride / (fourBit ? 2U : 1U);
 
+	if (magic && (index == 0 || index == size - 1))
+		return false;
+
+	if (fourBit)
+		k = (k & 0xF) << (index % 2U * 4);
+
 	if (magic && stride == 1)
 		k ^= magic[index / (fourBit ? 2U : 1U)];
 
 	if (fourBit && index % 2U == 0U)
 		*ptr = (*ptr & 0xF0U) | (k & 0xFU);
 	else if (fourBit)
-		*ptr = (*ptr & 0xFU) | ((k & 0xFU) << 4U);
+		*ptr = (*ptr & 0xFU) | (k & 0xF0U);
 	else
 		std::memcpy(ptr, &k, stride);
 
