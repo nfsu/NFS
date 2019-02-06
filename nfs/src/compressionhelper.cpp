@@ -55,3 +55,7 @@ u16 CompressionHelper::storeColor(std::array<f32, 3> val) {
 	return b | (g << 5U) | (r << 10U);
 
 }
+
+u32 CompressionHelper::generateRandom(u32 seed, const u32 multiply, const u32 add) {
+	return multiply * seed + add;
+}

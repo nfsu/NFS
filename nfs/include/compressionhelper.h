@@ -17,6 +17,10 @@ namespace nfs {
 		//Get a linear color as 16-bit
 		static u16 storeColor(std::array<f32, 3> val);
 
+		//Get a pseudo random number
+		//Also used in image "encryption"
+		static u32 generateRandom(u32 seed, const u32 multiply = 0x41c64e6d, const u32 add = 0x6073);
+
 		//Normalize an int in range [0, maxVal]
 		static f32 normalize(u32 val, u32 maxVal);
 

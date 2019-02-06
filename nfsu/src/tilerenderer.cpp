@@ -85,25 +85,43 @@ void TileRenderer::initializeGL() {
 			//Convert from pixel to tiled pixel space
 
 			"ivec2 px = ivec2(uv * vec2(width, height));"
-			"ivec2 tile = px % tiled;"
-			"ivec2 tiles = px / tiled;"
-			"int pos = (tiles.x + tiles.y * width / tiled) * tiled * tiled + tile.y * tiled + tile.x;"
 
-			//Convert from pixel index to buffer index
+			"int val = 0;"
 
-			"int mod2x4 = (pos % 2) * 4;"
-			"int texWidth = width;"
+			"if(tiled != 1) {"
 
-			"if((flags & 1) != 0){"
-				"pos /= 2;"
-				"texWidth /= 2;"
+				"ivec2 tile = px % tiled;"
+				"ivec2 tiles = px / tiled;"
+				"int pos = (tiles.x + tiles.y * width / tiled) * tiled * tiled + tile.y * tiled + tile.x;"
+
+				//Convert from pixel index to buffer index
+
+				"int mod2x4 = (pos % 2) * 4;"
+				"int texWidth = width;"
+
+				"if((flags & 1) != 0){"
+					"pos /= 2;"
+					"texWidth /= 2;"
+				"}"
+
+				"val = int(texelFetch(tiledTexture, ivec2(pos % texWidth, pos / texWidth), 0).r);"
+
+				"if((flags & 1) != 0)"
+					"val = (val & (0xF << mod2x4)) >> mod2x4;"
+
+			"} else {"
+
+				"int mod2x4 = (px.x % 2) * 4;"
+
+				"if((flags & 1) != 0)"
+					"px.x /= 2;"
+
+				"val = int(texelFetch(tiledTexture, px, 0).r);"
+
+				"if((flags & 1) != 0)"
+					"val = (val & (0xF << mod2x4)) >> mod2x4;"
+
 			"}"
-
-		
-			"int val = int(texelFetch(tiledTexture, ivec2(pos % texWidth, pos / texWidth), 0).r);"
-
-			"if((flags & 1) != 0)"
-				"val = (val & (0xF << mod2x4)) >> mod2x4;"
 
 			//Convert from palette index to color
 
@@ -123,9 +141,7 @@ void TileRenderer::initializeGL() {
 				//Sample from texture
 				"color = vec4(r / 31.0f, g / 31.0f, b / 31.0f, 1);"
 
-			"} else if((flags & 1) != 0)"
-				"color = vec4((val & 0xF) / 15.0f, 0, 0, 1);"
-			"else "
+			"} else "
 				"color = vec4((val & 0xF) / 15.f, ((val & 0xF0) >> 4) / 15.f, 0, 1);"
 		"}";
 
@@ -139,7 +155,7 @@ void TileRenderer::initializeGL() {
 		throw std::runtime_error("Couldn't link shader");
 
 	//TODO: Allow right click
-	//TODO: Some images still don't render well; looking at tv demo .narc as well as unsized images, detect resolution!
+	//TODO: Some images still don't render well; detect resolution (u16_MAX for width & height)!
 
 }
 

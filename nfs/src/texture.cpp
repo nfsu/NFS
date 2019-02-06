@@ -28,32 +28,67 @@ Texture2D::Texture2D(NCGR &tilemap): flags((u16)TextureTiles::TILED8), stride(1U
 	dataSize = rahc.tileDataSize;
 	size = dataSize * (fourBit ? 2U : 1U);
 
-	u16 tileWidth = rahc.tileWidth, tileHeight = rahc.tileHeight;
-	
-	if (tileWidth == u16_MAX || tileHeight == u16_MAX) {
+	data = tilemap.get<0>().ptr;
 
-		width = (u32) sqrt(size);
-		height = width;
+	if (rahc.isEncrypted) {
 
-		if (size == 2048) {
-			width = 32;
-			height = 64;
+		flags = (u16)TextureTiles::NONE;
+
+		//TODO: DONT MODIFY IT IN THE ROM!
+
+		u16 *beg = (u16*) data, *end = beg + dataSize / 2 - 1;
+
+		bool reverse = false;
+
+		u16 next = *(beg + 1);
+		u32 seed = CompressionHelper::generateRandom(*beg);
+		reverse = ((next ^ seed) & 0xFFFFU) != 0;
+
+		u16 *it = reverse ? end : beg;
+		i32 add = reverse ? -1 : 1;
+
+		seed = *it;
+
+		while ((reverse && it >= beg) || (!reverse && it <= end)) {
+			*it ^= seed;
+			seed = CompressionHelper::generateRandom(seed);
+			it += add;
 		}
 
-		if (width * height != size)
-			throw std::runtime_error("Couldn't find a valid size for a texture");
+	}
 
-		if (width % 8 != 0 || height % 8 != 0)
-			throw std::runtime_error("Couldn't find a valid size for a texture (tiled failed)");
+	if (rahc.isStretched)
+		printf("Texture2D Warning: Texture is stretched, this is not implemented yet\r\n");
 
-		printf("Texture2D Warning; Non-Sized Texture2D found with NCGR. Resizing to %u %u, please call 'changeDimensions' if this size is incorrect\n", width, height);
+	u16 tileWidth = rahc.tileWidth, tileHeight = rahc.tileHeight;
+
+	if (tileWidth == u16_MAX || tileHeight == u16_MAX) {
+
+
+		if (rahc.height == 0) {
+			width = 32 * (1 + (size >> 14));
+			height = size / width;
+		} else {
+
+				u32 scale = size / rahc.width / rahc.height;
+				float sscale = sqrt(scale);
+
+				if ((u32)sscale != sscale)
+					EXCEPTION("Couldn't calculate scale");
+
+				scale = (u32)sscale;
+
+				height = scale * rahc.height;
+				width = scale * rahc.width;
+
+		}
+
+		printf("Texture2D Warning: NCGR size couldn't be determined, guessed %ux%u\r\n", width, height);
 
 	} else {
 		width = tileWidth * 8U;
 		height = tileHeight * 8U;
 	}
-
-	data = tilemap.get<0>().ptr;
 }
 
 Texture2D::Texture2D(NSCR &map): flags((u16)TextureTiles::NONE), stride(2U), type((u16)TextureType::INTEGER) {

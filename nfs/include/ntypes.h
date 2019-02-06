@@ -23,11 +23,19 @@ namespace nfs {
 
 	typedef GenericResource<0x4E434C52, false, TTLP, PMCP> NCLR;				//Palette ("Color") resource
 
+	//The contents of RAHC can be encrypted;
+	//This means that the image needs to be XORed with a magic texture
+	//u32 seed = texture[end()];
+	//for(i32 i = end(); i >= begin(); --i) { magic[i] = seed; seed = CompressionHelper::generateRandom(seed); }
 	struct RAHC : GenericSection {												//Character data
 		u16 tileHeight;
 		u16 tileWidth;
 		u32 tileDepth;						//1 << (tileDepth - 1) = bit depth
-		u64 c_padding;						//0x0000000000000000
+		u16 width;
+		u16 height;
+		u8 isEncrypted;						//Either isLinear or isEncrypted, but only saw this affect encryption
+		u8 isStretched;						//Not 100% sure, but isStretched = 0 could be square images
+		u16 unknown;						//0x0000
 		u32 tileDataSize;					//tileDataSize / 1024 = tileCount; tileDataSize * (2 - (tileDepth - 3)) = pixels
 		u32 c_padding0;						//0x00000018
 	};
