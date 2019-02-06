@@ -106,7 +106,7 @@ Texture2D tex(nclr);
 Texture2D tilemap(ncgr, nclr);
 Texture2D map(nscr, ncgr, nclr);
 ```
-'Texture2D' is a simple 2D texture (could be any format; but in NDS it's BGR555, 4 bit or 8 bit most of the time). If you use any texture conversions (such as tilemap and map), don't forget to call '.dealloc' on the texture to free it from memory. This is because creating them this way will create a new texture with the correct data. If you don't want that, you have to create seperate textures and do the reading yourself.
+'Texture2D' is a simple 2D texture (could be any format; but in NDS it's BGR555, 4 bit or 8 bit most of the time). If you use any texture conversions (such as tilemap and map), it will allocate memory it copies around; so use std::move whenever you pass this texture around to prevent copying.
 ### FileSystem's parent
 FileSystem is a unique object, it has a folder structure. But, it still remains a list of resources. This is why it uses NArchive as its parent. It stores both resources and file information. This means that you can use the archive's functions too, but those can't be used in combination with file names.
 ### Archives
@@ -164,9 +164,7 @@ Textures aren't that easy in NFS; palettes are always used and sometimes, they e
 ```cpp
 Texture2D tex2(ncgr, nclr);
 tex2.write("Final0.png");
-tex2.dealloc();
 ```
-Don't forget to dealloc the texture; as it uses a new malloc, because most of the time, the format is different from the source to the target. 
 ### Writing image filters
 If you'd want to add a new cpu 'shader', I've created a helpful function, which can be used as the following:
 ```cpp
@@ -188,7 +186,7 @@ For supported file formats, check out the docs folder; this contains a descripti
 ## Special thanks
 Thanks to /LagMeester4000 for creating magic templates that are used all the time in this API. Typelists are used from his repo at [/LagMeester4000/TypeList](https://github.com/LagMeester4000/TypeList).
 ## Nintendo policies
-Nintendo policies are strict, especially on fan-made content. If you are using this to hack roms, please be sure to NOT SUPPLY roms and if you're using this, please ensure that copyright policies are being kept. I am not responsible for any programs made with this, for it is only made to create new roms or use existing roms in the fair use policy.
+Nintendo policies are strict, especially on fan-made content. If you are using this to hack roms, please be sure to NOT SUPPLY roms or ROM files and if you're using this, please ensure that copyright policies are being kept. I am not responsible for any programs made with this, for it is only made to create new roms or use existing roms in the fair use policy.
 ### Legal issues
 To prevent any legal issues, you can choose to distribute a 'patch' instead of a ROM. Distributing a ROM is illegal, it is copyrighted content and you are uploading it. Distributing a patch however, isn't illegal. This is because the patch doesn't contain any copyrighted info and just the data that was altered from the original ([Derivative work](https://en.wikipedia.org/wiki/Derivative_work)), thus falling under [fair use policy](https://en.wikipedia.org/wiki/Fair_use#Fair_use_and_reverse_engineering), as long as the modification is not commercial and the user hasn't agreed to the EULA. This patch contains no pieces of art, no pieces of code that have been untouched by the user of our program, therefore making it the user's property. The ROM is obtained through the player and modified by using the patch, however, whether or not the ROM is obtained legally is up to the player and the player must be sure that this process is legal in its country.
 ## Fair use

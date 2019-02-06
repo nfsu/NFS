@@ -16,8 +16,12 @@ void TileRenderer::paintGL() {
 	if(paletteRenderer->getGPUTexture())
 		paletteRenderer->getGPUTexture()->bind(1);
 
+	if (magicTexture)
+		magicTexture->bind(2);
+
 	shader.setUniformValue("tiledTexture", 0);
 	shader.setUniformValue("paletteTexture", 1);
+	shader.setUniformValue("magicTexture", 2);
 	shader.setUniformValue("width", (i32)texture.getWidth());
 	shader.setUniformValue("height", (i32)texture.getHeight());
 	shader.setUniformValue("tiled", (i32)texture.getTiles());
@@ -25,7 +29,8 @@ void TileRenderer::paintGL() {
 	shader.setUniformValue("paletteY", (i32) yOffset);
 	shader.setUniformValue("flags",
 		(texture.getType() == TextureType::R4 ? 1 : 0) |
-		(palette && paletteRenderer->getGPUTexture() != nullptr ? 2 : 0)
+		(palette && paletteRenderer->getGPUTexture() != nullptr ? 2 : 0) |
+		(magicTexture != nullptr ? 4 : 0)
 	);
 
 	paletteRenderer->getQuad().bind();
@@ -77,6 +82,7 @@ void TileRenderer::initializeGL() {
 
 		"uniform usampler2D tiledTexture;"
 		"uniform usampler2D paletteTexture;"
+		"uniform usampler2D magicTexture;"
 
 		"out vec4 color;"
 
@@ -86,7 +92,7 @@ void TileRenderer::initializeGL() {
 
 			"ivec2 px = ivec2(uv * vec2(width, height));"
 
-			"int val = 0;"
+			"int val = 0, mod2x4 = 0;"
 
 			"if(tiled != 1) {"
 
@@ -96,32 +102,32 @@ void TileRenderer::initializeGL() {
 
 				//Convert from pixel index to buffer index
 
-				"int mod2x4 = (pos % 2) * 4;"
+				"mod2x4 = (pos % 2) * 4;"
 				"int texWidth = width;"
 
-				"if((flags & 1) != 0){"
+				"if((flags & 1) != 0) {"
 					"pos /= 2;"
 					"texWidth /= 2;"
 				"}"
 
-				"val = int(texelFetch(tiledTexture, ivec2(pos % texWidth, pos / texWidth), 0).r);"
-
-				"if((flags & 1) != 0)"
-					"val = (val & (0xF << mod2x4)) >> mod2x4;"
+				"px = ivec2(pos % texWidth, pos / texWidth);"
 
 			"} else {"
 
-				"int mod2x4 = (px.x % 2) * 4;"
+				"mod2x4 = (px.x % 2) * 4;"
 
 				"if((flags & 1) != 0)"
 					"px.x /= 2;"
 
-				"val = int(texelFetch(tiledTexture, px, 0).r);"
-
-				"if((flags & 1) != 0)"
-					"val = (val & (0xF << mod2x4)) >> mod2x4;"
-
 			"}"
+
+			"val = int(texelFetch(tiledTexture, px, 0).r);"
+
+			"if((flags & 4) != 0)"
+				"val ^= int(texelFetch(magicTexture, px, 0).r);"
+
+			"if((flags & 1) != 0)"
+				"val = (val & (0xF << mod2x4)) >> mod2x4;"
 
 			//Convert from palette index to color
 
@@ -186,6 +192,12 @@ void TileRenderer::destroyGTexture() {
 
 	tiledTexture->destroy();
 	delete tiledTexture;
+
+	if (magicTexture == nullptr) return;
+
+	magicTexture->destroy();
+	delete magicTexture;
+
 }
 
 void TileRenderer::setupGTexture() {
@@ -199,6 +211,15 @@ void TileRenderer::setupGTexture() {
 	tiledTexture->setSize(texture.getDataSize() / texture.getHeight(), texture.getHeight());
 	tiledTexture->allocateStorage();
 	tiledTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, texture.getPtr());
+
+	if (texture.useEncryption()) {
+		magicTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+		magicTexture->setMinMagFilters(QOpenGLTexture::NearestMipMapNearest, QOpenGLTexture::Nearest);
+		magicTexture->setFormat(QOpenGLTexture::R8U);
+		magicTexture->setSize(texture.getDataSize() / texture.getHeight(), texture.getHeight());
+		magicTexture->allocateStorage();
+		magicTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, texture.getMagicTexture());
+	}
 
 	repaint();
 

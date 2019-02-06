@@ -76,7 +76,7 @@ namespace nfsu {
 		QGLShaderProgram shader;
 		QGLBuffer quadVBO;
 
-		QOpenGLTexture *tiledTexture = nullptr;
+		QOpenGLTexture *tiledTexture = nullptr, *magicTexture = nullptr;
 
 	};
 

@@ -37,6 +37,12 @@ Buffer Buffer::alloc(u32 size) {
 	return { size, (u8*)malloc(size) };
 }
 
+Buffer Buffer::alloc(u32 size, u8 *init) {
+	Buffer a = alloc(size);
+	memcpy(a.ptr, init, size);
+	return a;
+}
+
 void Buffer::set(u8 val) {
 	memset(ptr, val, size);
 }

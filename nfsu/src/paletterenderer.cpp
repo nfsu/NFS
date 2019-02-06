@@ -173,6 +173,9 @@ void PaletteRenderer::destroyGTexture() {
 
 void PaletteRenderer::setupGTexture() {
 
+	if (texture.getWidth() == 0)
+		return;
+
 	paletteTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
 	paletteTexture->setMinMagFilters(QOpenGLTexture::NearestMipMapNearest, QOpenGLTexture::Nearest);
 	paletteTexture->setFormat(QOpenGLTexture::R16U);

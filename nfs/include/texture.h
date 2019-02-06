@@ -4,11 +4,11 @@
 
 namespace nfs {
 
-	enum class TextureType {
+	enum class TextureType : u16 {
 		ARGB8, BGR5, R4, INTEGER
 	};
 
-	enum class TextureTiles {
+	enum class TextureTiles : u16 {
 		NONE = 1, TILED8 = 8
 	};
 
@@ -23,10 +23,17 @@ namespace nfs {
 	public:
 
 		Texture2D();
+		~Texture2D();
 		Texture2D(u8 *ptr, u16 w, u16 h, u32 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);
 		Texture2D(NCLR &palette);
 		Texture2D(NCGR &tilemap);
 		Texture2D(NSCR &map);
+
+		Texture2D(const Texture2D &other);
+		Texture2D(Texture2D &&other);
+
+		Texture2D &operator=(const Texture2D &other);
+		Texture2D &operator=(Texture2D &&other);
 
 		//Allocate a new Texture2D from palette and tilemap
 		Texture2D(NCGR &tilemap, NCLR &palette);
@@ -54,9 +61,6 @@ namespace nfs {
 		//It calls 'read' on every pixel, to convert it to RGBA8
 		Texture2D toRGBA8(bool fixIntegers = true);
 
-		//Only call dealloc on Texture2D's allocated with 'Texture2D::alloc'
-		void dealloc();
-
 		TextureType getType();
 
 		u16 getWidth();
@@ -64,6 +68,7 @@ namespace nfs {
 		u32 getSize();
 		u32 getTiles();
 		u32 getDataSize();
+		bool useEncryption();
 		
 		//Change the dimensions of a texture; the only requirement is that w*h = this->size
 		//If the texture is tiled w % tiles and h % tiles have to be equal to 0
@@ -89,14 +94,17 @@ namespace nfs {
 		u32 getIndex(u16 i, u16 j);
 
 		u8 *getPtr();
+		u8 *getMagicTexture();
 
 	private:
 
 		u32 size, dataSize, stride;
 		u16 width, height;
-		u16 flags, type;
+		u16 tiles, type;
 
-		u8 *data;
+		u8 *data, *magic = nullptr /* Decryption buffer */;
+		bool allocated = false;
+
 	};
 
 

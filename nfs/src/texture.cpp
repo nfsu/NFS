@@ -6,11 +6,11 @@
 using namespace nfs;
 
 Texture2D::Texture2D(u8 *ptr, u16 w, u16 h, u32 _stride, TextureType tt, TextureTiles tti): 
-	data(ptr), width(w), height(h), stride(_stride), size(w * h), dataSize(w * h * stride), type((u16)tt), flags((u16)tti) {}
+	data(ptr), width(w), height(h), stride(_stride), size(w * h), dataSize(w * h * stride), type((u16)tt), tiles((u16)tti) {}
 
 Texture2D::Texture2D() : Texture2D(nullptr, 0, 0, 0) {}
 
-Texture2D::Texture2D(NCLR &palette): flags((u16)TextureTiles::NONE), type((u16)TextureType::BGR5), stride(2U) {
+Texture2D::Texture2D(NCLR &palette): tiles((u16)TextureTiles::NONE), type((u16)TextureType::BGR5), stride(2U) {
 	TTLP &ttlp = palette.at<0>();
 	width = ttlp.c_colors;
 	dataSize = ttlp.dataSize;
@@ -19,7 +19,7 @@ Texture2D::Texture2D(NCLR &palette): flags((u16)TextureTiles::NONE), type((u16)T
 	data = palette.get<0>().ptr;
 }
 
-Texture2D::Texture2D(NCGR &tilemap): flags((u16)TextureTiles::TILED8), stride(1U) {
+Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U) {
 
 	RAHC &rahc = tilemap.at<0>();
 	bool fourBit = rahc.tileDepth == 3;
@@ -32,11 +32,12 @@ Texture2D::Texture2D(NCGR &tilemap): flags((u16)TextureTiles::TILED8), stride(1U
 
 	if (rahc.isEncrypted) {
 
-		flags = (u16)TextureTiles::NONE;
+		magic = (u8*)malloc(dataSize);
 
-		//TODO: DONT MODIFY IT IN THE ROM!
+		tiles = (u16)TextureTiles::NONE;
 
-		u16 *beg = (u16*) data, *end = beg + dataSize / 2 - 1;
+		u32 endInd = dataSize / 2 - 1;
+		u16 *beg = (u16*) data, *end = beg + endInd;
 
 		bool reverse = false;
 
@@ -44,15 +45,18 @@ Texture2D::Texture2D(NCGR &tilemap): flags((u16)TextureTiles::TILED8), stride(1U
 		u32 seed = CompressionHelper::generateRandom(*beg);
 		reverse = ((next ^ seed) & 0xFFFFU) != 0;
 
-		u16 *it = reverse ? end : beg;
 		i32 add = reverse ? -1 : 1;
+		i32 i = reverse ? endInd : 0;
 
-		seed = *it;
+		seed = beg[i];
 
-		while ((reverse && it >= beg) || (!reverse && it <= end)) {
-			*it ^= seed;
+		while ((reverse && i >= 0) || (!reverse && i <= endInd)) {
+			u8 seed0 = seed & 0xFF;
+			u8 seed1 = (seed & 0xFF00) >> 8;
+			magic[i * 2] = seed0;
+			magic[i * 2 + 1] = seed1;
 			seed = CompressionHelper::generateRandom(seed);
-			it += add;
+			i += add;
 		}
 
 	}
@@ -91,7 +95,7 @@ Texture2D::Texture2D(NCGR &tilemap): flags((u16)TextureTiles::TILED8), stride(1U
 	}
 }
 
-Texture2D::Texture2D(NSCR &map): flags((u16)TextureTiles::NONE), stride(2U), type((u16)TextureType::INTEGER) {
+Texture2D::Texture2D(NSCR &map): tiles((u16)TextureTiles::NONE), stride(2U), type((u16)TextureType::INTEGER) {
 
 	NRCS &nrcs = map.at<0>();
 
@@ -101,23 +105,31 @@ Texture2D::Texture2D(NSCR &map): flags((u16)TextureTiles::NONE), stride(2U), typ
 	size = width * height;
 
 	data = map.get<0>().ptr;
+
 }
 
 Texture2D Texture2D::alloc(u16 w, u16 h, u32 stride, TextureType tt, TextureTiles tti) {
+
 	Texture2D tex = Texture2D(nullptr, w, h, stride, tt, tti);
 	tex.data = Buffer::allocEmpty(tex.getDataSize()).ptr;
+	tex.allocated = true;
+
 	return tex;
 }
 
 Texture2D Texture2D::read(std::string file) {
+
 	int x, y, channels;
 	u8 *ptr = (u8*) stbi_load(file.c_str(), &x, &y, &channels, 4);
-	return { ptr, (u16)x, (u16)y, 4U, TextureType::ARGB8, TextureTiles::NONE };
+
+	Texture2D tex = Texture2D(ptr, (u16)x, (u16)y, 4U, TextureType::ARGB8, TextureTiles::NONE);
+	tex.allocated = true;
+	return tex;
 }
 
 void Texture2D::write(std::string file) {
 
-	if (type != (u16)TextureType::ARGB8 || flags != (u16)TextureTiles::NONE)
+	if (type != (u16)TextureType::ARGB8 || tiles != (u16)TextureTiles::NONE)
 		EXCEPTION("Texture2D Couldn't write image; please convert to RGBA8 first");
 
 	if (file.size() < 4 || std::string(file.end() - 4, file.end()) != ".png")
@@ -128,12 +140,76 @@ void Texture2D::write(std::string file) {
 
 }
 
-void Texture2D::dealloc() {
-	if (data != nullptr) {
+//Copying & moving
+
+Texture2D::~Texture2D() {
+
+	if (allocated && data != nullptr) {
 		Buffer b = { getDataSize(), data };
 		b.dealloc();
 		data = nullptr;
 	}
+
+	if (magic != nullptr)
+		free(magic);
+}
+
+Texture2D::Texture2D(const Texture2D &other) {
+	size = other.size;
+	dataSize = other.dataSize;
+	stride = other.stride;
+	width = other.width;
+	height = other.height;
+	tiles = other.tiles;
+	type = other.type;
+	data = other.allocated ? Buffer::alloc(dataSize, other.data).ptr : other.data;
+	magic = other.magic ? Buffer::alloc(dataSize, other.magic).ptr : nullptr;
+	allocated = other.allocated;
+}
+
+Texture2D::Texture2D(Texture2D &&other) {
+	size = other.size;
+	dataSize = other.dataSize;
+	stride = other.stride;
+	width = other.width;
+	height = other.height;
+	tiles = other.tiles;
+	type = other.type;
+	data = other.data;
+	magic = other.magic;
+	allocated = other.allocated;
+	other.data = nullptr;
+	other.magic = nullptr;
+}
+
+Texture2D &Texture2D::operator=(const Texture2D &other) {
+	size = other.size;
+	dataSize = other.dataSize;
+	stride = other.stride;
+	width = other.width;
+	height = other.height;
+	tiles = other.tiles;
+	type = other.type;
+	data = other.allocated ? Buffer::alloc(dataSize, other.data).ptr : other.data;
+	magic = other.magic ? Buffer::alloc(dataSize, other.magic).ptr : nullptr;
+	allocated = other.allocated;
+	return *this;
+}
+
+Texture2D &Texture2D::operator=(Texture2D &&other) {
+	size = other.size;
+	dataSize = other.dataSize;
+	stride = other.stride;
+	width = other.width;
+	height = other.height;
+	tiles = other.tiles;
+	type = other.type;
+	data = other.data;
+	magic = other.magic;
+	allocated = other.allocated;
+	other.data = nullptr;
+	other.magic = nullptr;
+	return *this;
 }
 
 TextureType Texture2D::getType() { return (TextureType)type; }
@@ -141,7 +217,7 @@ TextureType Texture2D::getType() { return (TextureType)type; }
 u16 Texture2D::getWidth() { return width; }
 u16 Texture2D::getHeight() { return height; }
 u32 Texture2D::getSize() { return size; }
-u32 Texture2D::getTiles() { return (u32) flags; }
+u32 Texture2D::getTiles() { return tiles; }
 u32 Texture2D::getDataSize() { return dataSize; }
 
 ChangeDimensionsResult Texture2D::changeDimensions(u16 w, u16 h) {
@@ -203,6 +279,9 @@ u32 Texture2D::fetch(u16 i, u16 j) {
 	for (u32 i = 0; i < stride; ++i)
 		val |= ptr[i] << (i * 8U);
 
+	if (magic && stride == 1)
+		val ^= magic[index / (fourBit ? 2U : 1U)];
+
 	if (fourBit && index % 2U == 0U)
 		val &= 0xFU;
 	else if (fourBit)
@@ -234,6 +313,9 @@ bool Texture2D::store(u16 i, u16 j, u32 k) {
 	bool fourBit = type == (u16)TextureType::R4;
 
 	u8 *ptr = data + index * stride / (fourBit ? 2U : 1U);
+
+	if (magic && stride == 1)
+		k ^= magic[index / (fourBit ? 2U : 1U)];
 
 	if (fourBit && index % 2U == 0U)
 		*ptr = (*ptr & 0xF0U) | (k & 0xFU);
@@ -280,6 +362,8 @@ Texture2D::Texture2D(NCGR &tilemap, NCLR &palette) {
 }
 
 u8 *Texture2D::getPtr() { return data; }
+u8 *Texture2D::getMagicTexture() { return magic; }
+bool Texture2D::useEncryption() { return magic != nullptr; }
 
 u32 convertPTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap, Texture2D palette) {
 
