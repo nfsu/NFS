@@ -160,7 +160,6 @@ void TileRenderer::initializeGL() {
 	if (!shader.link())
 		throw std::runtime_error("Couldn't link shader");
 
-	//TODO: Allow right click
 	//TODO: Some images still don't render well; detect resolution (u16_MAX for width & height)!
 
 }
@@ -182,6 +181,7 @@ TileRenderer::~TileRenderer() {
 
 void TileRenderer::setTexture(Texture2D tex) {
 	texture = tex;
+	paletteRenderer->set4Bit(tex.getType() == TextureType::R4);
 	setScale(scale);
 	updateTexture();
 }
@@ -246,6 +246,7 @@ void TileRenderer::setCursorSize(u32 scale) {
 
 void TileRenderer::setPaletteOffset(u8 j) {
 	yOffset = j % 16;
+	paletteRenderer->setSelectedRow(j);
 	repaint();
 }
 
@@ -457,3 +458,5 @@ void TileRenderer::updateTexture() {
 	destroyGTexture();
 	setupGTexture();
 }
+
+//TODO: onResize

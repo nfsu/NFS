@@ -16,6 +16,7 @@ PaletteEditor::PaletteEditor(u32 scale, QWidget *parent) : QWidget(parent) {
 
 	//TODO: Button for showing / disabling grid, grid color and size
 	//TODO: Show properties of palette
+	//TODO: onResize
 
 }
 
