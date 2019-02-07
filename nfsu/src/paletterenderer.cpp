@@ -38,6 +38,9 @@ void PaletteRenderer::paintGL() {
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
+	if (paletteTexture)
+		paletteTexture->release(0);
+
 }
 
 //Initialize / destroy data
@@ -214,6 +217,12 @@ QPoint PaletteRenderer::globalToTexture(QPoint pos) {
 void PaletteRenderer::updateTexture() {
 	destroyGTexture();
 	setupGTexture();
+}
+
+void PaletteRenderer::reset() {
+	texture = {};
+	destroyGTexture();
+	repaint();
 }
 
 void PaletteRenderer::destroyGTexture() {

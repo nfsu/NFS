@@ -1,5 +1,4 @@
 #include "infowindow.h"
-#include "qhelper.h"
 #include <QtWidgets/qlabel.h>
 #include <QtWidgets/qheaderview.h>
 using namespace nfsu;
@@ -10,8 +9,8 @@ InfoWindow::InfoWindow(QWidget *parent):
 	setColumnCount(2);
 	setRowCount(9);
 
+	setMinimumWidth(430);
 	setFixedHeight(275);
-	setFixedWidth(430);
 
 	setString("Title", "");
 	setString("Size", "");
@@ -26,15 +25,11 @@ InfoWindow::InfoWindow(QWidget *parent):
 	verticalHeader()->setVisible(false);
 	horizontalHeader()->setVisible(false);
 
-	setColumnWidth(1, 325);
+	horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 
 }
 
 InfoWindow::~InfoWindow() {}
-
-void InfoWindow::clear() {
-	QHelper::clearLayout(layout);
-}
 
 void InfoWindow::setString(QString key, QString value) {
 

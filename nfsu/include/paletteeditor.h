@@ -1,19 +1,15 @@
 #pragma once
-#include <QtWidgets/qwidget.h>
-#include <QtWidgets/qpushbutton.h>
-#include <QtWidgets/qgridlayout.h>
 #include "texture.h"
 #include "resourceeditor.h"
+#include "paletterenderer.h"
 
 namespace nfsu {
 
 	class PaletteRenderer;
 
-	class PaletteEditor : public QWidget, public ResourceEditor {
+	class PaletteEditor : public PaletteRenderer, public ResourceEditor {
 
 	public:
-
-		PaletteEditor(u32 scale, QWidget *parent = nullptr);
 
 		void setPalette(nfs::Texture2D tex);
 		nfs::Texture2D getPalette();
@@ -24,12 +20,11 @@ namespace nfsu {
 		void inspectResource(nfs::FileSystem &fileSystem, nfs::ArchiveObject &ao) override;
 
 		void onSwap() override;
+		void reset() override;
 		
 		bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
 
-	private:
-
-		PaletteRenderer *renderer;
+		void resizeEvent(QResizeEvent *e) override;
 
 	};
 

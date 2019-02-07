@@ -54,10 +54,12 @@ namespace nfsu {
 		//Re-initialize texture & repaint
 		void updateTexture();
 
+		void reset();
+
 	protected:
 
-		void destroyGTexture();
 		void setupGTexture();
+		void destroyGTexture();
 
 	private:
 

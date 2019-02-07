@@ -27,6 +27,7 @@ namespace nfsu {
 		void inspectResource(nfs::FileSystem &fileSystem, nfs::ArchiveObject &ao) override;
 
 		void onSwap() override;
+		void reset() override;
 
 		bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
 

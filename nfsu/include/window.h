@@ -9,6 +9,7 @@
 namespace nfsu {
 
 	class NExplorer;
+	class NExplorerView;
 
 	class Window : public QWidget {
 
@@ -22,8 +23,8 @@ namespace nfsu {
 		void setupUI();
 		void setupLayout();
 		void setupToolbar();
-		void setupExplorer(QLayout *layout);
-		void setupInfoWindow(QLayout *layout);
+		void setupExplorer();
+		void setupInfoWindow();
 		void setupTabs(QLayout *layout);
 
 		///Toolbar actions
@@ -80,12 +81,13 @@ namespace nfsu {
 
 		i32 selectedId = 0;
 
-		nfsu::NExplorer *explorer = nullptr;
-		nfsu::InfoWindow *fileInspect = nullptr;
+		NExplorer *explorer = nullptr;
+		NExplorerView *explorerView;
+		InfoWindow *fileInspect = nullptr;
 
-		QLayout *layout = nullptr, *leftLayout, *rightLayout;
-		QWidget *left, *right;
-		QSplitter *splitter;
+		QLayout *layout = nullptr, *rightLayout;
+		QWidget *right;
+		QSplitter *splitter, *left;
 
 		std::vector<ResourceEditor*> editors;
 		ResourceEditor *selected;

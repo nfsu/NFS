@@ -9,7 +9,7 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 
 	QSplitter *leftWidget = new QSplitter;
 	addWidget(leftWidget);
-	leftWidget->addWidget(palette = new PaletteEditor(paletteScale));
+	leftWidget->addWidget(palette = new PaletteEditor);
 
 	addWidget(renderer = new TileRenderer(palette->getRenderer()));
 
@@ -17,6 +17,10 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 	//TODO: Palette disable button, palette grid, tile grid
 	//TODO: Lookup palette & tile button/file explorer
 	//TODO: Allow changing size, tool, color
+	//TODO: onResize
+	//TODO: Zoom tool
+	//TODO: Select tool
+	//TODO: Paste tool
 
 }
 
@@ -62,4 +66,9 @@ bool TileEditor::isPrimaryEditor(FileSystemObject &fso, ArchiveObject &ao) {
 void TileEditor::onSwap() {
 	palette->getRenderer()->updateTexture();
 	renderer->updateTexture();
+}
+
+void TileEditor::reset() {
+	renderer->reset();
+	repaint();
 }

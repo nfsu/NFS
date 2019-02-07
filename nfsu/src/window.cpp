@@ -9,7 +9,6 @@
 #include <QtWidgets/qmenubar.h>
 #include <QtWidgets/qlayout.h>
 #include "model.h"
-#include "qhelper.h"
 #include "paletteeditor.h"
 #include "tileeditor.h"
 using namespace nfsu;
@@ -87,32 +86,33 @@ Window::~Window() {
 	rom.dealloc();
 }
 
-
 ///UI Actions
 
 void Window::setupUI() {
 	setupLayout();
 	setupToolbar();
-	setupInfoWindow(leftLayout);
-	setupExplorer(leftLayout);
+	setupInfoWindow();
+	setupExplorer();
 	setupTabs(rightLayout);
 }
 
 void Window::setupLayout() {
+
 	setLayout(layout = new QHBoxLayout);
 	splitter = new QSplitter;
 	layout->addWidget(splitter);
-	splitter->addWidget(left = new QWidget);
+
+	splitter->addWidget(left = new QSplitter(Qt::Vertical));
+
 	splitter->addWidget(right = new QWidget);
-	left->setLayout(leftLayout = new QVBoxLayout);
-	left->setMaximumWidth(450);
 	right->setLayout(rightLayout = new QVBoxLayout);
 }
 
 void Window::setupToolbar() {
 
-	QMenuBar *qtb;
-	leftLayout->addWidget(qtb = new QMenuBar());
+	QMenuBar *qtb = new QMenuBar;
+	qtb->setFixedHeight(30);
+	left->addWidget(qtb);
 
 	//TODO: Save last folder & file & tab as preference
 	QMenu *file = qtb->addMenu("File");
@@ -159,12 +159,12 @@ void Window::setupToolbar() {
 
 }
 
-void Window::setupExplorer(QLayout *layout) {
+void Window::setupExplorer() {
 
 	explorer = new NExplorer(fileSystem);
 
-	NExplorerView *view = new NExplorerView(explorer);
-	layout->addWidget(view);
+	auto *view = explorerView = new NExplorerView(explorer);
+	left->addWidget(view);
 
 	view->addResourceCallback(true, u32_MAX, [this, view](FileSystem &fs, FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
 		this->activateResource(fso, ao, view->mapToGlobal(point));
@@ -178,9 +178,8 @@ void Window::setupExplorer(QLayout *layout) {
 	});
 }
 
-void Window::setupInfoWindow(QLayout *layout) {
-	fileInspect = new InfoWindow(this);
-	layout->addWidget(fileInspect);
+void Window::setupInfoWindow() {
+	left->addWidget(fileInspect = new InfoWindow(this));
 }
 
 void Window::setupTabs(QLayout *layout) {
@@ -190,7 +189,7 @@ void Window::setupTabs(QLayout *layout) {
 	for (auto &elem : editors)
 		elem = nullptr;
 
-	PaletteEditor *paletteEditor = new PaletteEditor(32);
+	PaletteEditor *paletteEditor = new PaletteEditor;
 	editors[1] = paletteEditor;
 
 	TileEditor *tileEditor = new TileEditor(2, 16);
@@ -204,6 +203,8 @@ void Window::setupTabs(QLayout *layout) {
 	tabs->addTab(new QWidget, QIcon("resources/model.png"), "Model editor");			//TODO: Edit model
 	tabs->addTab(new QWidget, QIcon("resources/binary.png"), "File editor");			//TODO: Edit binary or text
 	tabs->setCurrentIndex(selectedId);
+	tabs->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+
 
 	selected = editors[tabs->currentIndex()];
 
@@ -414,9 +415,6 @@ void Window::orderFiles() {
 
 void Window::restore() {
 
-	QHelper::clearLayout(layout);
-	setupUI();
-
 	NDS *nds = (NDS*)rom.ptr;
 
 	if (nds != nullptr) {
@@ -438,6 +436,12 @@ void Window::restore() {
 	fileInspect->setString("Offset", "");
 	fileInspect->setString("Length", "");
 
+	explorerView->reset();
+
+	for (ResourceEditor *editor : editors)
+		if (editor != nullptr)
+			editor->reset();
+
 }
 
 void Window::customize() {
@@ -458,12 +462,9 @@ void Window::about() {
 
 void Window::viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 
-	if (selected == nullptr)
-		return;
-
 	inspect(fso, ao);
 
-	if (!selected->allowsResource(fso, ao)) {
+	if (selected == nullptr || !selected->allowsResource(fso, ao)) {
 
 		u32 i = 0;
 
@@ -483,8 +484,24 @@ void Window::viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 }
 
 void Window::viewData(Buffer buf) {
-	//TODO: Select all editors that can display binary
-	//TODO: Make user pick if > 0
+
+	if (selected == nullptr || !selected->allowsData()) {
+
+		u32 i = 0;
+
+		for (ResourceEditor *editor : editors)
+			if (editor != nullptr && editor->allowsData()) {
+				tabs->setCurrentIndex(i);
+				break;
+			}
+			else ++i;
+
+		if (i == editors.size())
+			return;
+
+	}
+
+	selected->inspectData(buf);
 }
 
 void Window::exportResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {

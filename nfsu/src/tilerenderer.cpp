@@ -41,6 +41,15 @@ void TileRenderer::paintGL() {
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
+	if (tiledTexture)
+		tiledTexture->release(0);
+
+	if (paletteRenderer->getGPUTexture())
+		paletteRenderer->getGPUTexture()->release(1);
+
+	if (magicTexture)
+		magicTexture->release(2);
+
 }
 
 //Setup renderer
@@ -459,4 +468,8 @@ void TileRenderer::updateTexture() {
 	setupGTexture();
 }
 
-//TODO: onResize
+void TileRenderer::reset() {
+	texture = {};
+	destroyGTexture();
+	paletteRenderer->reset();
+}

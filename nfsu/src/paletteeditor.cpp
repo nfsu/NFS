@@ -1,35 +1,24 @@
 #include "paletteeditor.h"
-#include "paletterenderer.h"
 #include <QtWidgets/qgridlayout.h>
 #include <QtWidgets/qcolordialog.h>
+#include <QtGui/qevent.h>
 using namespace nfsu;
 using namespace nfs;
 
-PaletteEditor::PaletteEditor(u32 scale, QWidget *parent) : QWidget(parent) {
 
-	QHBoxLayout *layout = new QHBoxLayout;
-	setLayout(layout);
-
-	layout->addWidget(renderer = new PaletteRenderer);
-
-	setFixedSize(scale * 16, scale * 16);
-
-	//TODO: Button for showing / disabling grid, grid color and size
-	//TODO: Show properties of palette
-	//TODO: onResize
-
-}
+//TODO: Button for showing / disabling grid, grid color and size
+//TODO: Show properties of palette
 
 void PaletteEditor::setPalette(Texture2D tex) {
-	renderer->setTexture(tex);
+	setTexture(tex);
 }
 
 Texture2D PaletteEditor::getPalette() {
-	return renderer->getTexture();
+	return getTexture();
 }
 
-PaletteRenderer *PaletteEditor::getRenderer() {
-	return renderer;
+PaletteRenderer *PaletteEditor::getRenderer(){
+	return (PaletteRenderer*) this;
 }
 
 bool PaletteEditor::allowsResource(FileSystemObject &fso, ArchiveObject &ao) {
@@ -45,5 +34,23 @@ void PaletteEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
 }
 
 void PaletteEditor::onSwap() {
-	renderer->updateTexture();
+	updateTexture();
+}
+
+void PaletteEditor::reset() {
+	PaletteRenderer::reset();
+}
+
+void PaletteEditor::resizeEvent(QResizeEvent *e) {
+
+	PaletteRenderer::resizeEvent(e);
+
+	QSize size = e->size();
+
+	if (size.width() != size.height()) {
+		i32 smallest = size.width() < size.height() ? size.width() : size.height();
+		resize(smallest, smallest);
+		updateGeometry();
+	}
+
 }

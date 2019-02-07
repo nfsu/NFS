@@ -14,7 +14,6 @@ namespace nfsu {
 		InfoWindow(QWidget *parent = nullptr);
 		~InfoWindow();
 
-		void clear();
 		void setString(QString key, QString value);
 
 	protected:

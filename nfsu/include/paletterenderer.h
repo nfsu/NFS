@@ -42,6 +42,8 @@ namespace nfsu {
 		//Re-initialize texture & repaint
 		void updateTexture();
 
+		void reset();
+
 		///selected palette index
 
 		u8 getPrimary();

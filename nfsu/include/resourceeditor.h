@@ -17,6 +17,9 @@ namespace nfsu {
 		//Whenever the tab is switched to
 		virtual void onSwap() = 0;
 
+		//When the editor is reset (like ROM reload)
+		virtual void reset() = 0;
+
 		//Whether or not the editor is made specifically for the file or resource type
 		virtual bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
 
