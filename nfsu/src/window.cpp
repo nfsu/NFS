@@ -159,7 +159,7 @@ void Window::setupToolbar() {
 
 	///Help
 	QAction *about = help->addAction("About");
-	QAction *shortcuts = options->addAction("Shortcuts");
+	QAction *shortcuts = help->addAction("Shortcuts");
 	QAction *documentation = help->addAction("Documentation");
 
 	connect(about, &QAction::triggered, this, &Window::about);

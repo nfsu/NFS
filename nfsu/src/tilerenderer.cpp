@@ -191,6 +191,9 @@ void TileRenderer::initializeGL() {
 	//TODO: Some images still don't render well; detect resolution (u16_MAX for width & height)!
 
 	//TODO: Animate with specified palette offset & length
+
+	//TODO: Smaller images are annoying to edit; maybe use a scrollbar if smallest < 128? Or allow resizing width?
+
 }
 
 //Get texture
@@ -333,15 +336,20 @@ void TileRenderer::wheelEvent(QWheelEvent *e) {
 
 	//TODO: Shift = cursor size
 
+	i32 dif = e->angleDelta().y();
+
 	if (specialKey == 1) {
 
-		//TODO: set scale
+		float d = float(dif) / 120 * 0.05f + 1;
+		scale *= d;
 
 	} else if(texture.getType() == TextureType::R4) {
-		if (e->angleDelta().y() < 0)
+
+		if (dif < 0)
 			setPaletteOffset((yOffset + 1) & 0xF);
 		else
 			setPaletteOffset((yOffset - 1) & 0xF);
+
 	}
 
 }
@@ -370,6 +378,7 @@ void TileRenderer::mousePressEvent(QMouseEvent *e) {
 
 		if (!isLeft) {
 			offset = QVector2D(0, 0);
+			scale = QVector2D(1, 1);
 			isMouseDown = false;
 			setCursor(QCursor(Qt::CursorShape::ArrowCursor));
 			return;
