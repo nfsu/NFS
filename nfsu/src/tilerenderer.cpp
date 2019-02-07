@@ -31,6 +31,8 @@ void TileRenderer::paintGL() {
 	shader.setUniformValue("tiled", (i32)texture.getTiles());
 	shader.setUniformValue("size", (i32)texture.getDataSize());
 	shader.setUniformValue("paletteY", (i32) yOffset);
+	shader.setUniformValue("offset", offset);
+	shader.setUniformValue("scale", scale);
 	shader.setUniformValue("flags",
 		(texture.getType() == TextureType::R4 ? 1 : 0) |
 		(palette && paletteRenderer->getGPUTexture() != nullptr ? 2 : 0) |
@@ -94,6 +96,9 @@ void TileRenderer::initializeGL() {
 		"uniform int flags;"
 		"uniform int paletteY;"
 
+		"uniform vec2 offset;"
+		"uniform vec2 scale;"
+
 		"uniform usampler2D tiledTexture;"
 		"uniform usampler2D paletteTexture;"
 		"uniform usampler2D magicTexture;"
@@ -104,7 +109,9 @@ void TileRenderer::initializeGL() {
 
 			//Convert from pixel to tiled pixel space
 
-			"ivec2 px = ivec2(uv * vec2(width, height));"
+			"vec2 pos = uv * scale + offset;"
+
+			"ivec2 px = ivec2(pos * vec2(width, height)) % ivec2(width, height);"
 
 			"int val = 0, mod2x4 = 0;"
 
@@ -145,6 +152,8 @@ void TileRenderer::initializeGL() {
 
 			//Convert from palette index to color
 
+			"vec3 output;"
+
 			"if((flags & 2) != 0) {"
 
 				//Palette offset
@@ -159,10 +168,15 @@ void TileRenderer::initializeGL() {
 				"uint b = (value & 0x7C00U) >> 10U;"
 
 				//Sample from texture
-				"color = vec4(r / 31.0f, g / 31.0f, b / 31.0f, 1);"
+				"output = vec3(r / 31.0f, g / 31.0f, b / 31.0f);"
 
 			"} else "
-				"color = vec4((val & 0xF) / 15.f, ((val & 0xF0) >> 4) / 15.f, 0, 1);"
+				"output = vec3((val & 0xF) / 15.f, ((val & 0xF0) >> 4) / 15.f, 0);"
+
+			"color = vec4("
+						"mix(output, vec3(0), "
+							"float(px.x < 0 || px.y < 0 || px.x >= width || px.y >= height))"
+					", 1);"
 		"}";
 
 	if(!shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader))
@@ -274,21 +288,96 @@ u32 TileRenderer::getSelectedPalette() {
 	return isLeft ? paletteRenderer->getPrimary() : paletteRenderer->getSecondary();
 }
 
-//Drawing on tilemap
-
 QPoint TileRenderer::globalToTexture(QPoint pos) {
-	return QPoint((float)pos.x() / width() * texture.getWidth(), (float)pos.y() / height() * texture.getHeight());
+
+	QVector2D uv((float)pos.x() / width(), (float)pos.y() / height());
+	uv *= scale;
+	uv += offset;
+
+	if (texture.getWidth() == 0)
+		return {};
+
+	return {
+		u32(uv.x() * texture.getWidth()) % texture.getWidth(), 
+		u32(uv.y() * texture.getHeight()) % texture.getHeight() 
+	};
+}
+
+//Key events
+
+void TileRenderer::keyPressEvent(QKeyEvent *e) {
+
+	if (e->key() == Qt::Key::Key_Control) {
+		specialKey = 1;
+		setCursor(QCursor(Qt::CursorShape::OpenHandCursor));
+	} else if(e->key() == Qt::Key::Key_X)
+		usePalette(!palette);
+
+	//TODO: CTRL + Z vs CTRL + SHIFT + Z aka CTRL + Y
+
+}
+
+void TileRenderer::keyReleaseEvent(QKeyEvent *e) {
+
+	if (e->key() == Qt::Key::Key_Control) {
+		specialKey = 0;
+		isMouseDown = false;
+		setCursor(QCursor(Qt::CursorShape::ArrowCursor));
+	}
+
+}
+
+//Mouse events
+
+void TileRenderer::wheelEvent(QWheelEvent *e) {
+
+	//TODO: Shift = cursor size
+
+	if (specialKey == 1) {
+
+		//TODO: set scale
+
+	} else if(texture.getType() == TextureType::R4) {
+		if (e->angleDelta().y() < 0)
+			setPaletteOffset((yOffset + 1) & 0xF);
+		else
+			setPaletteOffset((yOffset - 1) & 0xF);
+	}
+
 }
 
 void TileRenderer::mousePressEvent(QMouseEvent *e) {
 
-	if (isMouseDown || !(e->button() == Qt::LeftButton || e->button() == Qt::RightButton))
+	if (!(e->button() == Qt::LeftButton || e->button() == Qt::RightButton))
 		return;
 
+	if (isMouseDown) {
+		isMouseDown = false;
+		setCursor(QCursor(Qt::CursorShape::ArrowCursor));
+		return;
+	}
+
 	isLeft = e->button() == Qt::LeftButton;
+	
+	//TODO: Previous, next tool
 
 	isMouseDown = true;
 	prev = globalToTexture(e->pos());
+
+	if (specialKey == 1) {
+
+		setCursor(QCursor(Qt::CursorShape::ClosedHandCursor));
+
+		if (!isLeft) {
+			offset = QVector2D(0, 0);
+			isMouseDown = false;
+			setCursor(QCursor(Qt::CursorShape::ArrowCursor));
+			return;
+		}
+
+		mouseMoveEvent(e);
+		return;
+	}
 
 	if (tool == TilePaintTool::FILL){
 		fill(prev);
@@ -309,29 +398,24 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 	if (!isMouseDown || isLeft != (e->button() == Qt::LeftButton))
 		return;
 
+	if (specialKey == 1)
+		setCursor(QCursor(Qt::CursorShape::OpenHandCursor));
+	else
+		setCursor(QCursor(Qt::CursorShape::ArrowCursor));
+
+	//TODO: Draw overlay so you can see what line/square you're drawing
+
 	if (tool == TilePaintTool::LINE) {
-
-		//TODO: Draw overlay so you can see what line you're drawing
-		//TODO: Show tool when you hover
-		//TODO: Allow cancel
-
 		drawLine(prev, globalToTexture(e->pos()));
 		updateTexture();
-
 	} else if(tool == TilePaintTool::SQUARE){
-
-		//TODO: Draw overlay so you can see what square you're drawing
-		//TODO: Allow cancel
-		
 		drawSquare(prev, globalToTexture(e->pos()));
 		updateTexture();
-
 	}
 
 	//TODO: Move tool
 	//TODO: Zoom tool
 	//TODO: Select tool
-	//TODO: Paste tool
 
 	isMouseDown = false;
 
@@ -367,6 +451,8 @@ void TileRenderer::drawPoint(QPoint point, u32 size) {
 		}
 
 }
+
+//Drawing
 
 void TileRenderer::fill(i32 x, i32 y, u32 mask) {
 
@@ -457,12 +543,31 @@ void TileRenderer::drawSquare(QPoint p0, QPoint p1) {
 void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
 
 	//TODO: Set cursor icon
-	//TODO: Allow animations through palettes
 
-	if (texture.getWidth() == 0 || !isMouseDown || !editable || tool != TilePaintTool::BRUSH)
+	if (!isMouseDown) {
+		setFocus();
+		return;
+	}
+
+	if (texture.getWidth() == 0 || !isMouseDown)
 		return;
 
+	//TODO: When you offset to make it loop, it thinks you move from right side of screen to left side
+	//While in reality it should take the shortest route
+
+	//TODO: Flickering!
+
 	QPoint next = globalToTexture(e->pos());
+
+	if (specialKey == 1) {
+		QPoint dif = prev - next;
+		offset += QVector2D((float) dif.x() / texture.getWidth(), (float) dif.y() / texture.getHeight());
+		prev = next;
+		return;
+	}
+
+	if (!editable || tool != TilePaintTool::BRUSH)
+		return;
 
 	drawLine(prev, next);
 	prev = next;

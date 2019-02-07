@@ -37,7 +37,10 @@ namespace nfsu {
 		void paintGL() override;
 		void mouseMoveEvent(QMouseEvent *e) override;
 		void mousePressEvent(QMouseEvent *e) override;
+		void wheelEvent(QWheelEvent *e) override;
 		void mouseReleaseEvent(QMouseEvent *e) override;
+		void keyPressEvent(QKeyEvent *e) override;
+		void keyReleaseEvent(QKeyEvent *e) override;
 
 		void drawPoint(QPoint point, u32 size = 0 /* uses cursorSize by default */);
 		void drawLine(QPoint p0, QPoint p1, u32 size = 0 /* uses cursorSize by default */);
@@ -67,7 +70,7 @@ namespace nfsu {
 	private:
 
 
-		u32 cursorSize = 1;
+		u32 cursorSize = 1, specialKey = 0;
 		bool palette = true, editable = true, isMouseDown = false, isLeft = false;
 		TilePaintTool tool = TilePaintTool::BRUSH;
 
@@ -77,6 +80,7 @@ namespace nfsu {
 		nfs::Texture2D texture;
 
 		QPoint prev;
+		QVector2D offset = { 0, 0 }, scale = { 1, 1 };
 
 		QGLShaderProgram shader;
 		QGLBuffer quadVBO;

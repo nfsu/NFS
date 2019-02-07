@@ -153,18 +153,18 @@ void Window::setupToolbar() {
 	connect(customize, &QAction::triggered, this, &Window::customize);
 
 	///Options
-	QAction *shortcuts = options->addAction("Shortcuts");
 	QAction *preferences = options->addAction("Preferences");
 
-	connect(shortcuts, &QAction::triggered, this, &Window::shortcuts);
 	connect(preferences, &QAction::triggered, this, &Window::preferences);
 
 	///Help
-	QAction *documentation = help->addAction("Documentation");
 	QAction *about = help->addAction("About");
+	QAction *shortcuts = options->addAction("Shortcuts");
+	QAction *documentation = help->addAction("Documentation");
 
-	connect(documentation, &QAction::triggered, this, &Window::documentation);
 	connect(about, &QAction::triggered, this, &Window::about);
+	connect(shortcuts, &QAction::triggered, this, &Window::shortcuts);
+	connect(documentation, &QAction::triggered, this, &Window::documentation);
 
 }
 
@@ -465,10 +465,6 @@ void Window::customize() {
 	//TODO: Customize style sheet
 }
 
-void Window::shortcuts() {
-	//TODO: Allow changing shortcuts
-}
-
 void Window::preferences() {
 	//TODO: Allow changing preferences
 	//TODO: Save last folder & file & tab as preference
@@ -478,6 +474,10 @@ void Window::preferences() {
 
 void Window::documentation() {
 	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded"));
+}
+
+void Window::shortcuts() {
+	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/guide/shortcut.md"));
 }
 
 void Window::about() {
