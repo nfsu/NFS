@@ -8,7 +8,7 @@
 namespace nfsu {
 
 	enum class TilePaintTool {
-		BRUSH, LINE, SQUARE, FILL
+		BRUSH, LINE, SQUARE, FILL, EYEDROPPER
 	};
 
 	class PaletteRenderer;
@@ -45,16 +45,19 @@ namespace nfsu {
 		void fill(QPoint p0);
 
 		void fill(i32 x, i32 y, u32 mask);
+		u32 get(QPoint p0);
 
 		QPoint globalToTexture(QPoint pos);
 
-		void setScale(u32 scale);
 		u32 getSelectedPalette();
 
 		//Re-initialize texture & repaint
 		void updateTexture();
 
 		void reset();
+		void updateScale();
+
+		void resizeEvent(QResizeEvent *e) override;
 
 	protected:
 
@@ -64,7 +67,7 @@ namespace nfsu {
 	private:
 
 
-		u32 cursorSize = 1, scale = 0;
+		u32 cursorSize = 1;
 		bool palette = true, editable = true, isMouseDown = false, isLeft = false;
 		TilePaintTool tool = TilePaintTool::BRUSH;
 

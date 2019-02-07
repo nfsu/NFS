@@ -168,7 +168,19 @@ void PaletteRenderer::setShowGrid(bool b) { showGrid = b; repaint(); }
 void PaletteRenderer::setEditable(bool b) { editable = b; repaint(); }
 void PaletteRenderer::setGridSize(f32 perc) { gridSize = perc; repaint(); }
 void PaletteRenderer::set4Bit(bool b) { use4bit = b; repaint(); }
-void PaletteRenderer::setSelectedRow(u8 index) { selectedRow = texture.getHeight() == 0 ? 0 : index % texture.getHeight(); repaint(); }
+
+void PaletteRenderer::setSelectedRow(u8 index) { 
+	selectedRow = texture.getHeight() == 0 ? 0 : index % texture.getHeight(); 
+	repaint(); 
+}
+
+void PaletteRenderer::setPrimary(u8 pos) {
+	primary = use4bit ? pos & 0xF : pos;
+}
+
+void PaletteRenderer::setSecondary(u8 pos) {
+	secondary = use4bit ? pos & 0xF : pos;
+}
 
 void PaletteRenderer::setGridColor(QColor color) {
 	gridColor = (color.red() << 16) | (color.green() << 8) | color.blue();
@@ -258,14 +270,11 @@ void PaletteRenderer::mousePressEvent(QMouseEvent *e) {
 	QPoint tpos = globalToTexture(e->pos());
 	u8 pos = (tpos.y() << 4) | tpos.x();
 
-	if (use4bit)
-		pos &= 0xF;
-
-	if (e->button() == Qt::LeftButton)
-		primary = pos;
-	else if (e->button() == Qt::RightButton)
-		secondary = pos;
-	else if (editable && Qt::MiddleButton) {
+	if (e->button() == Qt::RightButton)
+		setPrimary(pos);
+	else if (e->button() == Qt::MiddleButton)
+		setSecondary(pos);
+	else if (editable && e->button() == Qt::LeftButton) {
 
 		u32 color = get(tpos);
 
@@ -283,5 +292,19 @@ void PaletteRenderer::mousePressEvent(QMouseEvent *e) {
 
 	//TODO: Allow painting in palette
 	//TODO: Palette history
+
+}
+
+void PaletteRenderer::resizeEvent(QResizeEvent *e) {
+
+	QOpenGLWidget::resizeEvent(e);
+
+	QSize size = e->size();
+
+	if (size.width() != size.height()) {
+		i32 smallest = size.width() < size.height() ? size.width() : size.height();
+		resize(smallest, smallest);
+		updateGeometry();
+	}
 
 }

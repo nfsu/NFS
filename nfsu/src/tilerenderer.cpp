@@ -1,12 +1,16 @@
 #include "tilerenderer.h"
 #include "paletterenderer.h"
 #include <QtGui/qevent.h>
+#include <QtCore/qtimer.h>
 using namespace nfsu;
 using namespace nfs;
 
 //Render
 
 void TileRenderer::paintGL() {
+
+	if (!paletteRenderer->getQuad().isCreated())
+		return;
 
 	shader.bind();
 
@@ -55,7 +59,8 @@ void TileRenderer::paintGL() {
 //Setup renderer
 
 TileRenderer::TileRenderer(PaletteRenderer *palette): paletteRenderer(palette) {
-	setScale(0);
+	updateScale();
+	setMouseTracking(true);
 }
 
 void TileRenderer::initializeGL() {
@@ -171,6 +176,7 @@ void TileRenderer::initializeGL() {
 
 	//TODO: Some images still don't render well; detect resolution (u16_MAX for width & height)!
 
+	//TODO: Animate with specified palette offset & length
 }
 
 //Get texture
@@ -191,7 +197,7 @@ TileRenderer::~TileRenderer() {
 void TileRenderer::setTexture(Texture2D tex) {
 	texture = tex;
 	paletteRenderer->set4Bit(tex.getType() == TextureType::R4);
-	setScale(scale);
+	updateScale();
 	updateTexture();
 }
 
@@ -264,25 +270,6 @@ void TileRenderer::setPaintTool(TilePaintTool t) {
 	repaint();
 }
 
-void TileRenderer::setScale(u32 s) {
-
-	scale = s;
-
-	if(texture.getWidth() == 0)
-		setFixedSize(512, 512);		//TODO: Take maximum size
-	else {
-
-		if(s == 0)
-			s = 512 / (texture.getHeight() > texture.getWidth() ? texture.getHeight() : texture.getWidth());
-		
-		if (s == 0)
-			s = 1;
-
-		setFixedSize(texture.getWidth() * s, texture.getHeight() * s);
-	}
-
-}
-
 u32 TileRenderer::getSelectedPalette() {
 	return isLeft ? paletteRenderer->getPrimary() : paletteRenderer->getSecondary();
 }
@@ -305,6 +292,13 @@ void TileRenderer::mousePressEvent(QMouseEvent *e) {
 
 	if (tool == TilePaintTool::FILL){
 		fill(prev);
+	} else if(tool == TilePaintTool::EYEDROPPER){
+
+		if (isLeft)
+			paletteRenderer->setPrimary(get(prev));
+		else
+			paletteRenderer->setSecondary(get(prev));
+
 	} else
 		mouseMoveEvent(e);
 
@@ -334,7 +328,10 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 
 	}
 
-	//TODO: Color pipet
+	//TODO: Move tool
+	//TODO: Zoom tool
+	//TODO: Select tool
+	//TODO: Paste tool
 
 	isMouseDown = false;
 
@@ -404,6 +401,14 @@ void TileRenderer::fill(QPoint p0) {
 
 }
 
+u32 TileRenderer::get(QPoint p0) {
+
+	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
+		return 0;
+
+	return texture.read(p0.x(), p0.y());
+}
+
 void TileRenderer::drawLine(QPoint p0, QPoint p1, u32 size) {
 
 	if (p0 == p1) {
@@ -451,6 +456,9 @@ void TileRenderer::drawSquare(QPoint p0, QPoint p1) {
 
 void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
 
+	//TODO: Set cursor icon
+	//TODO: Allow animations through palettes
+
 	if (texture.getWidth() == 0 || !isMouseDown || !editable || tool != TilePaintTool::BRUSH)
 		return;
 
@@ -472,4 +480,58 @@ void TileRenderer::reset() {
 	texture = {};
 	destroyGTexture();
 	paletteRenderer->reset();
+}
+
+void TileRenderer::updateScale() {
+
+	if (texture.getWidth() == 0)
+		setMinimumSize(256, 256);
+	else
+		setMinimumSize(texture.getWidth(), texture.getHeight());
+
+	float scaleX = (float) width() / texture.getWidth();
+	float scaleY = (float) height() / texture.getHeight();
+
+	if (scaleX == scaleY)
+		return;
+
+	if (scaleX < scaleY)
+		scaleY = scaleX;
+	else
+		scaleX = scaleY;
+
+	i32 sizeX = i32(scaleX * texture.getWidth());
+	i32 sizeY = i32(scaleY * texture.getHeight());
+
+	resize(sizeX, sizeY);
+	updateGeometry();
+
+}
+
+void TileRenderer::resizeEvent(QResizeEvent *e) {
+
+	QOpenGLWidget::resizeEvent(e);
+
+	if (texture.getWidth() == 0)
+		return;
+
+	QSize size = e->size();
+
+	float scaleX = (float)size.width() / texture.getWidth();
+	float scaleY = (float)size.height() / texture.getHeight();
+
+	if (scaleX == scaleY)
+		return;
+
+	if (scaleX < scaleY)
+		scaleY = scaleX;
+	else
+		scaleX = scaleY;
+
+	i32 sizeX = i32(scaleX * texture.getWidth());
+	i32 sizeY = i32(scaleY * texture.getHeight());
+
+	resize(sizeX, sizeY);
+	updateGeometry();
+
 }

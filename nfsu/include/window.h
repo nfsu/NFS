@@ -31,19 +31,19 @@ namespace nfsu {
 
 			///File actions
 
-			void load();
+			void _load();
 			void load(QString file);
 
+			void _reload();
 			void reload();
-			void reloadButton();
 
-			void write();
+			void _write();
 			void write(QString file);
 
-			void exportPatch();
+			void _exportPatch();
 			void exportPatch(QString file);
 
-			void importPatch();
+			void _importPatch();
 			void importPatch(QString file);
 
 			void findFile();
@@ -54,6 +54,11 @@ namespace nfsu {
 
 			void restore();
 			void customize();
+
+			///Options actions
+
+			void shortcuts();
+			void preferences();
 
 			///Help actions
 

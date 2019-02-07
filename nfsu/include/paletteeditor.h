@@ -24,8 +24,6 @@ namespace nfsu {
 		
 		bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
 
-		void resizeEvent(QResizeEvent *e) override;
-
 	};
 
 }

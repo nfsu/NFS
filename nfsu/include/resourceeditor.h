@@ -20,6 +20,9 @@ namespace nfsu {
 		//When the editor is reset (like ROM reload)
 		virtual void reset() = 0;
 
+		//When the file system is initialized
+		virtual void init(nfs::NDS *nds, nfs::FileSystem &fs) {}
+
 		//Whether or not the editor is made specifically for the file or resource type
 		virtual bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
 

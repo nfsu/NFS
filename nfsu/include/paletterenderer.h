@@ -27,6 +27,8 @@ namespace nfsu {
 		void setGridSize(f32 percToPix);
 		void set4Bit(bool b);
 		void setSelectedRow(u8 index);
+		void setPrimary(u8 index);
+		void setSecondary(u8 index);
 
 		void setEditable(bool b);
 
@@ -43,6 +45,8 @@ namespace nfsu {
 		void updateTexture();
 
 		void reset();
+
+		void resizeEvent(QResizeEvent *e) override;
 
 		///selected palette index
 

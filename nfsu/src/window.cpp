@@ -106,6 +106,9 @@ void Window::setupLayout() {
 
 	splitter->addWidget(right = new QWidget);
 	right->setLayout(rightLayout = new QVBoxLayout);
+
+	QList<int> size = QList<int>{ 0 /* minimum */, 1 /* everything */ };
+	splitter->setSizes(size);
 }
 
 void Window::setupToolbar() {
@@ -114,7 +117,6 @@ void Window::setupToolbar() {
 	qtb->setFixedHeight(30);
 	left->addWidget(qtb);
 
-	//TODO: Save last folder & file & tab as preference
 	QMenu *file = qtb->addMenu("File");
 	QMenu *view = qtb->addMenu("View");
 	QMenu *options = qtb->addMenu("Options");
@@ -132,30 +134,37 @@ void Window::setupToolbar() {
 	QAction *find = file->addAction("Find");
 	QAction *filter = file->addAction("Filter");
 	QAction *order = file->addAction("Order");
-	QAction *mapper = file->addAction("Mapping");	//TODO: Map file spaces (find available space, etc)
 
-	connect(load, &QAction::triggered, this, [&]() { this->load(); });
-	connect(exp, &QAction::triggered, this, [&]() { this->exportPatch(); });
-	connect(imp, &QAction::triggered, this, [&]() { this->importPatch(); });
-	connect(reload, &QAction::triggered, this, [&]() { this->reloadButton(); });
-	connect(save, &QAction::triggered, this, [&]() { this->write(); });
+	connect(load, &QAction::triggered, this, &Window::_load);
+	connect(exp, &QAction::triggered, this, &Window::_exportPatch);
+	connect(imp, &QAction::triggered, this, &Window::_importPatch);
+	connect(reload, &QAction::triggered, this, &Window::_reload);
+	connect(save, &QAction::triggered, this, &Window::_write);
 	connect(saveCurrent, &QAction::triggered, this, [&]() { this->write(this->file); });
-	connect(find, &QAction::triggered, this, [&]() { this->findFile(); });
-	connect(filter, &QAction::triggered, this, [&]() { this->filterFiles(); });
-	connect(order, &QAction::triggered, this, [&]() { this->orderFiles(); });
+	connect(find, &QAction::triggered, this, &Window::findFile);
+	connect(filter, &QAction::triggered, this, &Window::filterFiles);
+	connect(order, &QAction::triggered, this, &Window::orderFiles);
 
 	///View
 	QAction *restore = view->addAction("Reset");
 	QAction *customize = view->addAction("Customize");
 
-	connect(restore, &QAction::triggered, this, [&]() { this->restore(); });
+	connect(restore, &QAction::triggered, this, &Window::restore);
+	connect(customize, &QAction::triggered, this, &Window::customize);
+
+	///Options
+	QAction *shortcuts = options->addAction("Shortcuts");
+	QAction *preferences = options->addAction("Preferences");
+
+	connect(shortcuts, &QAction::triggered, this, &Window::shortcuts);
+	connect(preferences, &QAction::triggered, this, &Window::preferences);
 
 	///Help
 	QAction *documentation = help->addAction("Documentation");
 	QAction *about = help->addAction("About");
 
-	connect(documentation, &QAction::triggered, this, [&]() {this->documentation(); });
-	connect(about, &QAction::triggered, this, [&]() {this->about(); });
+	connect(documentation, &QAction::triggered, this, &Window::documentation);
+	connect(about, &QAction::triggered, this, &Window::about);
 
 }
 
@@ -202,9 +211,11 @@ void Window::setupTabs(QLayout *layout) {
 	tabs->addTab(new QWidget, QIcon("resources/map.png"), "Tilemap editor");			//TODO: Edit tilemap
 	tabs->addTab(new QWidget, QIcon("resources/model.png"), "Model editor");			//TODO: Edit model
 	tabs->addTab(new QWidget, QIcon("resources/binary.png"), "File editor");			//TODO: Edit binary or text
+
+	//TODO: Map file spaces (find available space, etc)
+
 	tabs->setCurrentIndex(selectedId);
 	tabs->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-
 
 	selected = editors[tabs->currentIndex()];
 
@@ -245,7 +256,7 @@ void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QP
 
 ///File actions
 
-void Window::load() {
+void Window::_load() {
 
 	if (rom.ptr != nullptr) {
 
@@ -291,7 +302,7 @@ void Window::reload() {
 
 }
 
-void Window::reloadButton() {
+void Window::_reload() {
 
 	if (rom.ptr != nullptr) {
 
@@ -305,7 +316,7 @@ void Window::reloadButton() {
 
 }
 
-void Window::write() {
+void Window::_write() {
 
 	QString file = QFileDialog::getSaveFileName(this, tr("Save ROM"), "", tr("NDS file (*.nds)"));
 
@@ -324,7 +335,7 @@ void Window::write(QString file) {
 		rom.write(file.toStdString());
 }
 
-void Window::exportPatch() {
+void Window::_exportPatch() {
 	QString file = QFileDialog::getSaveFileName(this, tr("Export Patch"), "", tr("NFS Patch file (*.NFSP)"));
 	exportPatch(file);
 }
@@ -361,7 +372,7 @@ void Window::exportPatch(QString file) {
 	patch.dealloc();
 }
 
-void Window::importPatch() {
+void Window::_importPatch() {
 
 	QMessageBox::StandardButton reply = QMessageBox::question(nullptr, "Import Patch", "Importing a patch might damage the ROM, or might not work if applied on the wrong ROM. Do you want to continue?");
 
@@ -439,13 +450,28 @@ void Window::restore() {
 	explorerView->reset();
 
 	for (ResourceEditor *editor : editors)
-		if (editor != nullptr)
+		if (editor != nullptr) {
+
 			editor->reset();
+
+			if (nds != nullptr)
+				editor->init(nds, fileSystem);
+
+		}
 
 }
 
 void Window::customize() {
 	//TODO: Customize style sheet
+}
+
+void Window::shortcuts() {
+	//TODO: Allow changing shortcuts
+}
+
+void Window::preferences() {
+	//TODO: Allow changing preferences
+	//TODO: Save last folder & file & tab as preference
 }
 
 ///Help

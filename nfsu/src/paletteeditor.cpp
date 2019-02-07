@@ -8,6 +8,7 @@ using namespace nfs;
 
 //TODO: Button for showing / disabling grid, grid color and size
 //TODO: Show properties of palette
+//TODO: Export resource, export texture, import resource, import texture, detect palette from texture
 
 void PaletteEditor::setPalette(Texture2D tex) {
 	setTexture(tex);
@@ -39,18 +40,4 @@ void PaletteEditor::onSwap() {
 
 void PaletteEditor::reset() {
 	PaletteRenderer::reset();
-}
-
-void PaletteEditor::resizeEvent(QResizeEvent *e) {
-
-	PaletteRenderer::resizeEvent(e);
-
-	QSize size = e->size();
-
-	if (size.width() != size.height()) {
-		i32 smallest = size.width() < size.height() ? size.width() : size.height();
-		resize(smallest, smallest);
-		updateGeometry();
-	}
-
 }

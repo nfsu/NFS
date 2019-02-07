@@ -1,6 +1,7 @@
 #include "tileeditor.h"
 #include "tilerenderer.h"
 #include "paletterenderer.h"
+#include <QtGui/qevent.h>
 using namespace nfsu;
 using namespace nfs;
 
@@ -10,17 +11,14 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 	QSplitter *leftWidget = new QSplitter;
 	addWidget(leftWidget);
 	leftWidget->addWidget(palette = new PaletteEditor);
+	palette->setMinimumSize(256, 256);
 
 	addWidget(renderer = new TileRenderer(palette->getRenderer()));
 
-	//TODO: Resize button (also allow disabling upscaling)
 	//TODO: Palette disable button, palette grid, tile grid
 	//TODO: Lookup palette & tile button/file explorer
 	//TODO: Allow changing size, tool, color
-	//TODO: onResize
-	//TODO: Zoom tool
-	//TODO: Select tool
-	//TODO: Paste tool
+	//TODO: Shortcuts (like: Alt + click = eyedropper, Ctrl + mouse wheel = zoom, Ctrl + drag = move)
 
 }
 
