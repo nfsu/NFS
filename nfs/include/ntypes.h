@@ -30,11 +30,12 @@ namespace nfs {
 	struct RAHC : GenericSection {												//Character data
 		u16 tileHeight;
 		u16 tileWidth;
-		u32 tileDepth;						//1 << (tileDepth - 1) = bit depth
-		u16 width;
-		u16 height;
-		u8 isEncrypted;						//Either isLinear or isEncrypted, but only saw this affect encryption
-		u8 isStretched;						//Not 100% sure, but isStretched = 0 could be square images
+		u16 tileDepth;						//1 << (tileDepth - 1) = bit depth
+		u16 sizeHint0;						//0x0A or 0x00
+		u16 sizeHint1;						//0x10 or 0x00 might be a size hint
+		u16 sizeHint2;						//0x10 or 0x00 might be a size hint
+		u8 isEncrypted;						//Only saw this affect encryption and linear image
+		u8 specialTiling;					//Seems to be set when images uses different tiling
 		u16 unknown;						//0x0000
 		u32 tileDataSize;					//tileDataSize / 1024 = tileCount; tileDataSize * (2 - (tileDepth - 3)) = pixels
 		u32 c_padding0;						//0x00000018

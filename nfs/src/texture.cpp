@@ -39,11 +39,9 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 		u32 endInd = dataSize / 2 - 1;
 		u16 *beg = (u16*) data, *end = beg + endInd;
 
-		bool reverse = false;
-
 		u16 next = *(beg + 1);
 		u32 seed = CompressionHelper::generateRandom(*beg);
-		reverse = ((next ^ seed) & 0xFFFFU) != 0;
+		bool reverse = ((next ^ seed) & 0xFFFFU) != 0;
 
 		i32 add = reverse ? -1 : 1;
 		i32 i = reverse ? endInd : 0;
@@ -61,29 +59,55 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 
 	}
 
-	if (rahc.isStretched)
-		printf("Texture2D Warning: Texture is stretched, this is not implemented yet\r\n");
+	if (rahc.specialTiling)
+		printf("Texture2D Warning: Texture is special, this is not implemented yet\r\n");
 
 	u16 tileWidth = rahc.tileWidth, tileHeight = rahc.tileHeight;
 
 	if (tileWidth == u16_MAX || tileHeight == u16_MAX) {
 
 
-		if (rahc.height == 0) {
-			width = 32 * (1 + (size >> 14));
+		static const std::unordered_map<u16, u16> widthTable = {
+			{ 384, 16 },
+			{ 768, 16 },
+			{ 1024, 32 },
+			{ 1280, 16 },
+			//{ 1408, 8 },
+			{ 1536, 16 },	//Seems more like 20
+			{ 2048, 32 },	//Not always correct
+			{ 6656, 64 },
+			{ 8192, 64 },
+			{ 10240, 32},
+			//{ 6144, 32 },
+			{ 6400, 64 },	//Doesn't seem right
+			{ 9216, 32 },
+			{ 16384, 64 },
+			{ 32768, 64 }
+		};
+
+		if (rahc.sizeHint2 == 0) {
+
+			auto it = widthTable.find(size);
+
+			if (it == widthTable.end()) {
+
+				EXCEPTION("Couldn't determine width of image");
+				width = 32 * (1 + (size >> 14));					//Temporary
+
+			} else 
+				width = it->second;
+
 			height = size / width;
+
 		} else {
 
-				u32 scale = size / rahc.width / rahc.height;
-				float sscale = sqrt(scale);
 
-				if ((u32)sscale != sscale)
-					EXCEPTION("Couldn't calculate scale");
+			//TODO: maybe use width table and scale by sizeHint2 / sizeHint1?
 
-				scale = (u32)sscale;
+			width = rahc.sizeHint2 * 2;
+			height = size / width;
 
-				height = scale * rahc.height;
-				width = scale * rahc.width;
+
 
 		}
 

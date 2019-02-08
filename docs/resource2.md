@@ -23,9 +23,7 @@ Since the NSCR references a palette and tilemap, for converting you need a NCLR/
 ```cpp
   Texture2D directROMAccess(nscr);
   Texture2D convertedCopy(nscr, ncgr, nclr);
-  convertedCopy.dealloc();
 ```
-Don't forget that the second line creates a new texture and so dealloc has to be called.
 ## Data structure
 For those of you who are interested; the NSCR uses the following struct (simplified):
 ```cpp
