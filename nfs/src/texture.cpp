@@ -63,7 +63,6 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 
 	if (tileWidth == u16_MAX || tileHeight == u16_MAX) {
 
-
 		static const std::unordered_map<u16, u16> widthTable = {
 			{ 256, 16 },
 			{ 384, 16 },

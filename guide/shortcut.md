@@ -28,6 +28,8 @@
 
 **Middle click**: Set secondary color
 
+**X**: Turn off/on showing the grid
+
 
 
 ## Tile editor

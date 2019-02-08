@@ -11,6 +11,7 @@ namespace nfsu {
 
 	public:
 
+		PaletteRenderer();
 		~PaletteRenderer();
 
 		void setTexture(nfs::Texture2D texture);
@@ -35,6 +36,8 @@ namespace nfsu {
 		void initializeGL() override;
 		void paintGL() override;
 		void mousePressEvent(QMouseEvent *e) override;
+		void mouseMoveEvent(QMouseEvent *e) override;
+		void keyPressEvent(QKeyEvent *e) override;
 
 		void set(QPoint p0, u32 color);
 		u32 get(QPoint p0);
@@ -63,10 +66,10 @@ namespace nfsu {
 		nfs::Texture2D texture;
 
 		u8 primary = 0, secondary = 0, selectedRow = 0;
-		bool showGrid = true, editable = true, use4bit = false;
+		bool showGrid = false, editable = true, use4bit = false;
 
 		i32 gridColor = 0xFFFFFF, primaryHighlight = 0x00FF00, secondaryHighlight = 0xFF0000, rowHighlight = 0x0000FF;
-		f32 gridSize = 0.1f;
+		f32 gridSize = 0.2222f;
 
 		QGLShaderProgram shader;
 		QGLBuffer quad;

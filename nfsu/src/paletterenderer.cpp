@@ -20,8 +20,8 @@ void PaletteRenderer::paintGL() {
 		paletteTexture->bind(0);
 
 	shader.setUniformValue("paletteTexture", 0);
-	shader.setUniformValue("height", (i32)texture.getHeight());
-	shader.setUniformValue("distToPix", showGrid ? gridSize : 0);
+	shader.setUniformValue("height", qMax((i32)texture.getHeight(), 1));
+	shader.setUniformValue("distToPix", showGrid ? gridSize : -gridSize);
 	shader.setUniformValue("gridColor", gridColor);
 	shader.setUniformValue("primaryHighlight", primaryHighlight);
 	shader.setUniformValue("secondaryHighlight", secondaryHighlight);
@@ -94,14 +94,17 @@ void PaletteRenderer::initializeGL() {
 
 			//Pad to 16x16 (even for 16x1 images)
 			"ivec2 pos = ivec2(uv * 16);"
-			"int coord1 = pos.x + pos.y * height;"
+			"int coord1 = pos.x + pos.y * 16;"
 			"vec2 coord = vec2(pos) / vec2(16, height);"
 
 			"vec2 delta = abs(uv * 16 - round(uv * 16));"
 
 			"float minDelta = min(delta.x, delta.y);"
 
-			"float overlay = 1 - min(minDelta, distToPix) / distToPix;"
+			"float dist = abs(distToPix);"
+
+			"float overlay = 1 - min(minDelta, dist) / dist;"
+			"float overlayVertical = 1 - min(delta.y, dist) / dist;"
 
 			"uint value = texture(paletteTexture, coord).r;"
 
@@ -109,30 +112,33 @@ void PaletteRenderer::initializeGL() {
 			"uint g = (value & 0x3E0U) >> 5U;"
 			"uint b = (value & 0x7C00U) >> 10U;"
 
+			"vec3 outColor = vec3(r, g, b) / 31.0f;"
+
 			"vec3 sideColor = vec3(gridColor >> 16, (gridColor >> 8) & 0xFF, gridColor & 0xFF) / 255.f * 0.5f;"
 			"vec3 primaryColor = vec3(primaryHighlight >> 16, (primaryHighlight >> 8) & 0xFF, primaryHighlight & 0xFF) / 255.f;"
 			"vec3 secondaryColor = vec3(secondaryHighlight >> 16, (secondaryHighlight >> 8) & 0xFF, secondaryHighlight & 0xFF) / 255.f;"
 			"vec3 rowColor = vec3(rowHighlight >> 16, (rowHighlight >> 8) & 0xFF, rowHighlight & 0xFF) / 255.f;"
 
+			"vec3 selectedColor = mix(primaryColor, secondaryColor, "
+										"float(coord1 == secondary) / (1 + float(coord1 == primary))"
+									");"
+
 			"sideColor = mix("
 							"mix("
-								"mix(sideColor, rowColor, float(pos.y == selectedRow) * 0.9f), "
-								"secondaryColor, float(coord1 == secondary) * 0.9f"
-							"),"
-							"primaryColor, float(coord1 == primary) * 0.9f"
+								"mix(sideColor, outColor, 0 - min(sign(distToPix), 0)),"
+								"rowColor, float(pos.y == selectedRow) * overlayVertical * 0.9f), "
+							"selectedColor + (1 - outColor) * 1.5f, float(coord1 == secondary || coord1 == primary) * 0.9f"
 						");"
 
 			//Sample from texture
 			"color = vec4("
 				"mix("
-					"vec3(r, g, b) / 31.0f,"
+					"outColor,"
 					"sideColor,"
 					"overlay"
 				"), 1);"
 
 		"}";
-
-	//TODO: Selected index can look really weird
 
 	if (!shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader))
 		throw std::runtime_error("Couldn't compile vertex shader");
@@ -144,6 +150,10 @@ void PaletteRenderer::initializeGL() {
 		throw std::runtime_error("Couldn't link shader");
 
 
+}
+
+PaletteRenderer::PaletteRenderer() : QOpenGLWidget() {
+	setMouseTracking(true);
 }
 
 PaletteRenderer::~PaletteRenderer() {
@@ -308,5 +318,16 @@ void PaletteRenderer::resizeEvent(QResizeEvent *e) {
 		resize(smallest, smallest);
 		updateGeometry();
 	}
+
+}
+
+void PaletteRenderer::mouseMoveEvent(QMouseEvent *e) {
+	setFocus();
+}
+
+void PaletteRenderer::keyPressEvent(QKeyEvent *e) {
+
+	if (e->key() == Qt::Key_X)
+		setShowGrid(!showGrid);
 
 }
