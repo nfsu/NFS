@@ -65,3 +65,9 @@ All of the keys & mouse events require your cursor to be in the tile renderer wi
 **Left click**: Previous tool
 
 **Right click**: Next tool
+
+## ALT+
+
+**Left click**: Eyedropper into primary color
+
+**Right click**: Eyedropper into secondary color

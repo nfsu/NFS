@@ -8,7 +8,7 @@
 namespace nfsu {
 
 	enum class TilePaintTool {
-		BRUSH, LINE, SQUARE, FILL, EYEDROPPER
+		BRUSH, LINE, SQUARE, FILL
 	};
 
 	class PaletteRenderer;
@@ -42,8 +42,8 @@ namespace nfsu {
 		void keyPressEvent(QKeyEvent *e) override;
 		void keyReleaseEvent(QKeyEvent *e) override;
 
-		void drawPoint(QPoint point, u32 size = 0 /* uses cursorSize by default */);
-		void drawLine(QPoint p0, QPoint p1, u32 size = 0 /* uses cursorSize by default */);
+		void drawPoint(QPoint point);
+		void drawLine(QPoint p0, QPoint p1);
 		void drawSquare(QPoint p0, QPoint p2);
 		void fill(QPoint p0);
 
@@ -70,9 +70,12 @@ namespace nfsu {
 	private:
 
 
-		u32 cursorSize = 1, specialKey = 0;
-		bool palette = true, editable = true, isMouseDown = false, isLeft = false;
-		TilePaintTool tool = TilePaintTool::BRUSH;
+		u32 cursorSize = 1;
+
+		bool palette = true, editable = true, isMouseDown = false,
+			isLeft = false, ctrl = false, shift = false, alt = false;
+
+		TilePaintTool tool = TilePaintTool::LINE;
 
 		u8 yOffset = 0;
 

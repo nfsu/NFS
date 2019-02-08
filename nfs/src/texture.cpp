@@ -311,10 +311,14 @@ bool Texture2D::store(u16 i, u16 j, u32 k) {
 	u32 index = getIndex(i, j);
 
 	bool fourBit = type == (u16)TextureType::R4;
+	u32 bindex = index * stride / (fourBit ? 2U : 1U);
 
-	u8 *ptr = data + index * stride / (fourBit ? 2U : 1U);
+	u8 *ptr = data + bindex;
 
-	if (magic && (index == 0 || index == size - 1))
+	if (magic && k != 0 && (
+			bindex == 0 || bindex == 1 || bindex == 2 || bindex == 3 || 
+			bindex == dataSize - 1 || bindex == dataSize - 2 || bindex == dataSize - 3 || bindex == dataSize - 4
+	))
 		return false;
 
 	if (fourBit)
