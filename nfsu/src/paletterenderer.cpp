@@ -132,6 +132,8 @@ void PaletteRenderer::initializeGL() {
 
 		"}";
 
+	//TODO: Selected index can look really weird
+
 	if (!shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader))
 		throw std::runtime_error("Couldn't compile vertex shader");
 

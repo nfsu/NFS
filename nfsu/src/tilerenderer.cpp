@@ -216,6 +216,8 @@ void TileRenderer::setTexture(Texture2D tex) {
 	texture = tex;
 	paletteRenderer->set4Bit(tex.getType() == TextureType::R4);
 
+	setPaletteOffset(0);
+
 	updateScale();
 	updateTexture();
 

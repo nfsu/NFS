@@ -59,57 +59,74 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 
 	}
 
-	if (rahc.specialTiling)
-		printf("Texture2D Warning: Texture is special, this is not implemented yet\r\n");
-
 	u16 tileWidth = rahc.tileWidth, tileHeight = rahc.tileHeight;
 
 	if (tileWidth == u16_MAX || tileHeight == u16_MAX) {
 
 
 		static const std::unordered_map<u16, u16> widthTable = {
+			{ 256, 16 },
 			{ 384, 16 },
+			{ 512, 16 },
 			{ 768, 16 },
 			{ 1024, 32 },
 			{ 1280, 16 },
-			//{ 1408, 8 },
-			{ 1536, 16 },	//Seems more like 20
-			{ 2048, 32 },	//Not always correct
+			{ 1408, 8 },
+			{ 1536, 16 },
+			{ 2048, 32 },
+			{ 2560, 16 },
+			{ 2816, 16 },
+			{ 4096, 64 },
+			{ 4480, 64 },
+			{ 5120, 8 },
+			{ 5632, 8 },
+			{ 6144, 32 },
+			{ 6208, 16 },
+			{ 6400, 64 },
 			{ 6656, 64 },
+			{ 7168, 16 },
 			{ 8192, 64 },
+			{ 9216, 48 },
+			{ 9536, 16 },
 			{ 10240, 32},
-			//{ 6144, 32 },
-			{ 6400, 64 },	//Doesn't seem right
-			{ 9216, 32 },
+			{ 12288, 32 },
+			{ 14336, 16 },
+			{ 15360, 32 },
 			{ 16384, 64 },
-			{ 32768, 64 }
+			{ 17152, 64 },
+			{ 19456, 16 },
+			{ 20480, 64 },
+			{ 24576, 64 },
+			{ 34560, 32 },
+			{ 32768, 64 },
+			{ 51200, 64 }
 		};
 
+		auto it = widthTable.find(size);
+		
+		if (it == widthTable.end()) {
+		
+			EXCEPTION("Couldn't determine width of image");
+			width = 32 * (1 + (size >> 14));					//Temporary
+		
+		} else
+			width = it->second;
+
 		if (rahc.sizeHint2 == 0) {
-
-			auto it = widthTable.find(size);
-
-			if (it == widthTable.end()) {
-
-				EXCEPTION("Couldn't determine width of image");
-				width = 32 * (1 + (size >> 14));					//Temporary
-
-			} else 
-				width = it->second;
 
 			height = size / width;
 
 		} else {
 
+			if (!rahc.specialTiling)
+				width = width * rahc.sizeHint2 / rahc.sizeHint1;
 
-			//TODO: maybe use width table and scale by sizeHint2 / sizeHint1?
-
-			width = rahc.sizeHint2 * 2;
 			height = size / width;
 
-
-
 		}
+
+		if (width % 8 != 0 || height % 8 != 0)
+			EXCEPTION("Width or height of the image have to be base8");
 
 		printf("Texture2D Warning: NCGR size couldn't be determined, guessed %ux%u\r\n", width, height);
 
