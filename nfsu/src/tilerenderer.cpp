@@ -191,10 +191,6 @@ void TileRenderer::initializeGL() {
 	if (!shader.link())
 		throw std::runtime_error("Couldn't link shader");
 
-	//TODO: Some images still don't render well; detect resolution (u16_MAX for width & height)!
-
-	//TODO: Animate with specified palette offset & length
-
 	//TODO: Smaller images are annoying to edit; maybe use a scrollbar if smallest < 128? Or allow resizing width?
 
 }
@@ -302,26 +298,35 @@ u32 TileRenderer::getSelectedPalette() {
 	return isLeft ? paletteRenderer->getPrimary() : paletteRenderer->getSecondary();
 }
 
-QPoint TileRenderer::globalToTexture(QPoint pos) {
+QPoint TileRenderer::globalToPixel(QPoint pos) {
 
 	QVector2D uv((float)pos.x() / width(), (float)pos.y() / height());
 	uv *= scale;
 	uv += offset;
+	uv *= QVector2D(texture.getWidth(), texture.getHeight());
+
+	return QPoint(uv.x(), uv.y());
+
+}
+
+QPoint TileRenderer::pixelToTexture(QPoint pos) {
 
 	if (texture.getWidth() == 0)
 		return {};
 
-	//Convert to texture space
 	QVector2D size = QVector2D(texture.getWidth(), texture.getHeight());
-	uv *= size;
 
-	QPoint px{ (i32)uv.x(), (i32)uv.y() };
+	QPoint px{ (i32) pos.x(), (i32) pos.y() };
 
 	return {
-		px.x() - i32(floor((f32)px.x() / size.x()) * size.x()),
-		px.y() - i32(floor((f32)px.y() / size.y()) * size.y())
+		px.x() - i32(floor(px.x() / size.x()) * size.x()),
+		px.y() - i32(floor(px.y() / size.y()) * size.y())
 	};
 
+}
+
+QPoint TileRenderer::globalToTexture(QPoint pos) {
+	return pixelToTexture(globalToPixel(pos));
 }
 
 //Key events
@@ -431,7 +436,7 @@ void TileRenderer::mousePressEvent(QMouseEvent *e) {
 	}
 
 	if (tool == TilePaintTool::FILL){
-		fill(prev);
+		fill(globalToTexture(prev));
 	} else
 		mouseMoveEvent(e);
 
@@ -459,10 +464,10 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 		return;
 
 	if (tool == TilePaintTool::LINE) {
-		drawLine(prev, next);
+		drawLine(globalToPixel(prev), globalToPixel(next));
 		updateTexture();
 	} else if(tool == TilePaintTool::SQUARE){
-		drawSquare(prev, next);
+		drawSquare(globalToPixel(prev), globalToPixel(next));
 		updateTexture();
 	}
 
@@ -471,30 +476,13 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void TileRenderer::drawPoint(QPoint point) {
-	//TODO: this should be in texture space!
-	drawSquare(point - QPoint(cursorSize / 2, cursorSize / 2), point + QPoint(cursorSize / 2, cursorSize / 2));
+	drawSquare(
+		point - QPoint(cursorSize, cursorSize) / 2, 
+		point + QPoint(cursorSize, cursorSize) / 2
+	);
 }
 
 //Drawing
-
-void TileRenderer::fill(i32 x, i32 y, u32 mask) {
-
-	if (!editable || x < 0 || y < 0 || x >= texture.getWidth() || y >= texture.getHeight())
-		return;
-
-	u32 val = texture.fetch(x, y);
-
-	if (val != mask)
-		return;
-
-	texture.store(x, y, getSelectedPalette());
-
-	fill(x - 1, y, mask);
-	fill(x + 1, y, mask);
-	fill(x, y - 1, mask);
-	fill(x, y + 1, mask);
-
-}
 
 void TileRenderer::fill(QPoint p0) {
 
@@ -502,9 +490,67 @@ void TileRenderer::fill(QPoint p0) {
 		return;
 
 	u32 mask = texture.fetch(p0.x(), p0.y());
+	u32 targ = getSelectedPalette();
 
-	if(mask != getSelectedPalette())
-		fill(p0.x(), p0.y(), mask);
+	if (mask != targ) {
+
+		u32 w = texture.getWidth(), h = texture.getHeight(), j = w * h;
+		std::vector<bool> bits(j);
+
+		std::vector<u32> marked, marked2;
+
+		marked.reserve(j);
+		marked.push_back(p0.y() * w + p0.x());
+
+		bits[p0.y() * w + p0.x()] = false;
+
+		marked2.reserve(j);
+
+		for (u32 i = 0; i < j; ++i) {
+
+			u32 val = texture.fetch(i % w, i / w);
+			bits[i] = val == mask;
+
+		}
+
+		bool hasNeighbors = false;
+
+		do {
+
+			for (u32 i = 0, j = (u32) marked.size(); i < j; ++i) {
+
+				u32 xy = marked[i], x = xy % w, y = xy / w;
+
+				texture.store(x, y, targ);
+
+				if (x != 0 && bits[xy - 1]) {
+					marked2.push_back(xy - 1);
+					bits[xy - 1] = false;
+				}
+
+				if (x != w - 1 && bits[xy + 1]) {
+					marked2.push_back(xy + 1);
+					bits[xy + 1] = false;
+				}
+
+				if (y != 0 && bits[xy - w]) {
+					marked2.push_back(xy - w);
+					bits[xy - w] = false;
+				}
+
+				if (y != h - 1 && bits[xy + w]) {
+					marked2.push_back(xy + w);
+					bits[xy + w] = false;
+				}
+
+			}
+
+			marked = marked2;
+			marked2.clear();
+
+		} while (marked.size() != 0);
+
+	}
 
 	updateTexture();
 
@@ -559,10 +605,17 @@ void TileRenderer::drawSquare(QPoint p0, QPoint p1) {
 
 	i32 x0 = p0.x(), y0 = p0.y(), x1 = p1.x(), y1 = p1.y();
 
-	i32 mix = qMax(qMin(x0, x1), 0);
-	i32 miy = qMax(qMin(y0, y1), 0);
-	i32 max = qMin(qMax(x0, x1), width() - 1);
-	i32 may = qMin(qMax(y0, y1), height() - 1);
+	i32 mix = qMin(x0, x1);
+	i32 miy = qMin(y0, y1);
+	i32 max = qMax(x0, x1);
+	i32 may = qMax(y0, y1);
+
+	if (offset == QVector2D() && scale.x() <= 1) {
+		mix = qBound(0, mix, (i32) texture.getWidth());
+		max = qBound(0, max, (i32) texture.getWidth());
+		miy = qBound(0, miy, (i32) texture.getHeight());
+		may = qBound(0, may, (i32) texture.getHeight());
+	}
 
 	if (mix == max)
 		max = mix + 1;
@@ -573,7 +626,7 @@ void TileRenderer::drawSquare(QPoint p0, QPoint p1) {
 	for(i32 x = mix; x < max; ++x)
 		for (i32 y = miy; y < may; ++y) {
 
-			QPoint point = globalToTexture(QPoint(x, y));
+			QPoint point = pixelToTexture(QPoint(x, y));
 			texture.store(point.x(), point.y(), getSelectedPalette());
 
 		}
@@ -608,7 +661,7 @@ void TileRenderer::mouseMoveEvent(QMouseEvent *e) {
 	if (!editable || tool != TilePaintTool::BRUSH || alt)
 		return;
 
-	drawLine(prev, next);
+	drawLine(globalToPixel(prev), globalToPixel(next));
 	prev = next;
 
 	updateTexture();

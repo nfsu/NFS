@@ -42,15 +42,16 @@ namespace nfsu {
 		void keyPressEvent(QKeyEvent *e) override;
 		void keyReleaseEvent(QKeyEvent *e) override;
 
-		void drawPoint(QPoint point);
-		void drawLine(QPoint p0, QPoint p1);
-		void drawSquare(QPoint p0, QPoint p2);
-		void fill(QPoint p0);
+		void drawPoint(QPoint pixelSpace);
+		void drawLine(QPoint pixelSpace, QPoint pixelSpace0);
+		void drawSquare(QPoint pixelSpace, QPoint pixelSpace0);
+		void fill(QPoint textureSpace);
 
-		void fill(i32 x, i32 y, u32 mask);
 		u32 get(QPoint p0);
 
 		QPoint globalToTexture(QPoint pos);
+		QPoint globalToPixel(QPoint pos);
+		QPoint pixelToTexture(QPoint pos);
 
 		u32 getSelectedPalette();
 
@@ -75,7 +76,7 @@ namespace nfsu {
 		bool palette = true, editable = true, isMouseDown = false,
 			isLeft = false, ctrl = false, shift = false, alt = false;
 
-		TilePaintTool tool = TilePaintTool::LINE;
+		TilePaintTool tool = TilePaintTool::BRUSH;
 
 		u8 yOffset = 0;
 
