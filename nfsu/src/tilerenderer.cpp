@@ -214,7 +214,7 @@ TileRenderer::~TileRenderer() {
 void TileRenderer::setTexture(Texture2D tex) {
 
 	texture = tex;
-	paletteRenderer->set4Bit(tex.getType() == TextureType::R4);
+	//paletteRenderer->set4Bit(tex.getType() == TextureType::R4);
 
 	setPaletteOffset(0);
 
@@ -286,7 +286,7 @@ void TileRenderer::setCursorSize(u32 scale) {
 
 void TileRenderer::setPaletteOffset(u8 j) {
 	yOffset = j % 16;
-	paletteRenderer->setSelectedRow(j);
+	//paletteRenderer->setSelectedRow(j);
 	repaint();
 }
 
@@ -296,7 +296,7 @@ void TileRenderer::setPaintTool(TilePaintTool t) {
 }
 
 u32 TileRenderer::getSelectedPalette() {
-	return isLeft ? paletteRenderer->getPrimary() : paletteRenderer->getSecondary();
+	return paletteRenderer->getPrimary();// : paletteRenderer->getSecondary();
 }
 
 QPoint TileRenderer::globalToPixel(QPoint pos) {
@@ -448,10 +448,10 @@ void TileRenderer::mousePressEvent(QMouseEvent *e) {
 
 	if (alt) {
 
-		if (isLeft)
+		/*if (isLeft)
 			paletteRenderer->setPrimary(get(prev));
 		else
-			paletteRenderer->setSecondary(get(prev));
+			paletteRenderer->setSecondary(get(prev));*/
 
 		return;
 	}
@@ -498,8 +498,8 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 
 void TileRenderer::drawPoint(QPoint point) {
 	drawSquare(
-		point - QPoint(cursorSize, cursorSize) / 2, 
-		point + QPoint(cursorSize, cursorSize) / 2
+		point - QPoint(cursorSize / 2, cursorSize / 2), 
+		point + QPoint(cursorSize / 2, cursorSize / 2)
 	);
 }
 

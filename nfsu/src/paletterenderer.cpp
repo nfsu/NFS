@@ -23,12 +23,7 @@ void PaletteRenderer::paintGL() {
 	shader.setUniformValue("height", qMax((i32)texture.getHeight(), 1));
 	shader.setUniformValue("distToPix", showGrid ? gridSize : -gridSize);
 	shader.setUniformValue("gridColor", gridColor);
-	shader.setUniformValue("primaryHighlight", primaryHighlight);
-	shader.setUniformValue("secondaryHighlight", secondaryHighlight);
-	shader.setUniformValue("rowHighlight", rowHighlight);
 	shader.setUniformValue("primary", getPrimary());
-	shader.setUniformValue("secondary", getSecondary());
-	shader.setUniformValue("selectedRow", use4bit ? selectedRow : -1);
 
 	quad.bind();
 
@@ -80,13 +75,8 @@ void PaletteRenderer::initializeGL() {
 
 		"uniform float distToPix;"
 		"uniform int gridColor;"
-		"uniform int primaryHighlight;"
-		"uniform int secondaryHighlight;"
-		"uniform int rowHighlight;"
 
 		"uniform int primary;"
-		"uniform int secondary;"
-		"uniform int selectedRow;"
 
 		"out vec4 color;"
 
@@ -104,7 +94,6 @@ void PaletteRenderer::initializeGL() {
 			"float dist = abs(distToPix);"
 
 			"float overlay = 1 - min(minDelta, dist) / dist;"
-			"float overlayVertical = 1 - min(delta.y, dist) / dist;"
 
 			"uint value = texture(paletteTexture, coord).r;"
 
@@ -115,19 +104,14 @@ void PaletteRenderer::initializeGL() {
 			"vec3 outColor = vec3(r, g, b) / 31.0f;"
 
 			"vec3 sideColor = vec3(gridColor >> 16, (gridColor >> 8) & 0xFF, gridColor & 0xFF) / 255.f * 0.5f;"
-			"vec3 primaryColor = vec3(primaryHighlight >> 16, (primaryHighlight >> 8) & 0xFF, primaryHighlight & 0xFF) / 255.f;"
-			"vec3 secondaryColor = vec3(secondaryHighlight >> 16, (secondaryHighlight >> 8) & 0xFF, secondaryHighlight & 0xFF) / 255.f;"
-			"vec3 rowColor = vec3(rowHighlight >> 16, (rowHighlight >> 8) & 0xFF, rowHighlight & 0xFF) / 255.f;"
 
-			"vec3 selectedColor = mix(primaryColor, secondaryColor, "
-										"float(coord1 == secondary) / (1 + float(coord1 == primary))"
-									");"
+			"vec3 selectedColor = mix(vec3(1, 1, 1), vec3(0, 0, 0), (outColor.r + outColor.g + outColor.b) / 3);"
 
 			"sideColor = mix("
 							"mix("
-								"mix(sideColor, outColor, 0 - min(sign(distToPix), 0)),"
-								"rowColor, float(pos.y == selectedRow) * overlayVertical * 0.9f), "
-							"selectedColor + (1 - outColor) * 1.5f, float(coord1 == secondary || coord1 == primary) * 0.9f"
+								"sideColor, outColor, 0 - min(sign(distToPix), 0)"
+							"), "
+							"selectedColor + (1 - outColor) * 1.5f, float(coord1 == primary) * 0.9f"
 						");"
 
 			//Sample from texture
@@ -174,43 +158,13 @@ nfs::Texture2D PaletteRenderer::getTexture() {
 
 QOpenGLTexture *PaletteRenderer::getGPUTexture() { return paletteTexture; }
 QGLBuffer PaletteRenderer::getQuad() { return quad; }
-u8 PaletteRenderer::getPrimary() { return use4bit ? (primary & 0xF) + (selectedRow << 4) : primary; }
-u8 PaletteRenderer::getSecondary() { return use4bit ? (secondary & 0xF) + (selectedRow << 4) : secondary; }
+u16 PaletteRenderer::getPrimary() { return primary; }
 void PaletteRenderer::setShowGrid(bool b) { showGrid = b; repaint(); }
 void PaletteRenderer::setEditable(bool b) { editable = b; repaint(); }
 void PaletteRenderer::setGridSize(f32 perc) { gridSize = perc; repaint(); }
-void PaletteRenderer::set4Bit(bool b) { use4bit = b; repaint(); }
-
-void PaletteRenderer::setSelectedRow(u8 index) { 
-	selectedRow = texture.getHeight() == 0 ? 0 : index % texture.getHeight(); 
-	repaint(); 
-}
-
-void PaletteRenderer::setPrimary(u8 pos) {
-	primary = use4bit ? pos & 0xF : pos;
-}
-
-void PaletteRenderer::setSecondary(u8 pos) {
-	secondary = use4bit ? pos & 0xF : pos;
-}
 
 void PaletteRenderer::setGridColor(QColor color) {
 	gridColor = (color.red() << 16) | (color.green() << 8) | color.blue();
-	repaint();
-}
-
-void PaletteRenderer::setPrimaryHighlight(QColor color) {
-	primaryHighlight = (color.red() << 16) | (color.green() << 8) | color.blue();
-	repaint();
-}
-
-void PaletteRenderer::setSecondaryHighlight(QColor color) {
-	secondaryHighlight = (color.red() << 16) | (color.green() << 8) | color.blue();
-	repaint();
-}
-
-void PaletteRenderer::setRowHighlight(QColor color) {
-	rowHighlight = (color.red() << 16) | (color.green() << 8) | color.blue();
 	repaint();
 }
 
@@ -282,11 +236,7 @@ void PaletteRenderer::mousePressEvent(QMouseEvent *e) {
 	QPoint tpos = globalToTexture(e->pos());
 	u8 pos = (tpos.y() << 4) | tpos.x();
 
-	if (e->button() == Qt::RightButton)
-		setPrimary(pos);
-	else if (e->button() == Qt::MiddleButton)
-		setSecondary(pos);
-	else if (editable && e->button() == Qt::LeftButton) {
+	if (editable && e->button() == Qt::LeftButton) {
 
 		u32 color = get(tpos);
 
@@ -322,6 +272,9 @@ void PaletteRenderer::resizeEvent(QResizeEvent *e) {
 }
 
 void PaletteRenderer::mouseMoveEvent(QMouseEvent *e) {
+	QPoint tpos = globalToTexture(e->pos());
+	u8 pos = (tpos.y() << 4) | tpos.x();
+	primary = pos;
 	setFocus();
 }
 

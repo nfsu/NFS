@@ -22,14 +22,7 @@ namespace nfsu {
 
 		void setShowGrid(bool b);
 		void setGridColor(QColor color);
-		void setPrimaryHighlight(QColor color);
-		void setSecondaryHighlight(QColor color);
-		void setRowHighlight(QColor color);
 		void setGridSize(f32 percToPix);
-		void set4Bit(bool b);
-		void setSelectedRow(u8 index);
-		void setPrimary(u8 index);
-		void setSecondary(u8 index);
 
 		void setEditable(bool b);
 
@@ -53,8 +46,7 @@ namespace nfsu {
 
 		///selected palette index
 
-		u8 getPrimary();
-		u8 getSecondary();
+		u16 getPrimary();
 
 	protected:
 
@@ -65,10 +57,10 @@ namespace nfsu {
 
 		nfs::Texture2D texture;
 
-		u8 primary = 0, secondary = 0, selectedRow = 0;
-		bool showGrid = false, editable = true, use4bit = false;
+		u8 primary = 0;
+		bool showGrid = false, editable = true;
 
-		i32 gridColor = 0xFFFFFF, primaryHighlight = 0x00FF00, secondaryHighlight = 0xFF0000, rowHighlight = 0x0000FF;
+		i32 gridColor = 0xFFFFFF;
 		f32 gridSize = 0.2222f;
 
 		QGLShaderProgram shader;
