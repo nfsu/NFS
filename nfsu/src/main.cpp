@@ -20,5 +20,9 @@ int main(int argc, char *argv[]) {
 	wind.setWindowIcon(icon);
 	wind.show();
 
+	StopAlt stopAlt;
+
+	app.setStyle(&stopAlt);
+
 	return app.exec();
 }

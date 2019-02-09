@@ -1,7 +1,8 @@
 #pragma once
-#include <QtWidgets/qwidget.h>
+#include <QtWidgets/qmainwindow.h>
 #include <QtWidgets/qsplitter.h>
 #include <QtWidgets/qtabwidget.h>
+#include <QtWidgets/qproxystyle.h>
 #include "filesystem.h"
 #include "infowindow.h"
 #include "resourceeditor.h"
@@ -11,7 +12,15 @@ namespace nfsu {
 	class NExplorer;
 	class NExplorerView;
 
-	class Window : public QWidget {
+	class StopAlt : public QProxyStyle {
+
+	public:
+
+		int styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidget *widget, QStyleHintReturn *returnData) const override;
+
+	};
+
+	class Window : public QMainWindow {
 
 	public:
 
@@ -91,7 +100,7 @@ namespace nfsu {
 		InfoWindow *fileInspect = nullptr;
 
 		QLayout *layout = nullptr, *rightLayout;
-		QWidget *right;
+		QWidget *right, *central;
 		QSplitter *splitter, *left;
 
 		std::vector<ResourceEditor*> editors;

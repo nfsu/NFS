@@ -8,6 +8,8 @@
 #include <QtCore/qurl.h>
 #include <QtWidgets/qmenubar.h>
 #include <QtWidgets/qlayout.h>
+#include <QtWidgets/qapplication.h>
+#include <QtGui/qevent.h>
 #include "model.h"
 #include "paletteeditor.h"
 #include "tileeditor.h"
@@ -82,6 +84,7 @@ Window::Window() {
 	);
 
 	setupUI();
+
 }
 
 Window::~Window() {
@@ -100,7 +103,9 @@ void Window::setupUI() {
 
 void Window::setupLayout() {
 
-	setLayout(layout = new QHBoxLayout);
+	setCentralWidget(central = new QWidget);
+
+	central->setLayout(layout = new QHBoxLayout);
 	splitter = new QSplitter;
 	layout->addWidget(splitter);
 
@@ -113,11 +118,21 @@ void Window::setupLayout() {
 	splitter->setSizes(size);
 }
 
+
+int StopAlt::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidget *widget, QStyleHintReturn *returnData) const {
+
+	if (stylehint == QStyle::SH_MenuBar_AltKeyNavigation)
+		return 0;
+
+	return QProxyStyle::styleHint(stylehint, opt, widget, returnData);
+
+}
+
 void Window::setupToolbar() {
 
-	QMenuBar *qtb = new QMenuBar;
-	qtb->setFixedHeight(30);
-	left->addWidget(qtb);
+	QMenuBar *qtb = new QMenuBar(0);
+
+	setMenuBar(qtb);
 
 	QMenu *file = qtb->addMenu("File");
 	QMenu *view = qtb->addMenu("View");

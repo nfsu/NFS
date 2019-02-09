@@ -2,6 +2,7 @@
 #include "paletterenderer.h"
 #include <QtGui/qevent.h>
 #include <QtCore/qtimer.h>
+#include <QtWidgets/qapplication.h>
 using namespace nfsu;
 using namespace nfs;
 
@@ -340,8 +341,16 @@ void TileRenderer::keyPressEvent(QKeyEvent *e) {
 		usePalette(!palette);
 	else if(e->key() == Qt::Key_Shift)
 		shift = true;
-	else if (e->key() == Qt::Key_Alt)
+	else if (e->key() == Qt::Key_Alt) {
+
 		alt = true;
+
+		if(!ctrl)
+			setCursor(QCursor(QPixmap("resources/color_picker.png")));
+
+	}
+
+	e->accept();
 
 	//TODO: CTRL + Z vs CTRL + SHIFT + Z aka CTRL + Y
 
@@ -353,12 +362,24 @@ void TileRenderer::keyReleaseEvent(QKeyEvent *e) {
 
 		ctrl = false;
 		isMouseDown = false;
-		setCursor(QCursor(Qt::CursorShape::ArrowCursor));
+
+		if(!alt)
+			setCursor(QCursor(Qt::CursorShape::ArrowCursor));
+		else
+			setCursor(QCursor(QPixmap("resources/color_picker.png")));
 
 	} else if (e->key() == Qt::Key_Shift)
 		shift = false;
-	else if (e->key() == Qt::Key_Alt)
+	else if (e->key() == Qt::Key_Alt) {
+
 		alt = false;
+
+		if(!ctrl)
+			setCursor(QCursor(Qt::ArrowCursor));
+
+	}
+
+	e->accept();
 
 }
 
@@ -451,7 +472,7 @@ void TileRenderer::mouseReleaseEvent(QMouseEvent *e) {
 
 	if (ctrl)
 		setCursor(QCursor(Qt::CursorShape::OpenHandCursor));
-	else
+	else if(!alt)
 		setCursor(QCursor(Qt::CursorShape::ArrowCursor));
 
 	//TODO: Draw overlay so you can see what line/square you're drawing
