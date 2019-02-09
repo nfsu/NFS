@@ -111,7 +111,10 @@ void TileRenderer::initializeGL() {
 
 			"vec2 pos = uv * scale + offset;"
 
-			"ivec2 px = ivec2(pos * vec2(width, height)) % ivec2(width, height);"
+			"ivec2 px = ivec2(pos * vec2(width, height));"
+			"ivec2 size = ivec2(width, height);"
+
+			"px = px - ivec2(floor(vec2(px) / size) * size);"
 
 			"int val = 0, mod2x4 = 0;"
 
@@ -308,10 +311,17 @@ QPoint TileRenderer::globalToTexture(QPoint pos) {
 	if (texture.getWidth() == 0)
 		return {};
 
+	//Convert to texture space
+	QVector2D size = QVector2D(texture.getWidth(), texture.getHeight());
+	uv *= size;
+
+	QPoint px{ (i32)uv.x(), (i32)uv.y() };
+
 	return {
-		u32(uv.x() * texture.getWidth()) % texture.getWidth(), 
-		u32(uv.y() * texture.getHeight()) % texture.getHeight() 
+		px.x() - i32(floor((f32)px.x() / size.x()) * size.x()),
+		px.y() - i32(floor((f32)px.y() / size.y()) * size.y())
 	};
+
 }
 
 //Key events

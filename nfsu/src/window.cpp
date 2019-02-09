@@ -14,6 +14,8 @@
 using namespace nfsu;
 using namespace nfs;
 
+//TODO: Fix memory leak
+
 Window::Window() {
 
 	setWindowTitle("File System Utilities");

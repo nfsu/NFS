@@ -18,7 +18,6 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 	//TODO: Palette disable button, palette grid, tile grid
 	//TODO: Lookup palette & tile button/file explorer
 	//TODO: Allow changing size, tool, color
-	//TODO: Shortcuts (like: Alt + click = eyedropper, Ctrl + mouse wheel = zoom, Ctrl + drag = move)
 
 }
 

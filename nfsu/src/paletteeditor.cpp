@@ -5,10 +5,10 @@
 using namespace nfsu;
 using namespace nfs;
 
-
-//TODO: Button for showing / disabling grid, grid color and size
+//TODO: Button for showing / disabling grid, grid size
 //TODO: Show properties of palette
 //TODO: Export resource, export texture, import resource, import texture, detect palette from texture
+//TODO: Layout; horizontal bar, w dropdown for palette editing
 
 void PaletteEditor::setPalette(Texture2D tex) {
 	setTexture(tex);

@@ -1,18 +1,33 @@
 ![NFS logo](https://i.imgur.com/uabtvGW.png)
 <br>
+
 Nintendo File System
 -------
 
-NFS(U) stands for Nintendo File System (Utils) and is designed to read and interpret nds files such as NARC, NCLR, NCGR, etc.  
+NFS stands for Nintendo File System and is designed to read and interpret NDS files such as NARC, NCLR, NCGR, etc.  
 # But why?
-Some time ago, I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician [LagMeester4000](https://github.com/LagMeester4000), I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications.
+Some time ago, I loved modifying existing roms for my personal use, but tools were/are either extremely lacking (both in use and looks) or they frequently crashed and were a pain to use. I finally decided to look into Nintendo's file system and how things could be written / read. Thanks to template magician [LagMeester4000](https://github.com/LagMeester4000), I 'simplified' this system using C++ templates, allowing you to add custom formats within a few seconds. The reading/writing/converting is very quick and can be easily used in existing applications. It also allows for runtime modifications directly into the ROM.
 # How to install
+Get the project files by downloading as ZIP and extracting or using `git clone --single-branch --branch NFS_Reloaded https://github.com/Nielsbishere/NFS`.
+
+This project uses CMake to generate project files. Simply use `reload "mygenerator"`, generally: `reload "Visual Studio 15 2017 Win64"`. It will then generate a solution file.
+
+# Visual interface
+
+The visual interface (NFSU (Nintendo File System Utilities)) can be found at [/nfsu](nfsu) and the user guide can be found at [/guide](guide).
+
+# Intergrade into project
+
 The newest version of NFS uses cmake to generate the build projects for you, you can simply run 'reload.bat' and it will generate the files for you. With this, you can add new projects and depend on NFS/NFSU. Simply run the command;
+
 ```bat
 addproject nfse nfs
 ```
-The example above will automatically add the 'nfse' project to the CMakeLists and will create a basic header and source file for you. It then reloads the project, so your project is added. If you want to depend on nfsu instead, you change 'nfs' to 'nfsu'. If you want to make one yourself, you simply create a CMakeLists.child.txt file in the root of your project and then you put in everything an inherrited CMakeLists.txt would have, where <PROJECT_NAME> is a macro for the project name put in in addproject.
-## How to use
+
+The example above will automatically add the 'nfse' project to the CMakeLists and will create a basic header and source file for you. It then reloads the project, so your project is added. If you want to depend on nfsu instead, you change 'nfs' to 'nfsu'. If you want to make one yourself, you simply create a CMakeLists.child.txt file in the root of your project and then you put in everything an inherited CMakeLists.txt would have, where <PROJECT_NAME> is a macro for the project name put in in addproject.
+
+# How to use
+
 Down below you can see a simple use of the NFS API.
 ### Reading raw ROM data
 ```cpp
@@ -182,9 +197,12 @@ Texture2D convertFromNCGR(NCGR &ncgr, NCLR &nclr) {
 ```
 This function is called 'fromShader', it will create a new RGBA8 texture and for every pixel, it will run the function supplied. The function needs to return a u32 and take a Texture2D tex, u16 x, u16 y and the arguments you put in yourself. Remember to delete it when you don't need it anymore though.
 ## Supported file formats
-For supported file formats, check out the docs folder; this contains a description of every supported resource and their magicNumber/type id.
+For supported file formats, check out the [docs](docs) folder; this contains a description of every supported resource and their magicNumber/type id.
 ## Special thanks
 Thanks to /LagMeester4000 for creating magic templates that are used all the time in this API. Typelists are used from his repo at [/LagMeester4000/TypeList](https://github.com/LagMeester4000/TypeList).
+
+Thanks to /velddev for creating UI icons and feedback on UI-layout.
+
 ## Nintendo policies
 Nintendo policies are strict, especially on fan-made content. If you are using this to hack roms, please be sure to NOT SUPPLY roms or ROM files and if you're using this, please ensure that copyright policies are being kept. I am not responsible for any programs made with this, for it is only made to create new roms or use existing roms in the fair use policy.
 ### Legal issues
