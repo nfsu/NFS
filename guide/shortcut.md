@@ -24,10 +24,6 @@
 
 **Left click**: Pick color
 
-**Right click**: Set primary color
-
-**Middle click**: Set secondary color
-
 **X**: Turn off/on showing the grid
 
 

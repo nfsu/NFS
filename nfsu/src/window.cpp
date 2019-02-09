@@ -218,7 +218,7 @@ void Window::setupTabs(QLayout *layout) {
 	PaletteEditor *paletteEditor = new PaletteEditor;
 	editors[1] = paletteEditor;
 
-	TileEditor *tileEditor = new TileEditor(2, 16);
+	TileEditor *tileEditor = new TileEditor;
 	editors[2] = tileEditor;
 
 	tabs = new QTabWidget;

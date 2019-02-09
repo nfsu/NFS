@@ -5,15 +5,9 @@
 using namespace nfsu;
 using namespace nfs;
 
-TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplitter(parent),
-	scale(tileScale) {
+TileEditor::TileEditor(QWidget *parent): QSplitter(parent) {
 
-	QSplitter *leftWidget = new QSplitter;
-	addWidget(leftWidget);
-	leftWidget->addWidget(palette = new PaletteEditor);
-	palette->setMinimumSize(256, 256);
-
-	addWidget(renderer = new TileRenderer(palette->getRenderer()));
+	addWidget(renderer = new TileRenderer);
 
 	//TODO: Palette disable button, palette grid, tile grid
 	//TODO: Lookup palette & tile button/file explorer
@@ -22,11 +16,11 @@ TileEditor::TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent): QSplit
 }
 
 void TileEditor::setPalette(Texture2D tex) {
-	palette->setPalette(tex);
+	renderer->setPalette(tex);
 }
 
 Texture2D TileEditor::getPalette() {
-	return palette->getPalette();
+	return renderer->getPalette();
 }
 
 void TileEditor::setTiles(Texture2D tex) {
@@ -34,7 +28,7 @@ void TileEditor::setTiles(Texture2D tex) {
 }
 
 void TileEditor::usePalette(bool b) {
-	renderer->usePalette(b);
+	renderer->setUsePalette(b);
 }
 
 Texture2D TileEditor::getTiles() {
@@ -42,17 +36,15 @@ Texture2D TileEditor::getTiles() {
 }
 
 bool TileEditor::allowsResource(FileSystemObject &fso, ArchiveObject &ao) {
-	return ao.info.magicNumber == NCGR::getMagicNumber() || palette->allowsResource(fso, ao);
+	return ao.info.magicNumber == NCGR::getMagicNumber() || ao.info.magicNumber == NCLR::getMagicNumber();
 }
 
 void TileEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
 
 	if (ao.info.magicNumber == NCGR::getMagicNumber())
 		setTiles(Texture2D(fileSystem.get<NCGR>(ao)));
-	else {
-		palette->inspectResource(fileSystem, ao);
-		renderer->updateTexture();
-	}
+	else 
+		setPalette(Texture2D(fileSystem.get<NCLR>(ao)));
 
 }
 
@@ -61,7 +53,6 @@ bool TileEditor::isPrimaryEditor(FileSystemObject &fso, ArchiveObject &ao) {
 }
 
 void TileEditor::onSwap() {
-	palette->getRenderer()->updateTexture();
 	renderer->updateTexture();
 }
 

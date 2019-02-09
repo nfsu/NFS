@@ -11,19 +11,20 @@ namespace nfsu {
 		BRUSH, LINE, SQUARE, FILL
 	};
 
-	class PaletteRenderer;
-
 	class TileRenderer : public QOpenGLWidget {
 
 	public:
 
-		TileRenderer(PaletteRenderer *palette);
+		TileRenderer();
 		~TileRenderer();
 
 		void setTexture(nfs::Texture2D texture);
 		nfs::Texture2D getTexture();
 
-		void usePalette(bool b);
+		void setPalette(nfs::Texture2D texture);
+		nfs::Texture2D getPalette();
+
+		void setUsePalette(bool b);
 		void setEditable(bool b);
 		
 		void setCursorSize(u32 size);
@@ -73,23 +74,22 @@ namespace nfsu {
 
 		u32 cursorSize = 1;
 
-		bool palette = true, editable = true, isMouseDown = false,
+		bool usePalette = true, editable = true, isMouseDown = false,
 			isLeft = false, ctrl = false, shift = false, alt = false;
 
 		TilePaintTool tool = TilePaintTool::BRUSH;
 
 		u8 yOffset = 0;
 
-		PaletteRenderer *paletteRenderer;
-		nfs::Texture2D texture;
+		nfs::Texture2D texture, palette;
 
 		QPoint prev;
 		QVector2D offset = { 0, 0 }, scale = { 1, 1 };
 
 		QGLShaderProgram shader;
-		QGLBuffer quadVBO;
+		QGLBuffer quad;
 
-		QOpenGLTexture *tiledTexture = nullptr, *magicTexture = nullptr;
+		QOpenGLTexture *tiledTexture = nullptr, *magicTexture = nullptr, *paletteTexture = nullptr;
 
 	};
 

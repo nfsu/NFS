@@ -3,13 +3,6 @@
 #include <QtWidgets/qcolordialog.h>
 using namespace nfsu;
 
-//Quad
-
-const float quadData[] = {
-	0,0, 0,1, 1,1,
-	1,1, 1,0, 0,0
-};
-
 //Render
 
 void PaletteRenderer::paintGL() {

@@ -10,16 +10,13 @@ using namespace nfs;
 
 void TileRenderer::paintGL() {
 
-	if (!paletteRenderer->getQuad().isCreated())
-		return;
-
 	shader.bind();
 
 	if (tiledTexture)
 		tiledTexture->bind(0);
 
-	if(paletteRenderer->getGPUTexture())
-		paletteRenderer->getGPUTexture()->bind(1);
+	if(paletteTexture)
+		paletteTexture->bind(1);
 
 	if (magicTexture)
 		magicTexture->bind(2);
@@ -36,11 +33,11 @@ void TileRenderer::paintGL() {
 	shader.setUniformValue("scale", scale);
 	shader.setUniformValue("flags",
 		(texture.getType() == TextureType::R4 ? 1 : 0) |
-		(palette && paletteRenderer->getGPUTexture() != nullptr ? 2 : 0) |
+		(usePalette && paletteTexture != nullptr ? 2 : 0) |
 		(magicTexture != nullptr ? 4 : 0)
 	);
 
-	paletteRenderer->getQuad().bind();
+	quad.bind();
 
 	int pos = shader.attributeLocation("pos");
 	shader.enableAttributeArray(pos);
@@ -51,8 +48,8 @@ void TileRenderer::paintGL() {
 	if (tiledTexture)
 		tiledTexture->release(0);
 
-	if (paletteRenderer->getGPUTexture())
-		paletteRenderer->getGPUTexture()->release(1);
+	if (paletteTexture)
+		paletteTexture->release(1);
 
 	if (magicTexture)
 		magicTexture->release(2);
@@ -61,16 +58,22 @@ void TileRenderer::paintGL() {
 
 //Setup renderer
 
-TileRenderer::TileRenderer(PaletteRenderer *palette): paletteRenderer(palette) {
+TileRenderer::TileRenderer() {
 	updateScale();
 	setMouseTracking(true);
 }
 
 void TileRenderer::initializeGL() {
 
+	//Setup quad
+
+	quad = QGLBuffer(QGLBuffer::VertexBuffer);
+	quad.create();
+	quad.bind();
+	quad.allocate(PaletteRenderer::quadData, sizeof(PaletteRenderer::quadData));
+
 	//Setup shader
 
-	
 	char const *vertShader = 
 
 		"#version 330 core\r\n"
@@ -205,6 +208,7 @@ Texture2D TileRenderer::getTexture() {
 //Clean up resources
 
 TileRenderer::~TileRenderer() {
+	quad.destroy();
 	shader.deleteLater();
 	destroyGTexture();
 }
@@ -226,7 +230,22 @@ void TileRenderer::setTexture(Texture2D tex) {
 
 }
 
+void TileRenderer::setPalette(nfs::Texture2D texture) {
+	palette = texture;
+	updateTexture();
+}
+
+nfs::Texture2D TileRenderer::getPalette(){
+	return palette;
+}
+
 void TileRenderer::destroyGTexture() {
+
+	if (paletteTexture != nullptr) {
+		paletteTexture->destroy();
+		delete paletteTexture;
+		paletteTexture = nullptr;
+	}
 
 	if (tiledTexture == nullptr) return;
 
@@ -243,6 +262,19 @@ void TileRenderer::destroyGTexture() {
 }
 
 void TileRenderer::setupGTexture() {
+
+	repaint();
+
+	if (palette.getWidth() != 0) {
+
+		paletteTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+		paletteTexture->setMinMagFilters(QOpenGLTexture::NearestMipMapNearest, QOpenGLTexture::Nearest);
+		paletteTexture->setFormat(QOpenGLTexture::R16U);
+		paletteTexture->setSize(palette.getWidth(), palette.getHeight());
+		paletteTexture->allocateStorage();
+		paletteTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, palette.getPtr());
+
+	}
 
 	if (texture.getWidth() == 0)
 		return;
@@ -263,14 +295,12 @@ void TileRenderer::setupGTexture() {
 		magicTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, texture.getMagicTexture());
 	}
 
-	repaint();
-
 }
 
 //Settings
 
-void TileRenderer::usePalette(bool b) {
-	palette = b;
+void TileRenderer::setUsePalette(bool b) {
+	usePalette = b;
 	repaint();
 }
 
@@ -286,7 +316,6 @@ void TileRenderer::setCursorSize(u32 scale) {
 
 void TileRenderer::setPaletteOffset(u8 j) {
 	yOffset = j % 16;
-	//paletteRenderer->setSelectedRow(j);
 	repaint();
 }
 
@@ -296,7 +325,7 @@ void TileRenderer::setPaintTool(TilePaintTool t) {
 }
 
 u32 TileRenderer::getSelectedPalette() {
-	return paletteRenderer->getPrimary();// : paletteRenderer->getSecondary();
+	return 0 /* TODO: */;
 }
 
 QPoint TileRenderer::globalToPixel(QPoint pos) {
@@ -338,7 +367,7 @@ void TileRenderer::keyPressEvent(QKeyEvent *e) {
 		ctrl = true;
 		setCursor(QCursor(Qt::CursorShape::OpenHandCursor));
 	} else if(e->key() == Qt::Key::Key_X)
-		usePalette(!palette);
+		setUsePalette(!usePalette);
 	else if(e->key() == Qt::Key_Shift)
 		shift = true;
 	else if (e->key() == Qt::Key_Alt) {
@@ -697,7 +726,6 @@ void TileRenderer::updateTexture() {
 void TileRenderer::reset() {
 	texture = {};
 	destroyGTexture();
-	paletteRenderer->reset();
 }
 
 void TileRenderer::updateScale() {

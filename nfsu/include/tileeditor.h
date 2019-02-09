@@ -13,7 +13,7 @@ namespace nfsu {
 
 	public:
 
-		TileEditor(u32 tileScale, u32 paletteScale, QWidget *parent = nullptr);
+		TileEditor(QWidget *parent = nullptr);
 
 		void setPalette(nfs::Texture2D tex);
 		nfs::Texture2D getPalette();
@@ -33,11 +33,7 @@ namespace nfsu {
 
 	private:
 
-		u32 scale;
-
 		QGridLayout *rightLayout;
-		PaletteEditor *palette;
-
 		TileRenderer *renderer;
 
 	};
