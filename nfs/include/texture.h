@@ -63,6 +63,7 @@ namespace nfs {
 
 		TextureType getType();
 
+		u8 getBitsPerPixel();
 		u16 getWidth();
 		u16 getHeight();
 		u32 getSize();

@@ -8,12 +8,13 @@
 namespace nfsu {
 
 	class TileRenderer;
+	class InfoWindow;
 
-	class TileEditor : public QSplitter, public ResourceEditor {
+	class TileEditor : public QWidget, public ResourceEditor {
 
 	public:
 
-		TileEditor(QWidget *parent = nullptr);
+		TileEditor();
 
 		void setPalette(nfs::Texture2D tex);
 		nfs::Texture2D getPalette();
@@ -35,6 +36,7 @@ namespace nfsu {
 
 		QGridLayout *rightLayout;
 		TileRenderer *renderer;
+		InfoWindow *info;
 
 	};
 

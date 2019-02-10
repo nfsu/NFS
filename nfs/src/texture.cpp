@@ -252,6 +252,25 @@ Texture2D &Texture2D::operator=(Texture2D &&other) {
 	return *this;
 }
 
+u8 Texture2D::getBitsPerPixel() { 
+
+	switch ((TextureType)type) {
+
+	case TextureType::ARGB8:
+		return 32;
+
+	case TextureType::BGR5:
+		return 15;
+
+	case TextureType::R4:
+		return 4;
+
+	}
+
+	return 8;
+
+}
+
 TextureType Texture2D::getType() { return (TextureType)type; }
 
 u16 Texture2D::getWidth() { return width; }

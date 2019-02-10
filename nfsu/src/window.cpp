@@ -205,7 +205,20 @@ void Window::setupExplorer() {
 }
 
 void Window::setupInfoWindow() {
+
 	left->addWidget(fileInspect = new InfoWindow(this));
+
+	fileInspect->setMinimumWidth(430);
+	fileInspect->setString("Title", "");
+	fileInspect->setString("Size", "");
+	fileInspect->setString("File", "");
+	fileInspect->setString("Folders", "");
+	fileInspect->setString("Files", "");
+	fileInspect->setString("Id", "");
+	fileInspect->setString("Type", "");
+	fileInspect->setString("Offset", "");
+	fileInspect->setString("Length", "");
+
 }
 
 void Window::setupTabs(QLayout *layout) {

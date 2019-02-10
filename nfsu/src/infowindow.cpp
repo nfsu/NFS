@@ -1,26 +1,17 @@
 #include "infowindow.h"
 #include <QtWidgets/qlabel.h>
 #include <QtWidgets/qheaderview.h>
+#include <QtWidgets/qscrollbar.h>
 using namespace nfsu;
 
 InfoWindow::InfoWindow(QWidget *parent): 
 	QTableWidget(parent) {
 
 	setColumnCount(2);
-	setRowCount(9);
 
-	setMinimumWidth(430);
-	setFixedHeight(275);
+	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-	setString("Title", "");
-	setString("Size", "");
-	setString("File", "");
-	setString("Folders", "");
-	setString("Files", "");
-	setString("Id", "");
-	setString("Type", "");
-	setString("Offset", "");
-	setString("Length", "");
+	setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
 
 	verticalHeader()->setVisible(false);
 	horizontalHeader()->setVisible(false);
@@ -42,12 +33,17 @@ void InfoWindow::setString(QString key, QString value) {
 			return;
 		} else ++i;
 
+	setRowCount(rowCount() + 1);
+
 	table.push_back({ key, value });
 	setItem(i, 0, new QTableWidgetItem(key));
 	setItem(i, 1, new QTableWidgetItem(value));
 
 	item(i, 0)->setFlags(Qt::ItemIsEnabled);
 	item(i, 1)->setFlags(Qt::ItemIsEnabled);
+
+	i32 height = verticalHeader()->count() * verticalHeader()->sectionSize(0) + 2;
+	setFixedHeight(height);
 
 }
 
