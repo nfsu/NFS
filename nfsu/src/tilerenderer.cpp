@@ -725,6 +725,7 @@ void TileRenderer::updateTexture() {
 
 void TileRenderer::reset() {
 	texture = {};
+	paletteTexture = {};
 	destroyGTexture();
 }
 

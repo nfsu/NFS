@@ -28,7 +28,7 @@ Window::Window() {
 		"QWidget {"
 			"background: #303030;"
 			"background-color: #303030;"
-			"color: Cyan;"
+			"color: SkyBlue;"
 			"border: 0px;"
 			"selection-background-color: #404040;"
 			"alternate-background-color: #303030;"
@@ -51,7 +51,7 @@ Window::Window() {
 		"}"
 
 		"QTreeView::item:selected, QAbstractItemView::item:selected, QMenuBar::item:selected, QMenu::item:selected, QTabBar::tab:selected {"
-			"color: White;"
+			"color: DeepSkyBlue;"
 			"background: #505050;"
 		"}"
 
@@ -69,7 +69,7 @@ Window::Window() {
 
 		"QTabBar::tab:selected {"
 			"background: #505050;"
-			"color: White;"
+			"color: DeepSkyBlue;"
 		"}"
 
 		"QHeaderView::section {"
@@ -79,6 +79,16 @@ Window::Window() {
 
 		"QTreeView, QTableView, QMenuBar {"
 			"border: 1px solid #101010;"
+		"}"
+
+		"QScrollBar {"
+			"border: 2px solid #404040;"
+			"background: #303030;"
+			"color: SkyBlue;"
+		"}"
+
+		"QScrollBar::add-page, QScrollBar::sub-page {"
+		"    background: none;"
 		"}"
 
 	);
@@ -206,18 +216,16 @@ void Window::setupExplorer() {
 
 void Window::setupInfoWindow() {
 
-	left->addWidget(fileInspect = new InfoWindow(this));
+	left->addWidget(infoWindow = new InfoWindow(true, this));
 
-	fileInspect->setMinimumWidth(430);
-	fileInspect->setString("Title", "");
-	fileInspect->setString("Size", "");
-	fileInspect->setString("File", "");
-	fileInspect->setString("Folders", "");
-	fileInspect->setString("Files", "");
-	fileInspect->setString("Id", "");
-	fileInspect->setString("Type", "");
-	fileInspect->setString("Offset", "");
-	fileInspect->setString("Length", "");
+	infoWindow->setMinimumWidth(430);
+	infoWindow->setString("Path", "");
+	infoWindow->setString("Folders", "");
+	infoWindow->setString("Files", "");
+	infoWindow->setString("Id", "");
+	infoWindow->setString("Type", "");
+	infoWindow->setString("Offset", "");
+	infoWindow->setString("Length", "");
 
 }
 
@@ -251,11 +259,16 @@ void Window::setupTabs(QLayout *layout) {
 
 	connect(tabs, &QTabWidget::currentChanged, this, [&](int idx) { 
 
+		if(this->selected != nullptr)
+			this->selected->hideInfo(infoWindow);
+
 		this->selected = editors[idx];
 		this->selectedId = idx; 
 
-		if (this->selected != nullptr)
+		if (this->selected != nullptr) {
+			this->selected->showInfo(infoWindow);
 			this->selected->onSwap();
+		}
 
 	});
 
@@ -459,25 +472,23 @@ void Window::restore() {
 	NDS *nds = (NDS*)rom.ptr;
 
 	if (nds != nullptr) {
-		fileInspect->setString("Title", nds->title);
-		fileInspect->setString("Size", QString::number(nds->romSize));
-		fileInspect->setString("File", file);
-		fileInspect->setString("Folders", QString::number(fileSystem.getFolders()));
-		fileInspect->setString("Files", QString::number(fileSystem.getFiles()));
+		infoWindow->setString("Path", "/");
+		infoWindow->setString("Folders", QString::number(fileSystem.getFolders()));
+		infoWindow->setString("Files", QString::number(fileSystem.getFiles()));
 	} else {
-		fileInspect->setString("Title", "");
-		fileInspect->setString("Size", "");
-		fileInspect->setString("File", "");
-		fileInspect->setString("Folders", "");
-		fileInspect->setString("Files", "");
+		infoWindow->setString("Folders", "");
+		infoWindow->setString("Files", "");
 	}
 
-	fileInspect->setString("Id", "");
-	fileInspect->setString("Type", "");
-	fileInspect->setString("Offset", "");
-	fileInspect->setString("Length", "");
+	infoWindow->setString("Id", "");
+	infoWindow->setString("Type", "");
+	infoWindow->setString("Offset", "");
+	infoWindow->setString("Length", "");
 
 	explorerView->reset();
+
+	if (selected != nullptr)
+		selected->hideInfo(infoWindow);
 
 	for (ResourceEditor *editor : editors)
 		if (editor != nullptr) {
@@ -488,6 +499,9 @@ void Window::restore() {
 				editor->init(nds, fileSystem);
 
 		}
+
+	if (selected != nullptr)
+		selected->showInfo(infoWindow);
 
 }
 
@@ -535,7 +549,8 @@ void Window::viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 
 	}
 
-	selected->inspectResource(fileSystem, ao);
+	selected->inspectResource(fileSystem, fso, ao);
+	selected->showInfo(infoWindow);
 
 }
 
@@ -621,17 +636,17 @@ void Window::inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 
 	QString fileName = QString::fromStdString(fso.name);
 
-	fileInspect->setString("Folders", QString::number(fso.folders));
-	fileInspect->setString("Files", QString::number(fso.files));
+	infoWindow->setString("Folders", QString::number(fso.folders));
+	infoWindow->setString("Files", QString::number(fso.files));
 
-	fileInspect->setString("File", fileName);
-	fileInspect->setString("Id", QString::number(fso.index));
+	infoWindow->setString("Path", fileName);
+	infoWindow->setString("Id", QString::number(fso.index));
 
 	int occur = fileName.lastIndexOf(".");
-	fileInspect->setString("Type", fileName.mid(occur + 1, fileName.size() - occur - 1));
+	infoWindow->setString("Type", fileName.mid(occur + 1, fileName.size() - occur - 1));
 
-	fileInspect->setString("Offset", QString("0x") + QString::number((u32)(fso.buf.ptr - rom.ptr), 16));
-	fileInspect->setString("Length", QString::number(fso.buf.size));
+	infoWindow->setString("Offset", QString("0x") + QString::number((u32)(fso.buf.ptr - rom.ptr), 16));
+	infoWindow->setString("Length", QString::number(fso.buf.size));
 
 }
 
@@ -639,15 +654,15 @@ void Window::inspectFolder(nfs::FileSystemObject &fso) {
 
 	QString fileName = QString::fromStdString(fso.name);
 
-	fileInspect->setString("Folders", QString::number(fso.folders));
-	fileInspect->setString("Files", QString::number(fso.files));
+	infoWindow->setString("Folders", QString::number(fso.folders));
+	infoWindow->setString("Files", QString::number(fso.files));
 
-	fileInspect->setString("File", fileName);
-	fileInspect->setString("Id", QString::number(fso.index));
+	infoWindow->setString("Path", fileName);
+	infoWindow->setString("Id", QString::number(fso.index));
 
-	fileInspect->setString("Type", "Folder");
+	infoWindow->setString("Type", "Folder");
 
-	fileInspect->setString("Offset", "");
-	fileInspect->setString("Length", "");
+	infoWindow->setString("Offset", "");
+	infoWindow->setString("Length", "");
 
 }

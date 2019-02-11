@@ -4,6 +4,8 @@
 
 namespace nfsu {
 
+	class InfoWindow;
+
 	class ResourceEditor {
 
 	public:
@@ -12,10 +14,16 @@ namespace nfsu {
 		virtual bool allowsResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
 
 		//Handle displaying the resource internally
-		virtual void inspectResource(nfs::FileSystem &fileSystem, nfs::ArchiveObject &ao) = 0;
+		virtual void inspectResource(nfs::FileSystem &fileSystem, nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
 
 		//Whenever the tab is switched to
 		virtual void onSwap() = 0;
+
+		//Add info to info window
+		virtual void showInfo(InfoWindow *info) {};
+
+		//Remove info from info window
+		virtual void hideInfo(InfoWindow *info) {};
 
 		//When the editor is reset (like ROM reload)
 		virtual void reset() = 0;

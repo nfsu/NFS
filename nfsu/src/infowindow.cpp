@@ -4,19 +4,21 @@
 #include <QtWidgets/qscrollbar.h>
 using namespace nfsu;
 
-InfoWindow::InfoWindow(QWidget *parent): 
-	QTableWidget(parent) {
+InfoWindow::InfoWindow(bool useScrollbar, QWidget *parent):
+	QTableWidget(parent), useScrollbar(useScrollbar) {
 
 	setColumnCount(2);
 
+	setHorizontalScrollBarPolicy(useScrollbar ? Qt::ScrollBarAlwaysOn : Qt::ScrollBarAlwaysOff);
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-	setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
 	verticalHeader()->setVisible(false);
 	horizontalHeader()->setVisible(false);
 
-	horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+	horizontalHeader()->setSectionResizeMode(1, useScrollbar ? QHeaderView::ResizeToContents : QHeaderView::Stretch);
+	setHorizontalScrollMode(ScrollMode::ScrollPerPixel);
 
 }
 
@@ -42,11 +44,45 @@ void InfoWindow::setString(QString key, QString value) {
 	item(i, 0)->setFlags(Qt::ItemIsEnabled);
 	item(i, 1)->setFlags(Qt::ItemIsEnabled);
 
-	i32 height = verticalHeader()->count() * verticalHeader()->sectionSize(0) + 2;
-	setFixedHeight(height);
+	updateHeight();
 
+}
+
+void InfoWindow::clearString(QString key) {
+
+	u32 i = 0;
+
+	for (auto &elem : table)
+		if (elem.first == key) {
+			table.removeOne(elem);
+			removeRow(i);
+			updateHeight();
+			return;
+		} else ++i;
+
+
+}
+
+int InfoWindow::sizeHintForColumn(int i) const {
+
+	if(i == 0 || !useScrollbar)
+		return QTableWidget::sizeHintForColumn(0);
+
+	int viewSize = viewport()->width() - sizeHintForColumn(0) * 2 - 2;
+	int colSize = QTableWidget::sizeHintForColumn(i);
+	return qMax(viewSize, colSize);
+}
+
+void InfoWindow::reset() {
+	for (auto &elem : table)
+		elem.second = "";
 }
 
 void InfoWindow::updateRow(u32 i, QString value) {
 	item(i, 1)->setText(value);
+}
+
+void InfoWindow::updateHeight() {
+	i32 height = verticalHeader()->count() * verticalHeader()->sectionSize(0) + 2 + (useScrollbar ? horizontalScrollBar()->height() : 0);
+	setFixedHeight(height);
 }

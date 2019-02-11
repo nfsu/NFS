@@ -97,7 +97,7 @@ namespace nfsu {
 
 		NExplorer *explorer = nullptr;
 		NExplorerView *explorerView;
-		InfoWindow *fileInspect = nullptr;
+		InfoWindow *infoWindow = nullptr;
 
 		QLayout *layout = nullptr, *rightLayout;
 		QWidget *right, *central;

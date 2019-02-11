@@ -17,7 +17,7 @@ namespace nfsu {
 		PaletteRenderer *getRenderer();
 
 		bool allowsResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
-		void inspectResource(nfs::FileSystem &fileSystem, nfs::ArchiveObject &ao) override;
+		void inspectResource(nfs::FileSystem &fileSystem, nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
 
 		void onSwap() override;
 		void reset() override;

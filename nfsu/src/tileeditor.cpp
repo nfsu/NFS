@@ -8,33 +8,6 @@ using namespace nfs;
 
 TileEditor::TileEditor() {
 
-	//Info window
-
-	info = new InfoWindow;
-
-	info->setFixedWidth(200);
-	info->setString("Width", "");
-	info->setString("Height", "");
-	info->setString("bpp", "");
-
-	//Buttons
-
-	//Top bar
-
-	QWidget *bar = new QWidget;
-	bar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-	bar->setContentsMargins(0, 0, 0, 0);
-
-	QHBoxLayout *barLayout = new QHBoxLayout;
-	barLayout->setContentsMargins(2, 2, 2, 2);
-	bar->setLayout(barLayout);
-
-	barLayout->addWidget(info);
-	barLayout->addStretch();
-	//barLayout->addWidget(buttons);
-	//barLayout->addWidget(palettePreview);
-	//barLayout->addWidget(paletteButtons);
-
 	//Renderer
 	renderer = new TileRenderer;
 	renderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -45,8 +18,11 @@ TileEditor::TileEditor() {
 	layout->setContentsMargins(0, 0, 0, 0);
 	setLayout(layout);
 
-	layout->addWidget(bar);
 	layout->addWidget(renderer);
+
+	//TODO: InfoWindow should have a scrollbar (vertical)
+	//TODO: InfoWindow column size is invalid (should be stretch)
+	//TODO: Separation between file explorer and editor data
 
 	//TODO: Palette disable button, palette grid, tile grid
 	//TODO: Lookup palette & tile button/file explorer
@@ -78,7 +54,7 @@ bool TileEditor::allowsResource(FileSystemObject &fso, ArchiveObject &ao) {
 	return ao.info.magicNumber == NCGR::getMagicNumber() || ao.info.magicNumber == NCLR::getMagicNumber();
 }
 
-void TileEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
+void TileEditor::inspectResource(FileSystem &fileSystem, FileSystemObject &fso, ArchiveObject &ao) {
 
 	if (ao.info.magicNumber == NCGR::getMagicNumber()) {
 
@@ -87,12 +63,19 @@ void TileEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
 
 		setTiles(tex);
 
-		info->setString("Width", QString::number(tex.getWidth()));
-		info->setString("Height", QString::number(tex.getHeight()));
-		info->setString("bpp", QString::number(tex.getBitsPerPixel()));
+		tile = &ncgr;
+		tileName = QString::fromStdString(fso.name);
 
-	} else 
-		setPalette(Texture2D(fileSystem.get<NCLR>(ao)));
+	} else {
+
+		NCLR &nclr = fileSystem.get<NCLR>(ao);
+
+		setPalette(Texture2D(nclr));
+
+		palette = &nclr;
+		paletteName = QString::fromStdString(fso.name);
+
+	}
 
 }
 
@@ -106,5 +89,71 @@ void TileEditor::onSwap() {
 
 void TileEditor::reset() {
 	renderer->reset();
+	palette = nullptr;
+	tile = nullptr;
+	paletteName = "";
+	tileName = "";
 	repaint();
+}
+
+void TileEditor::showInfo(InfoWindow *info) {
+
+	info->setString("Tile name", tileName);
+
+	if (tile != nullptr && renderer->getTexture().getWidth() != 0) {
+
+		info->setString("Width", QString::number(renderer->getTexture().getWidth()));
+		info->setString("Height", QString::number(renderer->getTexture().getHeight()));
+		info->setString("Tiling", QString::number(renderer->getTexture().getTiles()));
+		info->setString("Bit depth", QString::number(renderer->getTexture().getBitsPerPixel()));
+		info->setString("Encryption", tile->at<0>().isEncrypted ? "On" : "Off");
+
+		info->setString("Special",
+			QString::number(tile->at<0>().sizeHint0) + " " + QString::number(tile->at<0>().sizeHint1) + " " +
+			QString::number(tile->at<0>().sizeHint2) + " " + QString::number(tile->at<0>().specialTiling)
+		);
+
+
+	} else {
+		
+		info->setString("Width", "");
+		info->setString("Height", "");
+		info->setString("Tiling", "");
+		info->setString("Bit depth", "");
+		info->setString("Encryption", "");
+		info->setString("Special", "");
+
+	}
+
+	info->setString("Palette name", paletteName);
+
+	if (palette != nullptr && renderer->getPalette().getWidth() != 0) {
+
+		info->setString("Colors", QString::number(renderer->getPalette().getWidth()));
+		info->setString("Palettes", QString::number(renderer->getPalette().getHeight()));
+
+	} else {
+
+		info->setString("Colors", "");
+		info->setString("Palettes", "");
+
+	}
+
+}
+
+void TileEditor::hideInfo(InfoWindow *info) {
+
+	info->clearString("Tile name");
+
+	info->clearString("Width");
+	info->clearString("Height");
+	info->clearString("Tiling");
+	info->clearString("Bit depth");
+	info->clearString("Encryption");
+	info->clearString("Special");
+
+	info->clearString("Palette name");
+	info->clearString("Colors");
+	info->clearString("Palettes");
+
 }

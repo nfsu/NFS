@@ -11,19 +11,27 @@ namespace nfsu {
 
 	public:
 
-		InfoWindow(QWidget *parent = nullptr);
+		InfoWindow(bool useScrollbar, QWidget *parent = nullptr);
 		~InfoWindow();
 
 		void setString(QString key, QString value);
+		void clearString(QString key);
+		void reset();
+
+		int sizeHintForColumn(int) const override;
+
 
 	protected:
 
 		void updateRow(u32 i, QString value);
+		void updateHeight();
 
 	private:
 
 		QList<QPair<QString, QString>> table;
 		QLayout *layout = nullptr;
+
+		bool useScrollbar;
 
 	};
 

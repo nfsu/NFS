@@ -30,7 +30,7 @@ bool PaletteEditor::isPrimaryEditor(FileSystemObject &fso, ArchiveObject &ao) {
 	return allowsResource(fso, ao);
 }
 
-void PaletteEditor::inspectResource(FileSystem &fileSystem, ArchiveObject &ao) {
+void PaletteEditor::inspectResource(FileSystem &fileSystem, FileSystemObject &fso, ArchiveObject &ao) {
 	setPalette(Texture2D(fileSystem.get<NCLR>(ao)));
 }
 
