@@ -20,8 +20,6 @@ TileEditor::TileEditor() {
 
 	layout->addWidget(renderer);
 
-	//TODO: InfoWindow should have a scrollbar (vertical)
-	//TODO: InfoWindow column size is invalid (should be stretch)
 	//TODO: Separation between file explorer and editor data
 
 	//TODO: Palette disable button, palette grid, tile grid

@@ -73,9 +73,7 @@ int InfoWindow::sizeHintForColumn(int i) const {
 	if(i == 0 || !scrollHorizontal)
 		return QTableWidget::sizeHintForColumn(0);
 
-	//TODO:
-
-	int viewSize = viewport()->width() - sizeHintForColumn(0) * 2 - 2;
+	int viewSize = viewport()->width() - horizontalHeader()->sectionSize(0);
 	int colSize = QTableWidget::sizeHintForColumn(i);
 	return qMax(viewSize, colSize);
 }
