@@ -88,7 +88,7 @@ Window::Window() {
 		"}"
 
 		"QScrollBar::add-page, QScrollBar::sub-page {"
-		"    background: none;"
+			"background: none;"
 		"}"
 
 	);
@@ -216,9 +216,10 @@ void Window::setupExplorer() {
 
 void Window::setupInfoWindow() {
 
-	left->addWidget(infoWindow = new InfoWindow(true, this));
+	left->addWidget(infoWindow = new InfoWindow(true, true, this));
 
-	infoWindow->setMinimumWidth(430);
+	infoWindow->setMinimumWidth(400);
+	infoWindow->setMinimumHeight(205);
 	infoWindow->setString("Path", "");
 	infoWindow->setString("Folders", "");
 	infoWindow->setString("Files", "");

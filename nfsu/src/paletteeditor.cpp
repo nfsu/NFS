@@ -1,4 +1,5 @@
 #include "paletteeditor.h"
+#include "infowindow.h"
 #include <QtWidgets/qgridlayout.h>
 #include <QtWidgets/qcolordialog.h>
 #include <QtGui/qevent.h>
@@ -6,7 +7,6 @@ using namespace nfsu;
 using namespace nfs;
 
 //TODO: Button for showing / disabling grid, grid size
-//TODO: Show properties of palette
 //TODO: Export resource, export texture, import resource, import texture, detect palette from texture
 //TODO: Layout; horizontal bar, w dropdown for palette editing
 
@@ -31,6 +31,7 @@ bool PaletteEditor::isPrimaryEditor(FileSystemObject &fso, ArchiveObject &ao) {
 }
 
 void PaletteEditor::inspectResource(FileSystem &fileSystem, FileSystemObject &fso, ArchiveObject &ao) {
+	paletteName = QString::fromStdString(fso.name);
 	setPalette(Texture2D(fileSystem.get<NCLR>(ao)));
 }
 
@@ -39,5 +40,32 @@ void PaletteEditor::onSwap() {
 }
 
 void PaletteEditor::reset() {
+	paletteName = "";
 	PaletteRenderer::reset();
+}
+
+void PaletteEditor::showInfo(InfoWindow *info) {
+
+	info->setString("Palette name", paletteName);
+
+	if (getGPUTexture() != nullptr && getTexture().getWidth() != 0) {
+
+		info->setString("Colors", QString::number(getTexture().getWidth()));
+		info->setString("Palettes", QString::number(getTexture().getHeight()));
+
+	} else {
+
+		info->setString("Colors", "");
+		info->setString("Palettes", "");
+
+	}
+
+}
+
+void PaletteEditor::hideInfo(InfoWindow *info) {
+
+	info->clearString("Palette name");
+	info->clearString("Colors");
+	info->clearString("Palettes");
+
 }

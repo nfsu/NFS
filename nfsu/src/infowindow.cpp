@@ -4,21 +4,26 @@
 #include <QtWidgets/qscrollbar.h>
 using namespace nfsu;
 
-InfoWindow::InfoWindow(bool useScrollbar, QWidget *parent):
-	QTableWidget(parent), useScrollbar(useScrollbar) {
+InfoWindow::InfoWindow(bool scrollHorizontal, bool scrollVertical, QWidget *parent):
+	QTableWidget(parent), scrollHorizontal(scrollHorizontal), scrollVertical(scrollVertical) {
 
 	setColumnCount(2);
 
-	setHorizontalScrollBarPolicy(useScrollbar ? Qt::ScrollBarAlwaysOn : Qt::ScrollBarAlwaysOff);
-	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	setHorizontalScrollBarPolicy(scrollHorizontal ? Qt::ScrollBarAlwaysOn : Qt::ScrollBarAlwaysOff);
+	setVerticalScrollBarPolicy(scrollVertical ? Qt::ScrollBarAlwaysOn : Qt::ScrollBarAlwaysOff);
 
-	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	setSizePolicy(QSizePolicy::Expanding, scrollVertical ? QSizePolicy::Expanding : QSizePolicy::Expanding);
 
 	verticalHeader()->setVisible(false);
 	horizontalHeader()->setVisible(false);
 
-	horizontalHeader()->setSectionResizeMode(1, useScrollbar ? QHeaderView::ResizeToContents : QHeaderView::Stretch);
+	horizontalHeader()->setSectionResizeMode(1, scrollHorizontal ? QHeaderView::ResizeToContents : QHeaderView::Stretch);
+
+	if (scrollVertical)
+		verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
 	setHorizontalScrollMode(ScrollMode::ScrollPerPixel);
+	setVerticalScrollMode(ScrollMode::ScrollPerPixel);
 
 }
 
@@ -65,8 +70,10 @@ void InfoWindow::clearString(QString key) {
 
 int InfoWindow::sizeHintForColumn(int i) const {
 
-	if(i == 0 || !useScrollbar)
+	if(i == 0 || !scrollHorizontal)
 		return QTableWidget::sizeHintForColumn(0);
+
+	//TODO:
 
 	int viewSize = viewport()->width() - sizeHintForColumn(0) * 2 - 2;
 	int colSize = QTableWidget::sizeHintForColumn(i);
@@ -83,6 +90,13 @@ void InfoWindow::updateRow(u32 i, QString value) {
 }
 
 void InfoWindow::updateHeight() {
-	i32 height = verticalHeader()->count() * verticalHeader()->sectionSize(0) + 2 + (useScrollbar ? horizontalScrollBar()->height() : 0);
+
+	i32 height = verticalHeader()->count() * verticalHeader()->sectionSize(0) + 2 + (scrollHorizontal ? horizontalScrollBar()->height() : 0);
+
+	if (scrollVertical) {
+		setMaximumHeight(height);
+		return;
+	}
+
 	setFixedHeight(height);
 }

@@ -11,7 +11,7 @@ namespace nfsu {
 
 	public:
 
-		InfoWindow(bool useScrollbar, QWidget *parent = nullptr);
+		InfoWindow(bool scrollHorizontal, bool scrollVertical, QWidget *parent = nullptr);
 		~InfoWindow();
 
 		void setString(QString key, QString value);
@@ -31,7 +31,7 @@ namespace nfsu {
 		QList<QPair<QString, QString>> table;
 		QLayout *layout = nullptr;
 
-		bool useScrollbar;
+		bool scrollHorizontal, scrollVertical;
 
 	};
 

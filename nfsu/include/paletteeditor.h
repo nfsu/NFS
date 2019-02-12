@@ -24,6 +24,13 @@ namespace nfsu {
 		
 		bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
 
+		void showInfo(InfoWindow *info) override;
+		void hideInfo(InfoWindow *info) override;
+
+	private:
+
+		QString paletteName;
+
 	};
 
 }
