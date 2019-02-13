@@ -304,6 +304,10 @@ void TileRenderer::setUsePalette(bool b) {
 	repaint();
 }
 
+bool TileRenderer::getUsePalette() {
+	return usePalette;
+}
+
 void TileRenderer::setEditable(bool b) {
 	editable = b;
 	repaint();

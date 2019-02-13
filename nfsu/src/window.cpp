@@ -263,6 +263,11 @@ void Window::setupTabs(QLayout *layout) {
 
 	selected = editors[tabs->currentIndex()];
 
+	if (selected != nullptr) {
+		selected->showInfo(infoWindow);
+		selected->onSwap();
+	}
+
 	connect(tabs, &QTabWidget::currentChanged, this, [&](int idx) { 
 
 		if(this->selected != nullptr)

@@ -25,6 +25,8 @@ namespace nfsu {
 		nfs::Texture2D getPalette();
 
 		void setUsePalette(bool b);
+		bool getUsePalette();
+
 		void setEditable(bool b);
 		
 		void setCursorSize(u32 size);

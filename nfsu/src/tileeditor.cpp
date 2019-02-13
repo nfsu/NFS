@@ -3,21 +3,53 @@
 #include "infowindow.h"
 #include "paletterenderer.h"
 #include <QtGui/qevent.h>
+#include <QtWidgets/qpushbutton.h>
 using namespace nfsu;
 using namespace nfs;
 
 TileEditor::TileEditor() {
 
 	//Renderer
+
 	renderer = new TileRenderer;
 	renderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+	//Buttons
+
+	QWidget *palette = new QWidget;
+
+	QGridLayout *gridLayout = new QGridLayout;
+
+	QPushButton *exportButton = new QPushButton(QIcon(QPixmap("resources/export.png")), "");
+	QPushButton *exportConvertButton = new QPushButton(QIcon(QPixmap("resources/export_converted.png")), "");
+	QPushButton *importButton = new QPushButton(QIcon(QPixmap("resources/import.png")), "");
+	QPushButton *importConvertButton = new QPushButton(QIcon(QPixmap("resources/import_converted.png")), "");
+	QPushButton *paletteButton = new QPushButton(QIcon(QPixmap("resources/palette.png")), "");
+	QPushButton *gridButton = new QPushButton(QIcon(QPixmap("resources/grid.png")), "");
+
+	connect(paletteButton, &QPushButton::clicked, this, [&]() { this->setUsePalette(!this->getUsePalette()); });
+	//connect(gridButton, &QPushButton::clicked, this, )
+
+	gridLayout->addWidget(importButton, 0, 0);
+	gridLayout->addWidget(importConvertButton, 1, 0);
+	gridLayout->addWidget(exportButton, 0, 1);
+	gridLayout->addWidget(exportConvertButton, 1, 1);
+	gridLayout->addWidget(gridButton, 0, 2);
+	gridLayout->addWidget(paletteButton, 1, 2);
+
+	gridLayout->setMargin(5);
+	palette->setLayout(gridLayout);
+	palette->setContentsMargins(0, 0, 0, 0);
+	palette->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
 	//Layout
 
 	QVBoxLayout *layout = new QVBoxLayout;
-	layout->setContentsMargins(0, 0, 0, 0);
+	layout->setSpacing(0);
+	layout->setMargin(0);
 	setLayout(layout);
 
+	layout->addWidget(palette);
 	layout->addWidget(renderer);
 
 	//TODO: Separation between file explorer and editor data
@@ -40,8 +72,12 @@ void TileEditor::setTiles(Texture2D tex) {
 	renderer->setTexture(tex);
 }
 
-void TileEditor::usePalette(bool b) {
+void TileEditor::setUsePalette(bool b) {
 	renderer->setUsePalette(b);
+}
+
+bool TileEditor::getUsePalette() {
+	return renderer->getUsePalette();
 }
 
 Texture2D TileEditor::getTiles() {
