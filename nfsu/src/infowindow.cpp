@@ -12,7 +12,7 @@ InfoWindow::InfoWindow(bool scrollHorizontal, bool scrollVertical, QWidget *pare
 	setHorizontalScrollBarPolicy(scrollHorizontal ? Qt::ScrollBarAlwaysOn : Qt::ScrollBarAlwaysOff);
 	setVerticalScrollBarPolicy(scrollVertical ? Qt::ScrollBarAlwaysOn : Qt::ScrollBarAlwaysOff);
 
-	setSizePolicy(QSizePolicy::Expanding, scrollVertical ? QSizePolicy::Expanding : QSizePolicy::Expanding);
+	setSizePolicy(QSizePolicy::Expanding, scrollVertical ? QSizePolicy::MinimumExpanding : QSizePolicy::Expanding);
 
 	verticalHeader()->setVisible(false);
 	horizontalHeader()->setVisible(false);

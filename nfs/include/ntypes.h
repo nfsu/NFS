@@ -169,17 +169,28 @@ namespace nfs {
 
 	struct NDSBanner {
 
+		enum class NDSTitleLanguage {
+
+			JAPANESE,
+			ENGLISH,
+			FRENCH,
+			GERMAN,
+			ITALIAN,
+			SPANISH
+
+		};
+
 		u16 version;
 		u16 checksum;
 		u8 reserved[28];
-		u8 icon[32][32];	//NDS icon data (palette[i])
+		u8 icon[512];	//NDS icon data (palette[i])
 		u16 palette[16];	//NDS icon palette (BGR5)
 		u16 titles[6][128];	//Title of game in 6 languages (unicode)
 
 		//Get banner from NDS file
 		static NDSBanner *get(NDS *nds);
 
-		std::vector<NDSTitle> getTitles();
+		std::wstring getTitle(NDSTitleLanguage lang);
 
 	};
 

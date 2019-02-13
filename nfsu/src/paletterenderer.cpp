@@ -229,7 +229,7 @@ void PaletteRenderer::mousePressEvent(QMouseEvent *e) {
 	QPoint tpos = globalToTexture(e->pos());
 	u8 pos = (tpos.y() << 4) | tpos.x();
 
-	if (editable && e->button() == Qt::LeftButton) {
+	if (editable && e->button() == Qt::LeftButton && texture.getWidth() != 0) {
 
 		u32 color = get(tpos);
 

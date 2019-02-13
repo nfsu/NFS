@@ -13,6 +13,7 @@
 #include "model.h"
 #include "paletteeditor.h"
 #include "tileeditor.h"
+#include "gameeditor.h"
 using namespace nfsu;
 using namespace nfs;
 
@@ -200,6 +201,7 @@ void Window::setupExplorer() {
 	explorer = new NExplorer(fileSystem);
 
 	auto *view = explorerView = new NExplorerView(explorer);
+	view->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
 	left->addWidget(view);
 
 	view->addResourceCallback(true, u32_MAX, [this, view](FileSystem &fs, FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
@@ -219,7 +221,7 @@ void Window::setupInfoWindow() {
 	left->addWidget(infoWindow = new InfoWindow(true, true, this));
 
 	infoWindow->setMinimumWidth(400);
-	infoWindow->setMinimumHeight(205);
+	infoWindow->setMinimumHeight(210);
 	infoWindow->setString("Path", "");
 	infoWindow->setString("Folders", "");
 	infoWindow->setString("Files", "");
@@ -237,6 +239,9 @@ void Window::setupTabs(QLayout *layout) {
 	for (auto &elem : editors)
 		elem = nullptr;
 
+	GameEditor *gameEditor = new GameEditor;
+	editors[0] = gameEditor;
+
 	PaletteEditor *paletteEditor = new PaletteEditor;
 	editors[1] = paletteEditor;
 
@@ -244,7 +249,7 @@ void Window::setupTabs(QLayout *layout) {
 	editors[2] = tileEditor;
 
 	tabs = new QTabWidget;
-	tabs->addTab(new QWidget, QIcon("resources/folder.png"), "Game editor");			//TODO: Edit game
+	tabs->addTab(gameEditor, QIcon("resources/folder.png"), "Game editor");			//TODO: Edit game
 	tabs->addTab(paletteEditor, QIcon("resources/palette.png"), "Palette editor");
 	tabs->addTab(tileEditor, QIcon("resources/tilemap.png"), "Tile editor");
 	tabs->addTab(new QWidget, QIcon("resources/map.png"), "Tilemap editor");			//TODO: Edit tilemap

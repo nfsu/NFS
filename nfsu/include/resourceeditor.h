@@ -11,10 +11,10 @@ namespace nfsu {
 	public:
 
 		//Whether or not the editor can display the file or resource type
-		virtual bool allowsResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
+		virtual bool allowsResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) { return false; }
 
 		//Handle displaying the resource internally
-		virtual void inspectResource(nfs::FileSystem &fileSystem, nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
+		virtual void inspectResource(nfs::FileSystem &fileSystem, nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {}
 
 		//Whenever the tab is switched to
 		virtual void onSwap() = 0;
@@ -32,7 +32,7 @@ namespace nfsu {
 		virtual void init(nfs::NDS *nds, nfs::FileSystem &fs) {}
 
 		//Whether or not the editor is made specifically for the file or resource type
-		virtual bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) = 0;
+		virtual bool isPrimaryEditor(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) { return false; }
 
 		//Whether or not the editor can show pure data
 		virtual bool allowsData() { return false; }
