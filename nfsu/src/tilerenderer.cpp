@@ -178,7 +178,7 @@ void TileRenderer::initializeGL() {
 				"output = vec3(r / 31.0f, g / 31.0f, b / 31.0f);"
 
 			"} else "
-				"output = vec3((val & 0xF) / 15.f, ((val & 0xF0) >> 4) / 15.f, 0);"
+				"output = vec3(val / 255.f, 0, 0);"
 
 			"color = vec4("
 						"mix(output, vec3(0), "

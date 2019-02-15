@@ -280,6 +280,7 @@ u16 Texture2D::getHeight() { return height; }
 u32 Texture2D::getSize() { return size; }
 u32 Texture2D::getTiles() { return tiles; }
 u32 Texture2D::getDataSize() { return dataSize; }
+Buffer Texture2D::toBuffer() { return Buffer(dataSize, data); }
 
 ChangeDimensionsResult Texture2D::changeDimensions(u16 w, u16 h) {
 
@@ -411,8 +412,13 @@ u32 convert(Texture2D tex, u16 i, u16 j, Texture2D t, bool fixIntegers) {
 	
 	u32 val = t.read(i, j);
 
-	if ((t.getType() == TextureType::INTEGER || t.getType() == TextureType::R4) && fixIntegers)
-		val = u32_MAX - val;
+	if ((t.getType() == TextureType::INTEGER || t.getType() == TextureType::R4) && fixIntegers) {
+
+		if (t.getType() == TextureType::R4)
+			val <<= 4;
+
+		val = val | 0xFF000000U;
+	}
 
 	return val;
 }
@@ -430,6 +436,10 @@ u32 convertPT2D(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palett
 Texture2D::Texture2D(NCGR &tilemap, NCLR &palette) {
 	Texture2D tm = tilemap, pl = palette;
 	*this = fromShader(convertPT2D, tm.width, tm.height, tm, pl);
+}
+
+Texture2D::Texture2D(Texture2D &tilemap, Texture2D &palette) {
+	*this = fromShader(convertPT2D, tilemap.width, tilemap.height, tilemap, palette);
 }
 
 u8 *Texture2D::getPtr() { return data; }

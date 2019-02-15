@@ -4,6 +4,8 @@
 #include "paletterenderer.h"
 #include <QtGui/qevent.h>
 #include <QtWidgets/qpushbutton.h>
+#include <QtWidgets/qmessagebox.h>
+#include <QtWidgets/qfiledialog.h>
 using namespace nfsu;
 using namespace nfs;
 
@@ -30,6 +32,100 @@ TileEditor::TileEditor() {
 	connect(paletteButton, &QPushButton::clicked, this, [&]() { this->setUsePalette(!this->getUsePalette()); });
 	//connect(gridButton, &QPushButton::clicked, this, )
 
+	connect(exportButton, &QPushButton::clicked, this, [&]() {
+
+		QString filters;
+
+		bool hasTiledData = this->renderer->getTexture().getWidth() != 0;
+		bool hasPaletteData = this->renderer->getPalette().getWidth() != 0;
+
+		if (this->tile)
+			filters += "NCGR file (*.NCGR)";
+		else if (hasTiledData)
+			filters += "Tiled data (*.bin)";
+
+		if (hasTiledData && hasPaletteData)
+			filters += ";;";
+
+		if (this->palette)
+			filters += "NCLR file (*.NCLR)";
+		else if (hasPaletteData)
+			filters += "Palette data (*.bin)";
+
+		if (!hasTiledData && !hasPaletteData) {
+			QMessageBox messageBox;
+			messageBox.critical(0, "Error", "Please select a palette and/or tiled image");
+			messageBox.setFixedSize(500, 200);
+			return;
+		}
+
+		QString filter;
+		QString file = QFileDialog::getSaveFileName(nullptr, tr("Save resource"), "", filters, &filter);
+
+		if (file == "")
+			return;
+
+		QFile ofile = file;
+		ofile.open(QIODevice::WriteOnly);
+
+		if (!ofile.isOpen()) {
+
+			QMessageBox messageBox;
+			messageBox.critical(0, "Error", "Please select a valid output");
+			messageBox.setFixedSize(500, 200);
+			return;
+
+		}
+
+		Buffer buf;
+
+		if (filter == "NCGR file (*.NCGR)")
+			buf = this->tile->toBuffer();
+		else if (filter == "NCLR file (*.NCLR)")
+			buf = this->palette->toBuffer();
+		else if (filter == "Palette data (*.bin)")
+			buf = this->renderer->getPalette().toBuffer();
+		else
+			buf = this->renderer->getTexture().toBuffer();
+
+		ofile.write((const char*)buf.ptr, buf.size);
+		ofile.close();
+
+	});
+
+	connect(exportConvertButton, &QPushButton::clicked, this, [&]() {
+
+		QString filter;
+		QString file = QFileDialog::getSaveFileName(nullptr, tr("Save converted resource"), "", "Converted file (*.png);;Palette file (*.png);;Tiled file (*.png)", &filter);
+
+		if (file == "")
+			return;
+
+		bool hasTiledData = this->renderer->getTexture().getWidth() != 0;
+		bool hasPaletteData = this->renderer->getPalette().getWidth() != 0;
+
+		if ((!hasTiledData && !hasPaletteData) || !this->renderer->getUsePalette()) {
+			QMessageBox messageBox;
+			messageBox.critical(0, "Error", "Please select a palette and tiled image and enable the palette");
+			messageBox.setFixedSize(500, 200);
+			return;
+		}
+
+		Texture2D tex2d;
+
+		if (filter == "Converted file (*.png)")
+			tex2d = Texture2D(this->renderer->getTexture(), this->renderer->getPalette());
+		else if (filter == "Palette file (*.png)")
+			tex2d = this->renderer->getPalette().toRGBA8();
+		else
+			tex2d = this->renderer->getTexture().toRGBA8();
+
+		tex2d.write(file.toStdString());
+
+	});
+
+	//TODO: Import button, import convert
+
 	gridLayout->addWidget(importButton, 0, 0);
 	gridLayout->addWidget(importConvertButton, 1, 0);
 	gridLayout->addWidget(exportButton, 0, 1);
@@ -54,8 +150,6 @@ TileEditor::TileEditor() {
 
 	//TODO: Separation between file explorer and editor data
 
-	//TODO: Palette disable button, palette grid, tile grid
-	//TODO: Lookup palette & tile button/file explorer
 	//TODO: Allow changing size, tool, color
 
 }

@@ -39,8 +39,8 @@ namespace nfsu {
 
 		TileRenderer *renderer;
 
-		nfs::NCGR *tile;
-		nfs::NCLR *palette;
+		nfs::NCGR *tile = nullptr;
+		nfs::NCLR *palette = nullptr;
 
 		QString tileName, paletteName;
 

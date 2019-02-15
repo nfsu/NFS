@@ -52,6 +52,10 @@ namespace nfs {
 			return GetBuffer<0, i, args...>::at(ptrs[i]);
 		}
 
+		Buffer toBuffer() {
+			return Buffer::alloc(size(), (u8*) header);
+		}
+
 		//Gives the size if all sections are present
 		static constexpr u32 maxSize() {
 			return FindOffset<elements(), elements(), args...>();

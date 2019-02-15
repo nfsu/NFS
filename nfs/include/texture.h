@@ -38,6 +38,9 @@ namespace nfs {
 		//Allocate a new Texture2D from palette and tilemap
 		Texture2D(NCGR &tilemap, NCLR &palette);
 
+		//Allocate a new Texture2D from (loaded) palette and (loaded) tilemap
+		Texture2D(Texture2D &tilemap, Texture2D &palette);
+
 		//Allocate a new Texture2D from palette, tilemap and map
 		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette);
 
@@ -69,6 +72,7 @@ namespace nfs {
 		u32 getSize();
 		u32 getTiles();
 		u32 getDataSize();
+		Buffer toBuffer();
 		bool useEncryption();
 		
 		//Change the dimensions of a texture; the only requirement is that w*h = this->size
