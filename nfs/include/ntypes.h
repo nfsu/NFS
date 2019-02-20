@@ -2,9 +2,6 @@
 #include "genericresource.h"
 #include "compressionhelper.h"
 #include "fpx.h"
-#include "b1.h"
-#include "ux.h"
-#include "sstruct.h"
 
 namespace nfs {
 

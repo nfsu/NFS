@@ -142,7 +142,30 @@ namespace nfs {
 				TextureParameter_TransformMode				//u2	: ???
 			};
 
-			typedef sstruct<u16, b1, b1, b1, b1, u3, u3, u3, b1, u2> TextureParameter;
+			struct TextureParameter {
+
+				union {
+
+					u32 value;
+
+					struct {
+
+						u32 offset : 16;
+						u32 repeatU : 1;
+						u32 repeatV : 1;
+						u32 mirrorU : 1;
+						u32 mirrorV : 1;
+						u32 width : 3;		//8 << width
+						u32 height : 3;		//8 << height
+						u32 format : 3;
+						u32 nullAsTransparency : 1;
+						u32 transformMode : 2;
+
+					};
+
+				};
+
+			};
 			
 			char name[16];
 

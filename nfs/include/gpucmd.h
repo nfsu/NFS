@@ -92,16 +92,29 @@ namespace nfs {
 	//Load position
 	struct GpuCmdXyz10 : GpuCmdBase<GpuCmdType::LOAD_XYZ10> {
 
-		u32 xyz;
+		union {
+
+			u32 xyz;
+
+			struct {
+				u32 z : 10;
+				u32 y : 10;
+				u32 x : 10;
+				u32 _undef : 2;
+			};
+
+		};
 
 		void get(fpx1_3_6 &x, fpx1_3_6 &y, fpx1_3_6 &z) {
-			x = fpx1_3_6::dec((xyz & 0x3FF00000) >> 20);
-			y = fpx1_3_6::dec((xyz & 0xFFC00) >> 10);
-			z = fpx1_3_6::dec(xyz & 0x3FF);
+			x = fpx1_3_6::dec(this->x);
+			y = fpx1_3_6::dec(this->y);
+			z = fpx1_3_6::dec(this->z);
 		}
 
 		void set(fpx1_3_6 x, fpx1_3_6 y, fpx1_3_6 z) {
-			xyz = ((u32)x.val << 20) | ((u32)y.val << 10) | z.val;
+			this->x = x.val;
+			this->y = y.val;
+			this->z = z.val;
 		}
 
 		void process(GpuCmdParser &parser);
@@ -138,14 +151,25 @@ namespace nfs {
 	//Load position (displacement)
 	struct GpuCmdXyzd : GpuCmdBase<GpuCmdType::LOAD_XYZD> {
 
-		u32 xyz;
+		union {
+
+			u32 xyz;
+
+			struct {
+				u32 z : 10;
+				u32 y : 10;
+				u32 x : 10;
+				u32 _undef : 2;
+			};
+
+		};
 
 		static constexpr f32 scale = 0.5f * 0.5f * 0.5f;
 
 		void get(f32 &x, f32 &y, f32 &z) {
-			x = fpx1_0_9::dec((xyz & 0x3FF00000) >> 20) * scale;
-			y = fpx1_0_9::dec((xyz & 0xFFC00) >> 10) * scale;
-			z = fpx1_0_9::dec(xyz & 0x3FF) * scale;
+			x = fpx1_0_9::dec(this->x) * scale;
+			y = fpx1_0_9::dec(this->y) * scale;
+			z = fpx1_0_9::dec(this->z) * scale;
 		}
 
 		void set(f32 _x, f32 _y, f32 _z) {
@@ -154,7 +178,10 @@ namespace nfs {
 			fpx1_0_9 y = _y / scale;
 			fpx1_0_9 z = _z / scale;
 
-			xyz = ((u32)x.val << 20) | ((u32)y.val << 10) | z.val;
+			this->x = x.val;
+			this->y = y.val;
+			this->z = z.val;
+
 		}
 
 		void process(GpuCmdParser &parser);
@@ -173,16 +200,29 @@ namespace nfs {
 	//Load normal
 	struct GpuCmdNormal : GpuCmdBase<GpuCmdType::LOAD_NORMAL> {
 
-		u32 xyz;
+		union {
+
+			u32 xyz;
+
+			struct {
+				u32 z : 10;
+				u32 y : 10;
+				u32 x : 10;
+				u32 _undef : 2;
+			};
+
+		};
 
 		void get(fpx1_0_9 &x, fpx1_0_9 &y, fpx1_0_9 &z) {
-			x = fpx1_0_9(u16((xyz & 0x3FF00000) >> 20));
-			y = fpx1_0_9(u16((xyz & 0xFFC00) >> 10));
-			z = fpx1_0_9(u16(xyz & 0x3FF));
+			x = fpx1_0_9(u16(this->x));
+			y = fpx1_0_9(u16(this->y));
+			z = fpx1_0_9(u16(this->z));
 		}
 
 		void set(fpx1_0_9 x, fpx1_0_9 y, fpx1_0_9 z) {
-			xyz = ((u32)x.val << 20) | ((u32)y.val << 10) | z.val;
+			this->x = x.val;
+			this->y = y.val;
+			this->z = z.val;
 		}
 
 		void process(GpuCmdParser &parser);
