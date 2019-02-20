@@ -196,7 +196,115 @@ Texture2D convertFromNCGR(NCGR &ncgr, NCLR &nclr) {
 }
 ```
 This function is called 'fromShader', it will create a new RGBA8 texture and for every pixel, it will run the function supplied. The function needs to return a u32 and take a Texture2D tex, u16 x, u16 y and the arguments you put in yourself. Remember to delete it when you don't need it anymore though.
+### "Armulator"
+
+NFS provides a simplistic arm emulator "Armulator". This emulator is still in progress and is currently only able to emulate some parts of thumb (16-bit ARM7/ARM9) code. The idea is that you can emulate and/or step through the code.
+
+#### Example code
+
+```cpp
+// Our program in C
+void test(){
+    
+    u32 a = 33, b = 69;
+    
+    a += 12;	//a = 45
+    a -= 9;		//a = 36
+    
+    a - 36;		//a == 36
+    
+    a = 3;
+    a += b;		//a = 72
+    a -= b;		//a = 3
+    
+    a <<= 2;	//a = 12
+    a >>= 3;	//a = 1
+    
+}
+
+//Our program in ARM7 thumb
+MOV r0, #21
+MOV r1, #45
+ADD r0, #C
+SUB r0, #9
+CMP r0, #24
+MOV r0, #3
+ADD r0, r0, r1
+SUB r0, r0, r1
+LSL r0, r0, #2
+LSR r0, r0, #3
+
+//Our program in machine code
+u16 myAsm[] = {
+	0b0010000000100001,
+	0b0010000101000101,
+	0b0011000000001100,
+	0b0011100000001001,
+	0b0010100000100100,
+	0b0010000000000011,
+	0b0001100001000000,
+	0b0001101001000000,
+	0b0000000010000000,
+	0b0000100011000000
+};
+```
+
+The code above is a simple demonstration of what the Armulator can currently do (not much yet), though there will be more instructions added later.
+
+```cpp
+	Buffer buf = Buffer((u32) sizeof(myAsm), (u8*) myAsm);
+
+	Armulator test(buf, 0);
+	test.getCPSR().thumbMode = 1;
+	test.exec();
+```
+
+Exec will go through the code in the buffer, until it goes out of bounds. Currently the only other escape from the Armulator is using unsupported op codes (which will throw an exception).
+
+If you want to step through it manually (so you can handle breakpoints, etc. yourself). You can use the 'step' function, which will run the next code. This enables you to edit CPSR as well.
+
+You can also modify endianness (little/big endian) through the CPSR = Current Program Status Register.  "isBigEndian".
+
+```cpp
+do {
+    printf("Executing code at %u\n", test.getRegisters().pc);
+} while(test.step());
+```
+
+#### CPSR
+
+The CPSR is the current program status register; which contains the state of the process at this time. There is also a SPSR; the saved program status register. Whenever a FIQ or IRQ interrupt happens, it stores the CPSR so it can return to before the error occurred. This is a 32-bit value, that includes bits that determine how the next code will be interpreted and how conditions will be treated.
+
+```cpp
+u32 mode : 5;
+u32 thumbMode : 1;
+u32 disableFIQ : 1;
+u32 disableIRQ : 1;
+u32 dataAbortDisable : 1;
+u32 isBigEndian : 1;
+u32 thumbIfThen0 : 6;
+u32 GE : 4;
+u32 nil : 4;
+u32 thumbIfThen1 : 2;
+u32 jazelle : 1;
+u32 overflow : 1;
+u32 carry : 1;
+u32 zero : 1;
+u32 negative : 1;
+```
+
+The mode is the CPSR::Mode that is being ran; this is changed whenever interrupts happen or monitor mode is entered. 
+
+Thumb mode is 16-bit mode; all operations are 16-bit.
+
+Disable FIQ/IRQ is started if an interrupt occurs (because it can't start another interrupt).
+
+Overflow/carry/zero/negative are used in branches and conditional operations.
+
+Jazelle is not supported (since emulating Java bytecode is out of scope).
+
 ## Supported file formats
+
 For supported file formats, check out the [docs](docs) folder; this contains a description of every supported resource and their magicNumber/type id.
 ## Special thanks
 Thanks to /LagMeester4000 for creating magic templates that are used all the time in this API. Typelists are used from his repo at [/LagMeester4000/TypeList](https://github.com/LagMeester4000/TypeList).

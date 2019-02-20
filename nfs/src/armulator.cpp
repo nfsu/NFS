@@ -92,7 +92,7 @@ void Armulator::exec() {
 
 bool Armulator::step() {
 
-	if (cpsr.isBigEndian || cpsr.jazelle) {
+	if (cpsr.jazelle) {
 		EXCEPTION("Big endian and/or Java bytecode are not supported");
 		return false;
 	}
@@ -123,7 +123,12 @@ inline bool Armulator::stepThumb() {
 
 	//All of the ways the next instruction can be interpret
 
-	u16 *ptr = (u16*) next();
+	u16 *ptr = (u16*) next(), val = *ptr;
+
+	if (cpsr.isBigEndian) {
+		val = ((val & 0xFF) << 8) | (val >> 8);
+		ptr = &val;
+	}
 
 	ArmThumbOp *op = (ArmThumbOp*) ptr;
 	ArmThumbRegOp *regOp = (ArmThumbRegOp*) ptr;
