@@ -1,5 +1,7 @@
 #include "armulator.h"
 using namespace nfs;
+using namespace arm;
+using namespace thumb;
 
 #define PRINT_STEP
 #define WAIT_STEP
@@ -11,11 +13,12 @@ Armulator::Armulator(Buffer buf, u32 entryPoint) : buf(buf) {
 
 CPSR &Armulator::getCPSR() { return cpsr; }
 CPSR &Armulator::getSPSR() { return spsr; }
-ArmRegisters &Armulator::getRegisters() { return r; }
+Registers &Armulator::getRegisters() { return r; }
 u8 *Armulator::next() { return buf.ptr + r.pc; }
 bool Armulator::thumbMode() { return cpsr.thumbMode; }
+u32 &Registers::operator[](size_t i) { return r[i]; }
 
-void ArmRegisters::printState() {
+void Registers::printState() {
 
 	printf(
 		"r0 = %u\n"
@@ -31,18 +34,14 @@ void ArmRegisters::printState() {
 		"r10 = %u\n"
 		"r11 = %u\n"
 		"r12 = %u\n"
-		"r13 = %u\n"
-		"r14 = %u\n"
+		"sp = %u\n"
+		"lr = %u\n"
 		"pc = %u\n",
 
 		r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9],
-		r[10], r[11], r[12], r[13], r[14], pc
+		r[10], r[11], r[12], sp, lr, pc
 
 	);
-}
-
-u32 &ArmRegisters::operator[](size_t i) {
-	return r[i];
 }
 
 void CPSR::printState() {
@@ -119,51 +118,49 @@ bool Armulator::step() {
 	return val;
 }
 
-inline bool Armulator::condition(ArmCondition condition) {
+inline bool Armulator::condition(Condition::Value condition) {
 
 	bool val;
 
 	switch (condition) {
 
-	case ArmCondition::EQ:
-	case ArmCondition::NE:
+	case Condition::EQ:
+	case Condition::NE:
 		val = cpsr.zero;
 		break;
 
-	case ArmCondition::CS:
-	case ArmCondition::CC:
+	case Condition::CS:
+	case Condition::CC:
 		val = cpsr.carry;
 		break;
 
-	case ArmCondition::MI:
-	case ArmCondition::PL:
+	case Condition::MI:
+	case Condition::PL:
 		val = cpsr.negative;
 		break;
 
-	case ArmCondition::VS:
-	case ArmCondition::VC:
+	case Condition::VS:
+	case Condition::VC:
 		val = cpsr.overflow;
 		break;
 
-	case ArmCondition::HI:
-	case ArmCondition::LS:
+	case Condition::HI:
+	case Condition::LS:
 		val = cpsr.carry && !cpsr.zero;
 		break;
 
-	case ArmCondition::GE:
-	case ArmCondition::LT:
+	case Condition::GE:
+	case Condition::LT:
 		val = cpsr.negative == cpsr.overflow;
 		break;
 
-	case ArmCondition::GT:
-	case ArmCondition::LE:
+	case Condition::GT:
+	case Condition::LE:
 		val = cpsr.zero && cpsr.negative == cpsr.overflow;
 		break;
 
 	default:
-
-		EXCEPTION("Software interrupt and undefined condition aren't implemented");
-		return false;
+		val = true;
 
 	}
 
@@ -183,14 +180,14 @@ inline bool Armulator::stepThumb() {
 
 	//All of the ways the next instruction can be interpret
 
-	ArmThumbOp *op = (ArmThumbOp*) ptr;
-	ArmThumbRegOp *regOp = (ArmThumbRegOp*) ptr;
+	Op *op = (Op*) ptr;
+	RegOp *regOp = (RegOp*) ptr;
 
-	ArmThumbShift *shift = (ArmThumbShift*) ptr;
-	ArmThumbAddSub *addSub = (ArmThumbAddSub*) ptr;
-	ArmThumbMovCmpAddSub *movCmpAddSub = (ArmThumbMovCmpAddSub*) ptr;
+	Shift *shift = (Shift*) ptr;
+	AddSub *addSub = (AddSub*) ptr;
+	MovCmpAddSub *movCmpAddSub = (MovCmpAddSub*) ptr;
 
-	ArmThumbCondBranch *condBranch = (ArmThumbCondBranch*) ptr;
+	CondBranch *condBranch = (CondBranch*) ptr;
 
 	//Destination and source
 
@@ -202,11 +199,11 @@ inline bool Armulator::stepThumb() {
 
 	//Execute code
 
-	switch ((ArmThumbOpCodes)op->opCode) {
+	switch ((OpCode) op->code) {
 
 		//Rd = Rs << offset
 		//LSR Rd, Rs, #offset
-		case ArmThumbOpCodes::LSL:
+		case OpCode::LSL:
 
 			#ifdef PRINT_INSTRUCTION
 				printf("LSL r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, shift->offset);
@@ -217,7 +214,7 @@ inline bool Armulator::stepThumb() {
 
 		//Rd = Rs << offset
 		//LSR Rd, Rs, #offset
-		case ArmThumbOpCodes::LSR:
+		case OpCode::LSR:
 
 			#ifdef PRINT_INSTRUCTION
 				printf("LSR r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, shift->offset);
@@ -229,7 +226,7 @@ inline bool Armulator::stepThumb() {
 
 		//Rd = Rs << offset (but keep sign)
 		//ASR Rd, Rs, #offset
-		case ArmThumbOpCodes::ASR:
+		case OpCode::ASR:
 
 			#ifdef PRINT_INSTRUCTION
 				printf("ASR r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, shift->offset);
@@ -243,7 +240,7 @@ inline bool Armulator::stepThumb() {
 		//Rd = Rs - z
 		//ADD Rd, Rs, (Rn or #num3bit)
 		//SUB Rd, Rs, (Rn or #num3bit)
-		case ArmThumbOpCodes::ADD_SUB:
+		case OpCode::ADD_SUB:
 
 			#ifdef PRINT_INSTRUCTION
 				if(addSub->sub)
@@ -266,7 +263,7 @@ inline bool Armulator::stepThumb() {
 
 		//Rd = z
 		//MOV Rd, #num8bit
-		case ArmThumbOpCodes::MOV:
+		case OpCode::MOV:
 
 			#ifdef PRINT_INSTRUCTION
 				printf("MOV r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
@@ -279,7 +276,7 @@ inline bool Armulator::stepThumb() {
 
 		//Rd += z
 		//ADD Rd, #num8bit
-		case ArmThumbOpCodes::ADD:
+		case OpCode::ADD:
 
 			#ifdef PRINT_INSTRUCTION
 				printf("ADD r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
@@ -292,7 +289,7 @@ inline bool Armulator::stepThumb() {
 
 		//Rd -= z
 		//SUB Rd, #num8bit
-		case ArmThumbOpCodes::SUB:
+		case OpCode::SUB:
 
 			#ifdef PRINT_INSTRUCTION
 				printf("SUB r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
@@ -306,7 +303,7 @@ inline bool Armulator::stepThumb() {
 
 		//Rd - z
 		//CMP Rd, #num8bit
-		case ArmThumbOpCodes::CMP:
+		case OpCode::CMP:
 
 			#ifdef PRINT_INSTRUCTION
 				printf("CMP r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
@@ -318,14 +315,14 @@ inline bool Armulator::stepThumb() {
 			val = Rs - movCmpAddSub->offset;
 			break;
 
-		case ArmThumbOpCodes::B0:
-		case ArmThumbOpCodes::B1:
+		case OpCode::B0:
+		case OpCode::B1:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("B%s #%i\n", ArmConditions[condBranch->cond], condBranch->soffset);
+				printf("B%s #%i\n", Condition::names[condBranch->cond], condBranch->soffset);
 			#endif
 
-  			if (condition((ArmCondition)condBranch->cond))
+  			if (condition((Condition::Value) condBranch->cond))
 				r.pc += condBranch->soffset;
 
 			goto noConditionFlags;

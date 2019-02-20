@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 
 	Buffer buf = Buffer((u32) sizeof(myAsm), (u8*) myAsm);
 
-	Armulator test(buf, 0);
+	nfs::arm::Armulator test(buf, 0);
 	test.getCPSR().thumbMode = 1;
 	test.exec();
 
