@@ -54,28 +54,20 @@ namespace nfs {
 
 	};
 
+	//TODO: https://stackoverflow.com/questions/19724406/concept-of-bank-registers-in-arm
+	//Some registers are different in other modes
 	struct ArmRegisters {
 
 		union {
 
-			u32 d[16]{};
+			u32 r[16]{};
 
 			struct {
-				u32 r[15];
+				u32 reg[13];
+				u32 sp;		//Stack pointer
+				u32 lr;		//Link register
 				u32 pc;		//Program counter
 			};
-
-			struct FIQ {
-				u32 r[8];
-				u32 rfiq[7];
-				u32 pc;
-			} fiq;
-
-			struct IRQ_SVC_ABT_UND {
-				u32 r[13];
-				u32 rReserved[2];
-				u32 pc;
-			} irq, svc, abt, und;
 
 		};
 
@@ -83,6 +75,43 @@ namespace nfs {
 
 		u32 &operator[](size_t i);
 
+	};
+
+	enum class ArmCondition {
+		EQ,				//Zero is set (==)
+		NE,				//!EQ (!=)
+		CS,				//Carry is set (unsigned >=)
+		CC,				//!CS (unsigned <)
+		MI,				//Negative is set (< 0)
+		PL,				//!MI (>= 0)
+		VS,				//oVerflow (set)
+		VC,				//!VS (clear)
+		HI,				//Carry & !Zero (unsigned >)
+		LS,				//!HI (unsigned <=)
+		GE,				//Negative == Overflow (>=)
+		LT,				//!GE (<)
+		GT,				//!Zero && Negative == Overflow  (>)
+		LE,				//!GT (<=)
+		UN,				//Undefined
+		SI				//Software interrupt
+	};
+
+	constexpr char ArmConditions[][3] = {
+		"EQ",
+		"NE",
+		"CS",
+		"CC",
+		"MI",
+		"PL",
+		"VS",
+		"VC",
+		"HI",
+		"LS",
+		"GE",
+		"GT",
+		"LE",
+		"??",
+		"SI"
 	};
 
 	enum class ArmThumbOpCodes : u8 {
@@ -102,6 +131,8 @@ namespace nfs {
 		ADD,					//Add const (8-bit)
 		SUB,					//Sub const (8-bit)
 
+		B0 = 0x1A,				//Branch (BEQ, BNE, BCS, BCC, BMI, BPL, BVS, BVC)
+		B1 = 0x1B				//Branch (BHI, BLS, BGE, BLT, BGT, BLE, Undefined, BNE = software interrupt)
 
 	};
 
@@ -194,6 +225,25 @@ namespace nfs {
 
 	};
 
+	struct ArmThumbCondBranch {
+		
+		union {
+
+			u16 value;
+
+			struct {
+
+				i16 soffset : 8;
+				u16 cond : 4;
+				u16 opCode : 4;
+
+			};
+
+		};
+
+	};
+
+	//For more documentation, check out https://ece.uwaterloo.ca/~ece222/ARM/ARM7-TDMI-manual-pt3.pdf
 	class Armulator {
 
 	public:
@@ -208,6 +258,8 @@ namespace nfs {
 
 		bool step();
 		void exec();
+
+		inline bool condition(ArmCondition condition);
 
 		void printState();
 

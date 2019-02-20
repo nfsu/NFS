@@ -42,7 +42,7 @@ void ArmRegisters::printState() {
 }
 
 u32 &ArmRegisters::operator[](size_t i) {
-	return d[i];
+	return r[i];
 }
 
 void CPSR::printState() {
@@ -119,16 +119,69 @@ bool Armulator::step() {
 	return val;
 }
 
+inline bool Armulator::condition(ArmCondition condition) {
+
+	bool val;
+
+	switch (condition) {
+
+	case ArmCondition::EQ:
+	case ArmCondition::NE:
+		val = cpsr.zero;
+		break;
+
+	case ArmCondition::CS:
+	case ArmCondition::CC:
+		val = cpsr.carry;
+		break;
+
+	case ArmCondition::MI:
+	case ArmCondition::PL:
+		val = cpsr.negative;
+		break;
+
+	case ArmCondition::VS:
+	case ArmCondition::VC:
+		val = cpsr.overflow;
+		break;
+
+	case ArmCondition::HI:
+	case ArmCondition::LS:
+		val = cpsr.carry && !cpsr.zero;
+		break;
+
+	case ArmCondition::GE:
+	case ArmCondition::LT:
+		val = cpsr.negative == cpsr.overflow;
+		break;
+
+	case ArmCondition::GT:
+	case ArmCondition::LE:
+		val = cpsr.zero && cpsr.negative == cpsr.overflow;
+		break;
+
+	default:
+
+		EXCEPTION("Software interrupt and undefined condition aren't implemented");
+		return false;
+
+	}
+
+	return val != ((u32)condition & 1);
+}
+
 inline bool Armulator::stepThumb() {
 
-	//All of the ways the next instruction can be interpret
+	//Get next op code
 
-	u16 *ptr = (u16*) next(), val = *ptr;
+	u16 *ptr = (u16*) next(), rev = *ptr;
 
 	if (cpsr.isBigEndian) {
-		val = ((val & 0xFF) << 8) | (val >> 8);
-		ptr = &val;
+		rev = ((rev & 0xFF) << 8) | (rev >> 8);
+		ptr = &rev;
 	}
+
+	//All of the ways the next instruction can be interpret
 
 	ArmThumbOp *op = (ArmThumbOp*) ptr;
 	ArmThumbRegOp *regOp = (ArmThumbRegOp*) ptr;
@@ -137,9 +190,14 @@ inline bool Armulator::stepThumb() {
 	ArmThumbAddSub *addSub = (ArmThumbAddSub*) ptr;
 	ArmThumbMovCmpAddSub *movCmpAddSub = (ArmThumbMovCmpAddSub*) ptr;
 
+	ArmThumbCondBranch *condBranch = (ArmThumbCondBranch*) ptr;
+
 	//Destination and source
 
-	u32 *Rd = r.d + regOp->Rd, Rs = r[regOp->Rs], mul = 0, val = 0;
+	u32 *Rd = r.r + regOp->Rd, 
+		Rs = r[regOp->Rs], 
+		mul = 0, val = 0;
+
 	bool negative = false;
 
 	//Execute code
@@ -151,7 +209,7 @@ inline bool Armulator::stepThumb() {
 		case ArmThumbOpCodes::LSL:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("LSL r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*) shift->offset);
+				printf("LSL r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, shift->offset);
 			#endif
 
 			val = *Rd = Rs << shift->offset;
@@ -162,7 +220,7 @@ inline bool Armulator::stepThumb() {
 		case ArmThumbOpCodes::LSR:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("LSR r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*) shift->offset);
+				printf("LSR r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, shift->offset);
 			#endif
 
 			negative = true;
@@ -174,7 +232,7 @@ inline bool Armulator::stepThumb() {
 		case ArmThumbOpCodes::ASR:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("ASR r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*) shift->offset);
+				printf("ASR r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, shift->offset);
 			#endif
 
 			negative = true;
@@ -190,12 +248,12 @@ inline bool Armulator::stepThumb() {
 			#ifdef PRINT_INSTRUCTION
 				if(addSub->sub)
 					if(addSub->intermediate)
-						printf("SUB r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*)addSub->Rn);
+						printf("SUB r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
 					else
 						printf("SUB r%u, r%u, r%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
 				else {
 					if (addSub->intermediate)
-						printf("ADD r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*)addSub->Rn);
+						printf("ADD r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
 					else
 						printf("ADD r%u, r%u, r%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
 				}
@@ -211,10 +269,10 @@ inline bool Armulator::stepThumb() {
 		case ArmThumbOpCodes::MOV:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("MOV r%u, #%p\n", movCmpAddSub->Rd, (void*) movCmpAddSub->offset);
+				printf("MOV r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
 			#endif
 
-			Rd = r.d + movCmpAddSub->Rd;
+			Rd = r.r + movCmpAddSub->Rd;
 			Rs = *Rd;
 			val = *Rd = movCmpAddSub->offset;
 			break;
@@ -224,10 +282,10 @@ inline bool Armulator::stepThumb() {
 		case ArmThumbOpCodes::ADD:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("ADD r%u, #%p\n", movCmpAddSub->Rd, (void*) movCmpAddSub->offset);
+				printf("ADD r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
 			#endif
 
-			Rd = r.d + movCmpAddSub->Rd;
+			Rd = r.r + movCmpAddSub->Rd;
 			Rs = *Rd;
 			val = *Rd += movCmpAddSub->offset;
 			break;
@@ -237,11 +295,11 @@ inline bool Armulator::stepThumb() {
 		case ArmThumbOpCodes::SUB:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("SUB r%u, #%p\n", movCmpAddSub->Rd, (void*) movCmpAddSub->offset);
+				printf("SUB r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
 			#endif
 
 			negative = true;
-			Rd = r.d + movCmpAddSub->Rd;
+			Rd = r.r + movCmpAddSub->Rd;
 			Rs = *Rd;
 			val = *Rd -= movCmpAddSub->offset;
 			break;
@@ -251,14 +309,26 @@ inline bool Armulator::stepThumb() {
 		case ArmThumbOpCodes::CMP:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("CMP r%u, #%p\n", movCmpAddSub->Rd, (void*) movCmpAddSub->offset);
+				printf("CMP r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
 			#endif
 
 			negative = true;
-			Rd = r.d + movCmpAddSub->Rd;
+			Rd = r.r + movCmpAddSub->Rd;
 			Rs = *Rd;
 			val = Rs - movCmpAddSub->offset;
 			break;
+
+		case ArmThumbOpCodes::B0:
+		case ArmThumbOpCodes::B1:
+
+			#ifdef PRINT_INSTRUCTION
+				printf("B%s #%i\n", ArmConditions[condBranch->cond], condBranch->soffset);
+			#endif
+
+  			if (condition((ArmCondition)condBranch->cond))
+				r.pc += condBranch->soffset;
+
+			goto noConditionFlags;
 
 		default:
 
@@ -279,6 +349,9 @@ inline bool Armulator::stepThumb() {
 	//Check if there's a next instruction (PC doesn't overflow and doesn't go out of bounds)
 
 	r.pc += 2;
+
+	noStep:
+
 	return r.pc < buf.size && !(r.pc - 2 > r.pc);
 
 }
