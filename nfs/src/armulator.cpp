@@ -3,6 +3,7 @@ using namespace nfs;
 
 #define PRINT_STEP
 #define WAIT_STEP
+#define PRINT_INSTRUCTION
 
 Armulator::Armulator(Buffer buf, u32 entryPoint) : buf(buf) {
 	r.pc = entryPoint;
@@ -32,7 +33,6 @@ void ArmRegisters::printState() {
 		"r12 = %u\n"
 		"r13 = %u\n"
 		"r14 = %u\n"
-		"r15 = %u\n"
 		"pc = %u\n",
 
 		r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9],
@@ -48,20 +48,20 @@ u32 &ArmRegisters::operator[](size_t i) {
 void CPSR::printState() {
 
 	printf(
-		"mode = %u\n"
-		"thumbMode = %u\n"
-		"disableFIQ = %u\n"
+		"mode = %u\t\t\t"
+		"thumbMode = %u\t\t\t"
+		"disableFIQ = %u\t\t"
 		"disableIRQ = %u\n"
-		"dataAbortDisable = %u\n"
-		"isBigEndian = %u\n"
-		"thumbIfThen0 = %u\n"
+		"dataAbortDisable = %u\t\t"
+		"isBigEndian = %u\t\t\t"
+		"thumbIfThen0 = %u\t"
 		"GE = %u\n"
-		"nil = %u\n"
-		"thumbIfThen1 = %u\n"
-		"jazelle = %u\n"
+		"nil = %u\t\t\t\t"
+		"thumbIfThen1 = %u\t\t"
+		"jazelle = %u\t\t"
 		"overflow = %u\n"
-		"carry = %u\n"
-		"zero = %u\n"
+		"carry = %u\t\t\t"
+		"zero = %u\t\t\t"
 		"negative = %u\n",
 		
 		mode, thumbMode, disableFIQ, disableIRQ, dataAbortDisable, isBigEndian,
@@ -73,14 +73,16 @@ void CPSR::printState() {
 
 void Armulator::printState() {
 
-	printf("\nRegisters:\n");
-	r.printState();
-
 	printf("\nCPSR:\n");
 	cpsr.printState();
 
-	printf("\nSPSR:\n");
-	spsr.printState();
+	printf("\nRegisters:\n");
+	r.printState();
+
+	if (cpsr.mode != (u32) CPSR::Mode::USR) {
+		printf("\nSPSR:\n");
+		spsr.printState();
+	}
 
 }
 
@@ -108,6 +110,10 @@ bool Armulator::step() {
 
 	#ifdef WAIT_STEP
 		system("pause");
+	#endif
+
+	#ifdef PRINT_STEP
+		printf("\n\n\n\n");
 	#endif
 
 	return val;
@@ -139,12 +145,20 @@ inline bool Armulator::stepThumb() {
 		//LSR Rd, Rs, #offset
 		case ArmThumbOpCodes::LSL:
 
+			#ifdef PRINT_INSTRUCTION
+				printf("LSL r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*) shift->offset);
+			#endif
+
 			val = *Rd = Rs << shift->offset;
 			break;
 
 		//Rd = Rs << offset
 		//LSR Rd, Rs, #offset
 		case ArmThumbOpCodes::LSR:
+
+			#ifdef PRINT_INSTRUCTION
+				printf("LSR r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*) shift->offset);
+			#endif
 
 			negative = true;
 			val = *Rd = Rs >> shift->offset;
@@ -153,6 +167,10 @@ inline bool Armulator::stepThumb() {
 		//Rd = Rs << offset (but keep sign)
 		//ASR Rd, Rs, #offset
 		case ArmThumbOpCodes::ASR:
+
+			#ifdef PRINT_INSTRUCTION
+				printf("ASR r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*) shift->offset);
+			#endif
 
 			negative = true;
 			val = *Rd = ((Rs >> shift->offset) & i32_MAX) | (Rs & i32_MIN);
@@ -164,6 +182,20 @@ inline bool Armulator::stepThumb() {
 		//SUB Rd, Rs, (Rn or #num3bit)
 		case ArmThumbOpCodes::ADD_SUB:
 
+			#ifdef PRINT_INSTRUCTION
+				if(addSub->sub)
+					if(addSub->intermediate)
+						printf("SUB r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*)addSub->Rn);
+					else
+						printf("SUB r%u, r%u, r%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
+				else {
+					if (addSub->intermediate)
+						printf("ADD r%u, r%u, #%p\n", regOp->Rd, regOp->Rs, (void*)addSub->Rn);
+					else
+						printf("ADD r%u, r%u, r%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
+				}
+			#endif
+
 			negative = addSub->sub;
 			mul = 1 - addSub->sub * 2;
 			val = *Rd = Rs + addSub->Rn * addSub->intermediate * mul + r[addSub->Rn] * (1 - addSub->intermediate) * mul;
@@ -172,6 +204,10 @@ inline bool Armulator::stepThumb() {
 		//Rd = z
 		//MOV Rd, #num8bit
 		case ArmThumbOpCodes::MOV:
+
+			#ifdef PRINT_INSTRUCTION
+				printf("MOV r%u, #%p\n", movCmpAddSub->Rd, (void*) movCmpAddSub->offset);
+			#endif
 
 			Rd = r.d + movCmpAddSub->Rd;
 			Rs = *Rd;
@@ -182,6 +218,10 @@ inline bool Armulator::stepThumb() {
 		//ADD Rd, #num8bit
 		case ArmThumbOpCodes::ADD:
 
+			#ifdef PRINT_INSTRUCTION
+				printf("ADD r%u, #%p\n", movCmpAddSub->Rd, (void*) movCmpAddSub->offset);
+			#endif
+
 			Rd = r.d + movCmpAddSub->Rd;
 			Rs = *Rd;
 			val = *Rd += movCmpAddSub->offset;
@@ -191,15 +231,23 @@ inline bool Armulator::stepThumb() {
 		//SUB Rd, #num8bit
 		case ArmThumbOpCodes::SUB:
 
+			#ifdef PRINT_INSTRUCTION
+				printf("SUB r%u, #%p\n", movCmpAddSub->Rd, (void*) movCmpAddSub->offset);
+			#endif
+
 			negative = true;
 			Rd = r.d + movCmpAddSub->Rd;
 			Rs = *Rd;
 			val = *Rd -= movCmpAddSub->offset;
 			break;
 
-		//Rd -= z
-		//SUB Rd, #num8bit
+		//Rd - z
+		//CMP Rd, #num8bit
 		case ArmThumbOpCodes::CMP:
+
+			#ifdef PRINT_INSTRUCTION
+				printf("CMP r%u, #%p\n", movCmpAddSub->Rd, (void*) movCmpAddSub->offset);
+			#endif
 
 			negative = true;
 			Rd = r.d + movCmpAddSub->Rd;
