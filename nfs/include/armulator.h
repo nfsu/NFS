@@ -36,13 +36,7 @@ namespace nfs {
 					u32 thumbMode : 1;
 					u32 disableFIQ : 1;
 					u32 disableIRQ : 1;
-					u32 dataAbortDisable : 1;
-					u32 isBigEndian : 1;
-					u32 thumbIfThen0 : 6;
-					u32 GE : 4;
-					u32 nil : 4;
-					u32 thumbIfThen1 : 2;
-					u32 jazelle : 1;
+					u32 padding : 20;
 					u32 overflow : 1;
 					u32 carry : 1;
 					u32 zero : 1;
@@ -128,10 +122,12 @@ namespace nfs {
 				ADD,					//Add const (8-bit)
 				SUB,					//Sub const (8-bit)
 
-				//Format 5.16: Conditional branch
+				//Format 16: Conditional branch
 				B0 = 0x1A,				//BEQ, BNE, BCS, BCC, BMI, BPL, BVS, BVC
-				B1 = 0x1B				//BHI, BLS, BGE, BLT, BGT, BLE, BAL (always), BNE = software interrupt
+				B1 = 0x1B,				//BHI, BLS, BGE, BLT, BGT, BLE, BAL (always), BNE = software interrupt
 
+				//Format 18: Branch
+				B = 0x1C
 			};
 
 			union Op {
@@ -182,11 +178,9 @@ namespace nfs {
 				u16 value;
 
 				struct {
-
 					u16 offset : 8;
 					u16 Rd : 3;
 					u16 opCode : 5;
-
 				};
 			};
 

@@ -51,20 +51,12 @@ void CPSR::printState() {
 		"thumbMode = %u\t\t\t"
 		"disableFIQ = %u\t\t"
 		"disableIRQ = %u\n"
-		"dataAbortDisable = %u\t\t"
-		"isBigEndian = %u\t\t\t"
-		"thumbIfThen0 = %u\t"
-		"GE = %u\n"
-		"nil = %u\t\t\t\t"
-		"thumbIfThen1 = %u\t\t"
-		"jazelle = %u\t\t"
-		"overflow = %u\n"
+		"overflow = %u\t\t\t"
 		"carry = %u\t\t\t"
-		"zero = %u\t\t\t"
+		"zero = %u\t\t"
 		"negative = %u\n",
 		
-		mode, thumbMode, disableFIQ, disableIRQ, dataAbortDisable, isBigEndian,
-		thumbIfThen0, GE, nil, thumbIfThen1, jazelle, overflow, carry, zero, negative
+		mode, thumbMode, disableFIQ, disableIRQ, overflow, carry, zero, negative
 
 	);
 
@@ -90,11 +82,6 @@ void Armulator::exec() {
 }
 
 bool Armulator::step() {
-
-	if (cpsr.jazelle) {
-		EXCEPTION("Big endian and/or Java bytecode are not supported");
-		return false;
-	}
 
 	bool val = false;
 
@@ -169,16 +156,10 @@ inline bool Armulator::condition(Condition::Value condition) {
 
 inline bool Armulator::stepThumb() {
 
-	//Get next op code
-
-	u16 *ptr = (u16*) next(), rev = *ptr;
-
-	if (cpsr.isBigEndian) {
-		rev = ((rev & 0xFF) << 8) | (rev >> 8);
-		ptr = &rev;
-	}
-
 	//All of the ways the next instruction can be interpret
+
+	u32 pc = r.pc ^ 0x1;
+	u16 *ptr = (u16*)(buf.ptr + pc);
 
 	Op *op = (Op*) ptr;
 	RegOp *regOp = (RegOp*) ptr;
@@ -315,6 +296,7 @@ inline bool Armulator::stepThumb() {
 			val = Rs - movCmpAddSub->offset;
 			break;
 
+		//if COND {}
 		case OpCode::B0:
 		case OpCode::B1:
 
@@ -327,6 +309,11 @@ inline bool Armulator::stepThumb() {
 
 			goto noConditionFlags;
 
+		//{}
+		case OpCode::B:
+
+			;	//TODO:
+
 		default:
 
 			EXCEPTION("OpCode was invalid or isn't implemented");
@@ -338,6 +325,9 @@ inline bool Armulator::stepThumb() {
 
 	cpsr.zero = val == 0;
 	cpsr.negative = (val & i32_MIN) != 0;
+
+	//TODO: Overflow shouldn't happen when you change from -1 to 0, but it do
+
 	cpsr.carry = (!negative) * (val < Rs);
 	cpsr.overflow = (Rs & i32_MIN) != (val & i32_MIN);
 

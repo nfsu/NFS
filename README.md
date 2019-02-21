@@ -93,8 +93,8 @@ else {
 }
 ```
 Here we are getting the ArchiveObject; which is the physical representation of a file/folder, it tells you where what kind of resource is located. One identifier you can use is the 'magicNumber'; which is the standard way, you can also use the type, which is used by a few ResourceHelper functions and the name (extension), however, magicNumber is the fastest in most cases. If you are sure the fso is actually an object that you can read, you can use the FileSystem's Archive's 'get' function, which requires a template parameter. If you cast incorrectly, it will throw an std::exception, so you could try & catch it instead of checking first, but that's bad practice. Then, you can use the GenericHeader*, which has a size and a few other variables, or you can use the `at<i>()` method for getting a section. NCLR for example has a TTLP (Palette data) and sometimes a PMCP (Palette count map). These are defined in 'ntypes.h'. If you want to get the palette data, you can use get<0>, to get the buffer which contains the data for that section.
-	
-	
+​	
+​	
 
 ### Traversing a folder
 'Traversing' is what I call searching through an entire folder; so traverse through /someFolder/something would give all of the folders and files in the directory and inside those folders. While the square brackets (or array operator) are used for obtaining folders/files directly inside a folder:
@@ -268,8 +268,6 @@ Exec will go through the code in the buffer, until it goes out of bounds. Curren
 
 If you want to step through it manually (so you can handle breakpoints, etc. yourself). You can use the 'step' function, which will run the next code. This enables you to edit CPSR as well.
 
-You can also modify endianness (little/big endian) through the CPSR = Current Program Status Register.  "isBigEndian".
-
 ```cpp
 do {
     printf("Executing code at %u\n", test.getRegisters().pc);
@@ -285,13 +283,7 @@ u32 mode : 5;
 u32 thumbMode : 1;
 u32 disableFIQ : 1;
 u32 disableIRQ : 1;
-u32 dataAbortDisable : 1;
-u32 isBigEndian : 1;
-u32 thumbIfThen0 : 6;
-u32 GE : 4;
-u32 nil : 4;
-u32 thumbIfThen1 : 2;
-u32 jazelle : 1;
+u32 padding : 20;
 u32 overflow : 1;
 u32 carry : 1;
 u32 zero : 1;
@@ -305,8 +297,6 @@ Thumb mode is 16-bit mode; all operations are 16-bit.
 Disable FIQ/IRQ is started if an interrupt occurs (because it can't start another interrupt).
 
 Overflow/carry/zero/negative are used in branches and conditional operations.
-
-Jazelle is not supported (since emulating Java bytecode is out of scope).
 
 ## Supported file formats
 
