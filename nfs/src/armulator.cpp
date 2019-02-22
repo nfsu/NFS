@@ -11,14 +11,20 @@ Armulator::Armulator(Buffer buf, u32 entryPoint) : buf(buf) {
 	r.pc = entryPoint;
 }
 
-CPSR &Armulator::getCPSR() { return cpsr; }
-CPSR &Armulator::getSPSR() { return spsr; }
-Registers &Armulator::getRegisters() { return r; }
-u8 *Armulator::next() { return buf.ptr + r.pc; }
-bool Armulator::thumbMode() { return cpsr.thumbMode; }
-u32 &Registers::operator[](size_t i) { return r[i]; }
+u32 *RegisterBank::find(size_t i) {
+	u8 reg = RegisterBank::registerMapping[CPSR::modeId[cpsr.mode]][i];
+	return dat + reg;
+}
 
-void Registers::printState() {
+u32 &RegisterBank::operator[](size_t i) {
+	return *find(i);
+}
+
+u32 &RegisterBank::get(size_t i) {
+	return *find(i);
+}
+
+void RegisterBank::printState() {
 
 	printf(
 		"r0 = %u\n"
@@ -38,8 +44,8 @@ void Registers::printState() {
 		"lr = %u\n"
 		"pc = %u\n",
 
-		r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9],
-		r[10], r[11], r[12], sp, lr, pc
+		get(0), get(1), get(2), get(3), get(4), get(5), get(6), get(7), get(8), get(9),
+		get(10), get(11), get(12), get(13), get(14), pc
 
 	);
 }
@@ -65,27 +71,33 @@ void CPSR::printState() {
 void Armulator::printState() {
 
 	printf("\nCPSR:\n");
-	cpsr.printState();
+	r.cpsr.printState();
 
 	printf("\nRegisters:\n");
 	r.printState();
 
-	if (cpsr.mode != (u32) CPSR::Mode::USR) {
+	u8 cpsrIdx = CPSR::modeId[r.cpsr.mode];
+
+	if (cpsrIdx != 0) {
 		printf("\nSPSR:\n");
-		spsr.printState();
+		r.spsr[cpsrIdx - 1].printState();
 	}
 
 }
 
 void Armulator::exec() {
-	while (step());
+	while (doStep());
 }
 
 bool Armulator::step() {
+	return doStep();
+}
+
+bool Armulator::doStep() {
 
 	bool val = false;
 
-	if (cpsr.thumbMode)
+	if (r.cpsr.thumbMode)
 		val = stepThumb();
 	else
 		val = stepArm();
@@ -105,7 +117,11 @@ bool Armulator::step() {
 	return val;
 }
 
-inline bool Armulator::condition(Condition::Value condition) {
+bool Armulator::condition(Condition::Value condition) {
+	return doCondition(condition);
+}
+
+inline bool Armulator::doCondition(Condition::Value condition) {
 
 	bool val;
 
@@ -113,37 +129,37 @@ inline bool Armulator::condition(Condition::Value condition) {
 
 	case Condition::EQ:
 	case Condition::NE:
-		val = cpsr.zero;
+		val = r.cpsr.zero;
 		break;
 
 	case Condition::CS:
 	case Condition::CC:
-		val = cpsr.carry;
+		val = r.cpsr.carry;
 		break;
 
 	case Condition::MI:
 	case Condition::PL:
-		val = cpsr.negative;
+		val = r.cpsr.negative;
 		break;
 
 	case Condition::VS:
 	case Condition::VC:
-		val = cpsr.overflow;
+		val = r.cpsr.overflow;
 		break;
 
 	case Condition::HI:
 	case Condition::LS:
-		val = cpsr.carry && !cpsr.zero;
+		val = r.cpsr.carry && !r.cpsr.zero;
 		break;
 
 	case Condition::GE:
 	case Condition::LT:
-		val = cpsr.negative == cpsr.overflow;
+		val = r.cpsr.negative == r.cpsr.overflow;
 		break;
 
 	case Condition::GT:
 	case Condition::LE:
-		val = cpsr.zero && cpsr.negative == cpsr.overflow;
+		val = r.cpsr.zero && r.cpsr.negative == r.cpsr.overflow;
 		break;
 
 	default:
@@ -154,11 +170,62 @@ inline bool Armulator::condition(Condition::Value condition) {
 	return val != ((u32)condition & 1);
 }
 
+void Armulator::IRQ() {
+
+	if (r.cpsr.disableIRQ)
+		return;
+
+	switchMode(CPSR::Mode::IRQ);
+	r.cpsr.disableIRQ = 1;
+
+}
+
+void Armulator::FIQ() {
+
+	if (r.cpsr.disableFIQ)
+		return;
+
+	switchMode(CPSR::Mode::FIQ);
+	r.cpsr.disableFIQ = 1;
+
+}
+
+void Armulator::switchMode(CPSR::Mode mode) {
+
+	u8 idx = CPSR::modeId[(u32) mode];
+
+	r[14] = r.pc;
+
+	if (idx != 0)
+		r.spsr[idx - 1] = r.cpsr;
+
+	switch (mode) {
+
+	case CPSR::Mode::USR:
+	case CPSR::Mode::FIQ:
+	case CPSR::Mode::IRQ:
+	case CPSR::Mode::SVC:
+	case CPSR::Mode::ABT:
+	case CPSR::Mode::UND:
+	case CPSR::Mode::SYS:
+		break;
+
+	default:
+
+		EXCEPTION("Switching to undefined assembly mode");
+		mode = CPSR::Mode::USR;
+
+	}
+
+	r.cpsr.mode = (u32) mode;
+
+}
+
 inline bool Armulator::stepThumb() {
 
 	//All of the ways the next instruction can be interpret
 
-	u32 pc = r.pc ^ 0x1;
+	u32 pc = r.pc & ~1;
 	u16 *ptr = (u16*)(buf.ptr + pc);
 
 	Op *op = (Op*) ptr;
@@ -172,7 +239,7 @@ inline bool Armulator::stepThumb() {
 
 	//Destination and source
 
-	u32 *Rd = r.r + regOp->Rd, 
+	u32 *Rd = r.find(regOp->Rd),
 		Rs = r[regOp->Rs], 
 		mul = 0, val = 0;
 
@@ -250,7 +317,7 @@ inline bool Armulator::stepThumb() {
 				printf("MOV r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
 			#endif
 
-			Rd = r.r + movCmpAddSub->Rd;
+			Rd = r.find(movCmpAddSub->Rd);
 			Rs = *Rd;
 			val = *Rd = movCmpAddSub->offset;
 			break;
@@ -263,7 +330,7 @@ inline bool Armulator::stepThumb() {
 				printf("ADD r%u, #%u\n", movCmpAddSub->Rd, movCmpAddSub->offset);
 			#endif
 
-			Rd = r.r + movCmpAddSub->Rd;
+			Rd = r.find(movCmpAddSub->Rd);
 			Rs = *Rd;
 			val = *Rd += movCmpAddSub->offset;
 			break;
@@ -277,7 +344,7 @@ inline bool Armulator::stepThumb() {
 			#endif
 
 			negative = true;
-			Rd = r.r + movCmpAddSub->Rd;
+			Rd = r.find(movCmpAddSub->Rd);
 			Rs = *Rd;
 			val = *Rd -= movCmpAddSub->offset;
 			break;
@@ -291,7 +358,7 @@ inline bool Armulator::stepThumb() {
 			#endif
 
 			negative = true;
-			Rd = r.r + movCmpAddSub->Rd;
+			Rd = r.find(movCmpAddSub->Rd);
 			Rs = *Rd;
 			val = Rs - movCmpAddSub->offset;
 			break;
@@ -304,7 +371,7 @@ inline bool Armulator::stepThumb() {
 				printf("B%s #%i\n", Condition::names[condBranch->cond], condBranch->soffset);
 			#endif
 
-  			if (condition((Condition::Value) condBranch->cond))
+  			if (doCondition((Condition::Value) condBranch->cond))
 				r.pc += condBranch->soffset;
 
 			goto noConditionFlags;
@@ -323,13 +390,13 @@ inline bool Armulator::stepThumb() {
 
 	//Set condition flags
 
-	cpsr.zero = val == 0;
-	cpsr.negative = (val & i32_MIN) != 0;
+	r.cpsr.zero = val == 0;
+	r.cpsr.negative = (val & i32_MIN) != 0;
 
 	//TODO: Overflow shouldn't happen when you change from -1 to 0, but it do
 
-	cpsr.carry = (!negative) * (val < Rs);
-	cpsr.overflow = (Rs & i32_MIN) != (val & i32_MIN);
+	r.cpsr.carry = (!negative) * (val < Rs);
+	r.cpsr.overflow = (Rs & i32_MIN) != (val & i32_MIN);
 
 	noConditionFlags:
 
