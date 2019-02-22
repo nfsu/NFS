@@ -236,6 +236,7 @@ inline bool Armulator::stepThumb() {
 	MovCmpAddSub *movCmpAddSub = (MovCmpAddSub*) ptr;
 
 	CondBranch *condBranch = (CondBranch*) ptr;
+	Branch *branch = (Branch*) ptr;
 
 	//Destination and source
 
@@ -368,18 +369,23 @@ inline bool Armulator::stepThumb() {
 		case OpCode::B1:
 
 			#ifdef PRINT_INSTRUCTION
-				printf("B%s #%i\n", Condition::names[condBranch->cond], condBranch->soffset);
+				printf("B%s #%i\n", Condition::names[condBranch->cond], condBranch->soffset * 2);
 			#endif
 
   			if (doCondition((Condition::Value) condBranch->cond))
-				r.pc += condBranch->soffset;
+				r.pc += condBranch->soffset * 2;
 
 			goto noConditionFlags;
 
 		//{}
 		case OpCode::B:
+			
+			#ifdef PRINT_INSTRUCTION
+				printf("B #%i\n", branch->soffset * 2);
+			#endif
 
-			;	//TODO:
+			r.pc += branch->soffset * 2;
+			goto noConditionFlags;
 
 		default:
 

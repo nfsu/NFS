@@ -216,6 +216,16 @@ namespace nfs {
 				};
 			};
 
+			union Branch {
+
+				u16 value;
+
+				struct {
+					i16 soffset : 11;
+					u16 opCode : 5;
+				};
+			};
+
 		}
 
 
