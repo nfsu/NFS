@@ -123,27 +123,44 @@ namespace nfs {
 
 			enum class OpCode : u8 {
 
-				//Format 1: move shifted register
+				//Format 1: Move shifted register
+				//LSL rx, ry, #offset5
+				//LSR rx, ry, #offset5
+				//ASR rx, ry, #offset5
 				LSL,					//Logical Shift Left
 				LSR,					//Logical Shift Right
 				ASR,					//Arithmetic Shift Right
 
-				//Format 2: add/subtract
+				//Format 2: Add/subtract
+				//ADD rx, ry, rz
+				//ADD rx, ry, #offset3
+				//SUB rx, ry, rz
+				//SUB rx, ry, #offset3
 				ADD_SUB,				//Add or subtract (5-bit register or constant)
 
-				//Format 3: move/compare/add/subtract
-
+				//Format 3: Move/compare/add/subtract
+				//MOV rx, #offset8
+				//CMP rx, #offset8
+				//ADD rx, #offset8
+				//SUB rx, #offset8
 				MOV,					//Move from memory
 				CMP,					//Compare
 				ADD,					//Add const (8-bit)
 				SUB,					//Sub const (8-bit)
 
 				//Format 16: Conditional branch
+				//B{cond} #soffset8
 				B0 = 0x1A,				//BEQ, BNE, BCS, BCC, BMI, BPL, BVS, BVC
-				B1 = 0x1B,				//BHI, BLS, BGE, BLT, BGT, BLE, BAL (always), BNE = software interrupt
+				B1 = 0x1B,				//BHI, BLS, BGE, BLT, BGT, BLE, BAL (always), BNV = software interrupt
 
-				//Format 18: Branch
-				B = 0x1C
+				//Format 18: Unconditional branch
+				//B #soffset11
+				B = 0x1C,
+
+				//Format 19: Branch with link
+				//BL #soffset23
+				BLH = 0x1E,				//First 11 bits
+				BLL = 0x1F				//Second 11 bits
 			};
 
 			union Op {
@@ -226,6 +243,16 @@ namespace nfs {
 				};
 			};
 
+			union LongBranch {
+
+				u16 value;
+
+				struct {
+					u16 offset : 11;
+					u16 opCode : 5;
+				};
+			};
+
 		}
 
 
@@ -256,6 +283,7 @@ namespace nfs {
 
 			inline void IRQ();
 			inline void FIQ();
+			inline void restore();
 			inline void switchMode(CPSR::Mode mode);
 
 		private:

@@ -33,7 +33,11 @@ int main(int argc, char *argv[]) {
 		0b0000100011000000,		//(end) r0 >>= 3
 		0b1110000000000001,		//goto (next)
 		0b0010000100000101,		//r1 = 5
-		0b0010000000000101		//(next) r0 = 5
+		0b0010000000000101,		//(next) r0 = 5
+		0b1111000000000000,		//goto (myFunc) (LBH)
+		0b1111100000000001,		//goto (myFunc) (LBL)
+		0b0000000010000000,		//r0 <<= 2
+		0b0010000000000011		//(myFunc) r0 = 3
 	};
 
 	Buffer buf = Buffer((u32) sizeof(myAsm), (u8*) myAsm);

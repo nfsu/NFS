@@ -6,6 +6,7 @@ using namespace thumb;
 #define PRINT_STEP
 #define WAIT_STEP
 #define PRINT_INSTRUCTION
+#define PRINT_INCOMPLETE_INSTRUCTION
 
 Armulator::Armulator(Buffer buf, u32 entryPoint) : buf(buf) {
 	r.pc = entryPoint;
@@ -190,11 +191,20 @@ void Armulator::FIQ() {
 
 }
 
+void Armulator::restore() {
+
+	r.pc = r[14];					//Go back to prev instruction
+
+	u8 idx = CPSR::modeId[r.cpsr.mode];
+
+	if (idx != 0)
+		r.cpsr = r.spsr[idx - 1];	//Restore CPSR
+
+}
+
 void Armulator::switchMode(CPSR::Mode mode) {
 
-	u8 idx = CPSR::modeId[(u32) mode];
-
-	r[14] = r.pc;
+	u8 idx = CPSR::modeId[(u32)mode];
 
 	if (idx != 0)
 		r.spsr[idx - 1] = r.cpsr;
@@ -219,6 +229,9 @@ void Armulator::switchMode(CPSR::Mode mode) {
 
 	r.cpsr.mode = (u32) mode;
 
+	//Store return value into link register
+	r[14] = r.pc;
+
 }
 
 inline bool Armulator::stepThumb() {
@@ -237,12 +250,24 @@ inline bool Armulator::stepThumb() {
 
 	CondBranch *condBranch = (CondBranch*) ptr;
 	Branch *branch = (Branch*) ptr;
+	LongBranch *longBranch = (LongBranch*) ptr;
 
 	//Destination and source
 
 	u32 *Rd = r.find(regOp->Rd),
 		Rs = r[regOp->Rs], 
 		mul = 0, val = 0;
+
+	union {
+
+		u32 val;
+
+		struct {
+			i32 sval : 23;
+			u32 pad : 9;
+		};
+
+	} relative;
 
 	bool negative = false;
 
@@ -377,7 +402,7 @@ inline bool Armulator::stepThumb() {
 
 			goto noConditionFlags;
 
-		//{}
+		//Small branch
 		case OpCode::B:
 			
 			#ifdef PRINT_INSTRUCTION
@@ -385,6 +410,36 @@ inline bool Armulator::stepThumb() {
 			#endif
 
 			r.pc += branch->soffset * 2;
+			goto noConditionFlags;
+
+		//Long branch
+
+		case OpCode::BLH:
+
+			#ifdef PRINT_INCOMPLETE_INSTRUCTION
+				printf("BLH #%i\n", longBranch->offset);
+			#endif
+
+			r[14] = longBranch->offset << 12;
+			goto noConditionFlags;
+
+		case OpCode::BLL:
+
+			#ifdef PRINT_INCOMPLETE_INSTRUCTION
+				printf("BLL #%i\n", longBranch->offset);
+			#endif
+
+			r[14] |= longBranch->offset << 1;
+
+			#ifdef PRINT_INSTRUCTION
+				printf("BL #%i\n", r[14]);
+			#endif
+
+			relative = { r[14] };
+
+			r[14] = r.pc + 2;
+			r.pc += relative.sval;
+
 			goto noConditionFlags;
 
 		default:
@@ -409,8 +464,6 @@ inline bool Armulator::stepThumb() {
 	//Check if there's a next instruction (PC doesn't overflow and doesn't go out of bounds)
 
 	r.pc += 2;
-
-	noStep:
 
 	return r.pc < buf.size && !(r.pc - 2 > r.pc);
 
