@@ -13,6 +13,8 @@
 
 using namespace nfs;
 using namespace nfsu;
+using namespace nfs::arm;
+using namespace nfs::arm::thumb;
 
 int main(int argc, char *argv[]) {
 
@@ -20,24 +22,24 @@ int main(int argc, char *argv[]) {
 	#ifdef TEST_ARMULATOR
 
 	u16 myAsm[] = {
-		0b0010000000100001,		//r0 = 33
-		0b0010000101000101,		//r1 = 69
-		0b0011000000001100,		//r0 += 12
-		0b0011100000001001,		//r0 -= 9
-		0b0010100000100100,		//r0 == 36
-		0b1101000000000100,		//if true; jump to (end)
-		0b0010000000000011,		//r0 = 3
-		0b0001100001000000,		//r0 += r1
-		0b0001101001000000,		//r0 -= r1
-		0b0000000010000000,		//r0 <<= 2
-		0b0000100011000000,		//(end) r0 >>= 3
-		0b1110000000000001,		//goto (next)
-		0b0010000100000101,		//r1 = 5
-		0b0010000000000101,		//(next) r0 = 5
-		0b1111000000000000,		//goto (myFunc) (LBH)
-		0b1111100000000001,		//goto (myFunc) (LBL)
-		0b0000000010000000,		//r0 <<= 2
-		0b0010000000000011		//(myFunc) r0 = 3
+		Op::mov(r0, 33),
+		Op::mov(r1, 69),
+		Op::add(r0, 12),
+		Op::sub(r0, 9),
+		Op::cmp(r0, 36),
+		Op::b(NE, 4),			//r0 != 36 :end
+		Op::mov(r0, 3),
+		Op::add(r0, r1),
+		Op::sub(r0, r1),
+		Op::lsl(r0, 2),
+		Op::lsr(r0, 3),			//end:
+		Op::b(1),				//:next
+		Op::mov(r1, 5),
+		Op::mov(r0, 5),			//next:
+		Op::bl(1, true),		//goto :myFunc
+		Op::bl(1, false),		//goto :myFunc
+		Op::lsl(r0, 2),
+		Op::mov(r0, 3)			//myFunc:
 	};
 
 	Buffer buf = Buffer((u32) sizeof(myAsm), (u8*) myAsm);

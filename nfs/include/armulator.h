@@ -49,8 +49,6 @@ namespace nfs {
 
 		};
 
-		//TODO: https://stackoverflow.com/questions/19724406/concept-of-bank-registers-in-arm
-		//Some registers are different in other modes
 		struct RegisterBank {
 
 			union {
@@ -89,26 +87,26 @@ namespace nfs {
 
 		};
 
-		struct Condition {
+		enum ConditionValue {
+			EQ,				//Zero is set (==)
+			NE,				//!EQ (!=)
+			CS,				//Carry is set (unsigned >=)
+			CC,				//!CS (unsigned <)
+			MI,				//Negative is set (< 0)
+			PL,				//!MI (>= 0)
+			VS,				//oVerflow (set)
+			VC,				//!VS (clear)
+			HI,				//Carry & !Zero (unsigned >)
+			LS,				//!HI (unsigned <=)
+			GE,				//Negative == Overflow (>=)
+			LT,				//!GE (<)
+			GT,				//!Zero && Negative == Overflow  (>)
+			LE,				//!GT (<=)
+			AL,				//Always
+			NV				//Software interrupt (never)
+		};
 
-			enum Value {
-				EQ,				//Zero is set (==)
-				NE,				//!EQ (!=)
-				CS,				//Carry is set (unsigned >=)
-				CC,				//!CS (unsigned <)
-				MI,				//Negative is set (< 0)
-				PL,				//!MI (>= 0)
-				VS,				//oVerflow (set)
-				VC,				//!VS (clear)
-				HI,				//Carry & !Zero (unsigned >)
-				LS,				//!HI (unsigned <=)
-				GE,				//Negative == Overflow (>=)
-				LT,				//!GE (<)
-				GT,				//!Zero && Negative == Overflow  (>)
-				LE,				//!GT (<=)
-				AL,				//Always
-				NV				//Software interrupt (never)
-			};
+		struct Condition {
 
 			static constexpr char names[][3] = {
 				"EQ", "NE", "CS", "CC",
@@ -120,6 +118,10 @@ namespace nfs {
 		};
 
 		namespace thumb {
+
+			enum ThumbRegister : u8 {
+				r0, r1, r2, r3, r4, r5, r6, r7
+			};
 
 			enum class OpCode : u8 {
 
@@ -171,6 +173,31 @@ namespace nfs {
 					u16 contents : 11;
 					u16 code : 5;
 				};
+
+				static constexpr u16 mov(const ThumbRegister dst, const u8 value);
+				static constexpr u16 cmp(const ThumbRegister dst, const u8 value);
+				static constexpr u16 add(const ThumbRegister dst, const u8 value);
+				static constexpr u16 add(const ThumbRegister dst, const ThumbRegister value);
+				static constexpr u16 add(const ThumbRegister dst, const ThumbRegister src, const ThumbRegister value);
+				static constexpr u16 add(const ThumbRegister dst, const ThumbRegister src, const u8 value);
+				static constexpr u16 sub(const ThumbRegister dst, const u8 value);
+				static constexpr u16 sub(const ThumbRegister dst, const ThumbRegister value);
+				static constexpr u16 sub(const ThumbRegister dst, const ThumbRegister src, const ThumbRegister value);
+				static constexpr u16 sub(const ThumbRegister dst, const ThumbRegister src, const u8 value);
+
+				static constexpr u16 lsl(const ThumbRegister dst, const ThumbRegister src, const u8 value);
+				static constexpr u16 lsl(const ThumbRegister dst, const u8 value);
+				static constexpr u16 lsr(const ThumbRegister dst, const ThumbRegister src, const u8 value);
+				static constexpr u16 lsr(const ThumbRegister dst, const u8 value);
+				static constexpr u16 asr(const ThumbRegister dst, const ThumbRegister src, const u8 value);
+				static constexpr u16 asr(const ThumbRegister dst, const u8 value);
+
+				//TODO: Test negative BL and B
+
+				static constexpr u16 b(const ConditionValue cond, const i8 value);
+				static constexpr u16 b(const i16 value);
+				static constexpr u16 bl(const u16 value, bool highBits);
+
 			};
 
 			union RegOp {
@@ -195,6 +222,9 @@ namespace nfs {
 					u16 offset : 5;		//Shift count
 					u16 code : 5;
 				};
+
+				static constexpr u16 op(const ThumbRegister dst, const ThumbRegister src, const u8 value, const OpCode code);
+
 			};
 
 			union AddSub {
@@ -209,6 +239,10 @@ namespace nfs {
 					u16 intermediate : 1;	//0 = register, 1 = value
 					u16 opCode : 5;
 				};
+
+				static constexpr u16 op(const ThumbRegister dst, const ThumbRegister src, const u8 value, bool isNegative);
+				static constexpr u16 op(const ThumbRegister dst, const ThumbRegister src, const ThumbRegister value, bool isNegative);
+
 			};
 
 			union MovCmpAddSub {
@@ -220,6 +254,9 @@ namespace nfs {
 					u16 Rd : 3;
 					u16 opCode : 5;
 				};
+
+				static constexpr u16 op(const ThumbRegister dst, const u8 value, const OpCode code);
+
 			};
 
 			union CondBranch {
@@ -253,8 +290,136 @@ namespace nfs {
 				};
 			};
 
-		}
+			//All operations
 
+			constexpr u16 MovCmpAddSub::op(const ThumbRegister dst, const u8 value, const OpCode code) {
+				MovCmpAddSub op{};
+				op.opCode = (u16)code;
+				op.Rd = (u16)dst;
+				op.offset = value;
+				return op.value;
+			}
+
+			constexpr u16 Shift::op(const ThumbRegister dst, const ThumbRegister src, const u8 value, const OpCode code) {
+				Shift op{};
+				op.code = (u16)code;
+				op.Rd = (u16)dst;
+				op.Rs = (u16)src;
+				op.offset = value;
+				return op.value;
+			}
+
+			//Relative branch (-128 to 127 instructions)
+			constexpr u16 Op::b(const ConditionValue cond, const i8 value) {
+				CondBranch op{};
+				op.opCode = (u16)OpCode::B0 >> 1;
+				op.cond = (u16)cond;
+				op.soffset = value;
+				return op.value;
+			}
+
+			//Unconditional branch (jump; -1024 to 1023 instructions)
+			constexpr u16 Op::b(const i16 value) {
+				Branch op{};
+				op.opCode = (u16)OpCode::B;
+				op.soffset = value;
+				return op.value;
+			}
+
+			constexpr u16 Op::bl(const u16 value, bool highBits) {
+				LongBranch op{};
+				op.opCode = (u16)(highBits ? OpCode::BLH : OpCode::BLL);
+				op.offset = highBits ? (value >> 11) : value;
+				return op.value;
+			}
+
+			constexpr u16 AddSub::op(const ThumbRegister dst, const ThumbRegister src, const u8 value, bool isNegative) {
+				AddSub op{};
+				op.opCode = (u16) OpCode::ADD_SUB;
+				op.sub = (u16)isNegative;
+				op.intermediate = (u16)true;
+				op.Rd = (u16)dst;
+				op.Rs = (u16)src;
+				op.Rn = (u16)value;
+				return op.value;
+			}
+
+			constexpr u16 AddSub::op(const ThumbRegister dst, const ThumbRegister src, const ThumbRegister value, bool isNegative) {
+				AddSub op{};
+				op.opCode = (u16)OpCode::ADD_SUB;
+				op.sub = (u16)isNegative;
+				op.intermediate = (u16)false;
+				op.Rd = (u16)dst;
+				op.Rs = (u16)src;
+				op.Rn = (u16)value;
+				return op.value;
+			}
+
+			constexpr u16 Op::mov(const ThumbRegister dst, const u8 value) {
+				return MovCmpAddSub::op(dst, value, OpCode::MOV);
+			}
+
+			constexpr u16 Op::cmp(const ThumbRegister dst, const u8 value) {
+				return MovCmpAddSub::op(dst, value, OpCode::CMP);
+			}
+
+			constexpr u16 Op::add(const ThumbRegister dst, const u8 value) {
+				return MovCmpAddSub::op(dst, value, OpCode::ADD);
+			}
+
+			constexpr u16 Op::sub(const ThumbRegister dst, const u8 value) {
+				return MovCmpAddSub::op(dst, value, OpCode::SUB);
+			}
+
+			constexpr u16 Op::lsl(const ThumbRegister dst, const ThumbRegister src, const u8 value) {
+				return Shift::op(dst, src, value, OpCode::LSL);
+			}
+
+			constexpr u16 Op::lsr(const ThumbRegister dst, const ThumbRegister src, const u8 value) {
+				return Shift::op(dst, src, value, OpCode::LSR);
+			}
+
+			constexpr u16 Op::asr(const ThumbRegister dst, const ThumbRegister src, const u8 value) {
+				return Shift::op(dst, src, value, OpCode::ASR);
+			}
+
+			constexpr u16 Op::lsl(const ThumbRegister dst, const u8 value) {
+				return Shift::op(dst, dst, value, OpCode::LSL);
+			}
+
+			constexpr u16 Op::lsr(const ThumbRegister dst, const u8 value) {
+				return Shift::op(dst, dst, value, OpCode::LSR);
+			}
+
+			constexpr u16 Op::asr(const ThumbRegister dst, const u8 value) {
+				return Shift::op(dst, dst, value, OpCode::ASR);
+			}
+
+			constexpr u16 Op::add(const ThumbRegister dst, const ThumbRegister src, const ThumbRegister value) {
+				return AddSub::op(dst, src, value, false);
+			}
+
+			constexpr u16 Op::add(const ThumbRegister dst, const ThumbRegister src, const u8 value) {
+				return AddSub::op(dst, src, value, false);
+			}
+
+			constexpr u16 Op::add(const ThumbRegister dst, const ThumbRegister value) {
+				return add(dst, dst, value);
+			}
+
+			constexpr u16 Op::sub(const ThumbRegister dst, const ThumbRegister src, const ThumbRegister value) {
+				return AddSub::op(dst, src, value, true);
+			}
+
+			constexpr u16 Op::sub(const ThumbRegister dst, const ThumbRegister src, const u8 value) {
+				return AddSub::op(dst, src, value, true);
+			}
+
+			constexpr u16 Op::sub(const ThumbRegister dst, const ThumbRegister value) {
+				return sub(dst, dst, value);
+			}
+
+		}
 
 		//For more documentation, check out https://ece.uwaterloo.ca/~ece222/ARM/ARM7-TDMI-manual-pt3.pdf
 		class Armulator {
@@ -272,11 +437,11 @@ namespace nfs {
 			void exec();
 
 			void printState();
-			bool condition(Condition::Value condition);
+			bool condition(ConditionValue condition);
 
 		private:
 
-			inline bool doCondition(Condition::Value condition);
+			inline bool doCondition(ConditionValue condition);
 			inline bool doStep();
 			inline bool stepThumb();
 			inline bool stepArm();

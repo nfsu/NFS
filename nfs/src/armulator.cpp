@@ -118,48 +118,48 @@ bool Armulator::doStep() {
 	return val;
 }
 
-bool Armulator::condition(Condition::Value condition) {
+bool Armulator::condition(ConditionValue condition) {
 	return doCondition(condition);
 }
 
-inline bool Armulator::doCondition(Condition::Value condition) {
+inline bool Armulator::doCondition(ConditionValue condition) {
 
 	bool val;
 
 	switch (condition) {
 
-	case Condition::EQ:
-	case Condition::NE:
+	case EQ:
+	case NE:
 		val = r.cpsr.zero;
 		break;
 
-	case Condition::CS:
-	case Condition::CC:
+	case CS:
+	case CC:
 		val = r.cpsr.carry;
 		break;
 
-	case Condition::MI:
-	case Condition::PL:
+	case MI:
+	case PL:
 		val = r.cpsr.negative;
 		break;
 
-	case Condition::VS:
-	case Condition::VC:
+	case VS:
+	case VC:
 		val = r.cpsr.overflow;
 		break;
 
-	case Condition::HI:
-	case Condition::LS:
+	case HI:
+	case LS:
 		val = r.cpsr.carry && !r.cpsr.zero;
 		break;
 
-	case Condition::GE:
-	case Condition::LT:
+	case GE:
+	case LT:
 		val = r.cpsr.negative == r.cpsr.overflow;
 		break;
 
-	case Condition::GT:
-	case Condition::LE:
+	case GT:
+	case LE:
 		val = r.cpsr.zero && r.cpsr.negative == r.cpsr.overflow;
 		break;
 
@@ -397,7 +397,7 @@ inline bool Armulator::stepThumb() {
 				printf("B%s #%i\n", Condition::names[condBranch->cond], condBranch->soffset * 2);
 			#endif
 
-  			if (doCondition((Condition::Value) condBranch->cond))
+  			if (doCondition((ConditionValue) condBranch->cond))
 				r.pc += condBranch->soffset * 2;
 
 			goto noConditionFlags;
@@ -435,7 +435,7 @@ inline bool Armulator::stepThumb() {
 				printf("BL #%i\n", r[14]);
 			#endif
 
-			relative = { r[14] };
+			relative.val = r[14];
 
 			r[14] = r.pc + 2;
 			r.pc += relative.sval;
