@@ -1,14 +1,16 @@
-#include "nexplorer.h"
+#include "nexplorer.hpp"
 #include <QtWidgets/qapplication.h>
 using namespace nfsu;
 using namespace nfs;
 
-NExplorer::NExplorer(FileSystem &_fs, std::unordered_map<std::string, std::string> _icons) : fs(_fs), icons(_icons.size()) {
+NExplorer::NExplorer(FileSystem &_fs, const Map<String, String> &_icons) : fs(_fs), icons(_icons.size()) {
 	for (auto &a : _icons)
 		icons[a.first] = QPixmap(a.second.c_str());
 }
 
-NExplorerView::NExplorerView(NExplorer *explorer) : exp(explorer), current(explorer == nullptr ? nullptr : explorer->getRoot()) {
+NExplorerView::NExplorerView(NExplorer *explorer): 
+	exp(explorer), current(explorer ? explorer->getRoot() : nullptr) 
+{
 	setUniformRowHeights(true);
 	setModel(explorer);
 
@@ -19,7 +21,7 @@ NExplorerView::NExplorerView(NExplorer *explorer) : exp(explorer), current(explo
 
 FileSystem &NExplorer::getFileSystem() const { return fs; }
 FileSystemObject *NExplorer::getRoot() const {
-	if (fs.size() == 0) return nullptr;
+	if (!fs.size()) return nullptr;
 	return &fs[0];
 }
 
@@ -32,11 +34,12 @@ QVariant NExplorer::headerData(int section, Qt::Orientation orientation, int rol
 	return QVariant();
 }
 
-QPixmap NExplorer::getIcon(std::string ext) const {
+QPixmap NExplorer::getIcon(const String &ext) const {
+
 	auto it = icons.find(ext);
 
 	if (it == icons.end())
-		return icons.find("none")->second;
+		return icons.find("NONE")->second;
 
 	return it->second;
 }
@@ -52,21 +55,40 @@ QVariant NExplorer::data(const QModelIndex &index, int role) const {
 	if (role != Qt::DisplayRole && role != Qt::DecorationRole)
 		return QVariant();
 
-	FileSystemObject &fso = *(FileSystemObject*)index.internalPointer();
+	FileSystemObject &fso = *(FileSystemObject*) index.internalPointer();
 	ArchiveObject *ao = fso.isFile() ? &fs.getResource(fso) : nullptr;
 
 	if (role == Qt::DecorationRole) {
-		std::string ext = fso.isFolder() ? "" : (QString(ao->name.c_str()).split(".").last()).toLower().toStdString();
+
+		String ext;
+
+		if (!fso.isFolder()) {
+
+			if (ao->info.magicNumber != NBUO_num)
+				ext = ResourceHelper::getName(nullptr, 0, ao->info.magicNumber, false);
+
+			else ext = ao->name.substr(ao->name.find_last_of('.'));
+
+			std::for_each(ext.begin(), ext.end(), std::toupper);
+
+			//Sometimes magic number is flipped
+
+			if (ao->info.magicNumber != NBUO_num && icons.find(ext) == icons.end()) {
+				ext = ResourceHelper::getName(nullptr, 0, ao->info.magicNumber, true);
+				std::for_each(ext.begin(), ext.end(), std::toupper);
+			}
+		}
+
 		return getIcon(ext);
 	}
 
 	return QString(fso.name.c_str()).split("/").last();
 }
 
-bool isIndex(FileSystem &fs, FileSystemObject &fso, u32 i, u32 index, u16 folders, u32 value) {
+bool isIndex(FileSystem &fs, FileSystemObject &fso, usz i, usz index, usz folders, u32 value) {
 
 	if (fso.isFile())
-		i = i + (u32)folders;
+		i = i + folders;
 
 	return i == value;
 }
@@ -78,7 +100,7 @@ QModelIndex NExplorer::index(int row, int column, const QModelIndex &parent) con
 	if (fso == nullptr)
 		return QModelIndex();
 
-	FileSystemObject *child = fs.foreachInFolder(isIndex, *fso, fso->folders, (u32) row);
+	FileSystemObject *child = fs.foreachInFolder(isIndex, *fso, fso->folders, u32(row));
 
 	if (child == nullptr)
 		return QModelIndex();
@@ -91,7 +113,7 @@ QModelIndex NExplorer::parent(const QModelIndex &index) const {
 	if (!index.isValid())
 		return QModelIndex();
 
-	FileSystemObject &fso = *(FileSystemObject*)index.internalPointer();
+	FileSystemObject &fso = *(FileSystemObject*) index.internalPointer();
 	FileSystemObject &parent = fs[fso.parent];
 
 	if (parent.isRoot())
@@ -106,7 +128,7 @@ int NExplorer::rowCount(const QModelIndex &parent) const {
 		return 0;
 
 	if (parent.isValid())
-		return ((FileSystemObject*)parent.internalPointer())->objects;
+		return ((FileSystemObject*) parent.internalPointer())->objects;
 	
 	return fs.size() > 0 ? fs[0].objects : 0;
 }
@@ -119,10 +141,13 @@ Qt::ItemFlags NExplorer::flags(const QModelIndex &index) const {
 	return QAbstractItemModel::flags(index);
 }
 
-nfs::FileSystemObject *NExplorerView::getCurrent() { return current; }
+void NExplorerView::addExplorerCallback(bool isRightClick, ExplorerCallback callback) { 
+	callbacks[isRightClick].ecall.push_back(callback); 
+}
 
-void NExplorerView::addExplorerCallback(bool isRightClick, ExplorerCallback callback) { callbacks[isRightClick].ecall.push_back(callback); }
-void NExplorerView::addResourceCallback(bool isRightClick, u32 type, ResourceCallback callback) { callbacks[isRightClick].rcall[type] = callback; }
+void NExplorerView::addResourceCallback(bool isRightClick, u32 type, ResourceCallback callback) { 
+	callbacks[isRightClick].rcall[type] = callback; 
+}
 
 void NExplorerView::customContextMenuRequested(const QPoint &point) {
 
@@ -140,13 +165,9 @@ void NExplorerView::customContextMenuRequested(const QPoint &point) {
 			a(fs, fso, point);
 
 		if(ao != nullptr)
-		for (auto &a : callbacks[true].rcall) {
-
-			if (a.first != ao->info.type && a.first != u32_MAX)
-				continue;
-
-			a.second(fs, fso, *ao, point);
-		}
+			for (auto &a : callbacks[true].rcall)
+				if (!(a.first != ao->info.type && a.first != u32_MAX))
+					a.second(fs, fso, *ao, point);
 	}
 }
 

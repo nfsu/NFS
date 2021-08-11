@@ -50,11 +50,11 @@ All of the keys & mouse events require your cursor to be in the tile renderer wi
 
 **Mouse wheel**: Zoom
 
-**Z**: Undo
+**Z**: Undo (TODO:)
 
-**Y**: Redo
+**Y**: Redo (TODO:)
 
-**SHIFT+Z**: Redo
+**SHIFT+Z**: Redo (TODO:)
 
 ## SHIFT+
 

@@ -1,4 +1,4 @@
-#include "armulator.h"
+#include "armulator.hpp"
 using namespace nfs;
 using namespace arm;
 using namespace thumb;
@@ -12,16 +12,16 @@ Armulator::Armulator(Buffer buf, u32 entryPoint) : buf(buf) {
 	r.pc = entryPoint;
 }
 
-u32 *RegisterBank::find(size_t i) {
+u32 *RegisterBank::find(usz i) {
 	u8 reg = RegisterBank::registerMapping[CPSR::modeId[cpsr.mode]][i];
 	return dat + reg;
 }
 
-u32 &RegisterBank::operator[](size_t i) {
+u32 &RegisterBank::operator[](usz i) {
 	return *find(i);
 }
 
-u32 &RegisterBank::get(size_t i) {
+u32 &RegisterBank::get(usz i) {
 	return *find(i);
 }
 
@@ -47,7 +47,6 @@ void RegisterBank::printState() {
 
 		get(0), get(1), get(2), get(3), get(4), get(5), get(6), get(7), get(8), get(9),
 		get(10), get(11), get(12), get(13), get(14), pc
-
 	);
 }
 
@@ -64,9 +63,7 @@ void CPSR::printState() {
 		"negative = %u\n",
 		
 		mode, thumbMode, disableFIQ, disableIRQ, overflow, carry, zero, negative
-
 	);
-
 }
 
 void Armulator::printState() {
@@ -83,7 +80,6 @@ void Armulator::printState() {
 		printf("\nSPSR:\n");
 		r.spsr[cpsrIdx - 1].printState();
 	}
-
 }
 
 void Armulator::exec() {
@@ -100,8 +96,8 @@ bool Armulator::doStep() {
 
 	if (r.cpsr.thumbMode)
 		val = stepThumb();
-	else
-		val = stepArm();
+
+	else val = stepArm();
 
 	#ifdef PRINT_STEP
 		printState();
@@ -168,7 +164,7 @@ inline bool Armulator::doCondition(ConditionValue condition) {
 
 	}
 
-	return val != ((u32)condition & 1);
+	return val != (u32(condition) & 1);
 }
 
 void Armulator::IRQ() {
@@ -188,7 +184,6 @@ void Armulator::FIQ() {
 
 	switchMode(CPSR::Mode::FIQ);
 	r.cpsr.disableFIQ = 1;
-
 }
 
 void Armulator::restore() {
@@ -199,39 +194,36 @@ void Armulator::restore() {
 
 	if (idx != 0)
 		r.cpsr = r.spsr[idx - 1];	//Restore CPSR
-
 }
 
 void Armulator::switchMode(CPSR::Mode mode) {
 
-	u8 idx = CPSR::modeId[(u32)mode];
+	u8 idx = CPSR::modeId[u32(mode)];
 
 	if (idx != 0)
 		r.spsr[idx - 1] = r.cpsr;
 
 	switch (mode) {
 
-	case CPSR::Mode::USR:
-	case CPSR::Mode::FIQ:
-	case CPSR::Mode::IRQ:
-	case CPSR::Mode::SVC:
-	case CPSR::Mode::ABT:
-	case CPSR::Mode::UND:
-	case CPSR::Mode::SYS:
-		break;
+		case CPSR::Mode::USR:
+		case CPSR::Mode::FIQ:
+		case CPSR::Mode::IRQ:
+		case CPSR::Mode::SVC:
+		case CPSR::Mode::ABT:
+		case CPSR::Mode::UND:
+		case CPSR::Mode::SYS:
+			break;
 
-	default:
+		default:
 
-		EXCEPTION("Switching to undefined assembly mode");
-		mode = CPSR::Mode::USR;
-
+			EXCEPTION("Switching to undefined assembly mode");
+			mode = CPSR::Mode::USR;
 	}
 
 	r.cpsr.mode = (u32) mode;
 
 	//Store return value into link register
 	r[14] = r.pc;
-
 }
 
 inline bool Armulator::stepThumb() {
@@ -239,7 +231,7 @@ inline bool Armulator::stepThumb() {
 	//All of the ways the next instruction can be interpret
 
 	u32 pc = r.pc & ~1;
-	u16 *ptr = (u16*)(buf.ptr + pc);
+	u16 *ptr = buf.add<u16>(pc);
 
 	Op *op = (Op*) ptr;
 	RegOp *regOp = (RegOp*) ptr;
@@ -317,22 +309,28 @@ inline bool Armulator::stepThumb() {
 		case OpCode::ADD_SUB:
 
 			#ifdef PRINT_INSTRUCTION
+
 				if(addSub->sub)
+
 					if(addSub->intermediate)
 						printf("SUB r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
-					else
-						printf("SUB r%u, r%u, r%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
+
+					else printf("SUB r%u, r%u, r%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
+
 				else {
 					if (addSub->intermediate)
 						printf("ADD r%u, r%u, #%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
-					else
-						printf("ADD r%u, r%u, r%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
+
+					else printf("ADD r%u, r%u, r%u\n", regOp->Rd, regOp->Rs, addSub->Rn);
 				}
 			#endif
 
 			negative = addSub->sub;
 			mul = 1 - addSub->sub * 2;
-			val = *Rd = Rs + addSub->Rn * addSub->intermediate * mul + r[addSub->Rn] * (1 - addSub->intermediate) * mul;
+
+			val = *Rd = 
+				Rs + addSub->Rn * addSub->intermediate * mul + 
+				r[addSub->Rn] * (1 - addSub->intermediate) * mul;
 			break;
 
 		//Rd = z
@@ -446,7 +444,6 @@ inline bool Armulator::stepThumb() {
 
 			EXCEPTION("OpCode was invalid or isn't implemented");
 			return false;
-
 	}
 
 	//Set condition flags
@@ -465,7 +462,7 @@ inline bool Armulator::stepThumb() {
 
 	r.pc += 2;
 
-	return r.pc < buf.size && !(r.pc - 2 > r.pc);
+	return r.pc < buf.size() && !(r.pc - 2 > r.pc);
 
 }
 

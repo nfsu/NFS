@@ -42,7 +42,7 @@ struct NCLR {
 	u32 c_padding;						//0x00000000
 	u32 dataSize;						//size of palette data in bytes; if(size > 0x200) size = 0x200 - size;
 	u32 c_colors;						//0x00000010
-	char ttlp_data[size - sizeof(TTLP)];
+	u8 ttlp_data[size - sizeof(TTLP)];
     
 	//PMCP (Not always present; only if sections > 1)
 	u32 magicNumber;					//MagicNumber; TTLP, PMCP, etc.
@@ -50,7 +50,7 @@ struct NCLR {
 	u16 count;						//Count of palettes in file
 	u32 c_constant;						//0xEFBE08
 	u16 c_padding;						//0x0000
-	char pmcp_data[size - sizeof(PMCP)];
+	u8 pmcp_data[size - sizeof(PMCP)];
 };
 ```
 Note that the struct declared above is only for demonstration; it doesn't actually compile. I had to do some template magic to get this to work.

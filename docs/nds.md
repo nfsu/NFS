@@ -3,9 +3,9 @@ The NDS format contains a few things; one of the most important ones are a file 
 ## NDS Header
 ```cpp
 struct NDS {																//NDS file format
-		char title[12];
-		char gameCode[4];
-		char makerCode[2];
+		c8 title[12];
+		c8 gameCode[4];
+		c8 makerCode[2];
 		u8 unitCode;
 		u8 encryptionSeed;
 		u8 capacity;
@@ -64,7 +64,7 @@ Every folder has this struct and to find out how many folders there are, you jum
 	FolderInfo *folderArray = (FolderInfo*)fnt.ptr;
 	FolderInfo &root = *folderArray;
 
-	if ((root.relation & 0xF000) != 0)
+	if (root.relation & 0xF000)
 		throw std::exception("FileSystem Couldn't find root folder");
 
 	u16 rootFolders = root.relation;
@@ -87,11 +87,11 @@ As you can see above, the names aren't specified, that's because they come after
 ```
 u8 var (isFolder = var & 0x80; nameLength = var & 0x7F)
 ```
-If however, var is 0x00, it means that it wants to jump to the next folder. For this, we use a 'current folder' variable, which indicates to which folder the object belongs. This starts out at 0; the root file. But when it encounters the next 0x00, it will increase it and jump to the next directory. If that's not the case, it will follow with a `char[nameLength]`, representing the name of the next object. Every file, the file offset increases and that variable 'fileOffset' (initialized as value of startFile)  is used to determine the buffer of that file.
+If however, var is 0x00, it means that it wants to jump to the next folder. For this, we use a 'current folder' variable, which indicates to which folder the object belongs. This starts out at 0; the root file. But when it encounters the next 0x00, it will increase it and jump to the next directory. If that's not the case, it will follow with a `c8[nameLength]`, representing the name of the next object. Every file, the file offset increases and that variable 'fileOffset' (initialized as value of startFile)  is used to determine the buffer of that file.
 ```cpp
-	u32 &beg = *(u32*)(fpos.ptr + fileOffset * 8);
-	u32 &end = *(u32*)(fpos.ptr + fileOffset * 8 + 4);
+	u32 &beg = fpos.at<u32>(fileOffset * 8);
+	u32 &end = fpos.at<u32>(fileOffset * 8 + 4);
 	u32 len = end - beg;
 
-	fso.buf = { len, ((u8*)rom) + beg };
+	fso.buf = { len, (u8*)rom + beg };
 ```

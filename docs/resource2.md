@@ -41,7 +41,7 @@ struct NSCR {
 	u16 screenHeight;			        //Height of screen (pixels)
 	u32 c_padding;				        //unknown
 	u32 screenDataSize;		       	 	//Size of screen data buffer
-	char ncrs_data[size - sizeof(NCRS)];
+	u8 ncrs_data[size - sizeof(NCRS)];
 };
 ```
 Note that the struct declared above is only for demonstration; it doesn't actually compile. I had to do some template magic to get this to work.

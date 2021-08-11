@@ -1,7 +1,7 @@
-#include "window.h"
-#include "nexplorer.h"
-#include "infowindow.h"
-#include <patcher.h>
+#include "window.hpp"
+#include "nexplorer.hpp"
+#include "info_window.hpp"
+#include "patcher.hpp"
 #include <QtGui/qdesktopservices.h>
 #include <QtWidgets/qfiledialog.h>
 #include <QtWidgets/qmessagebox.h>
@@ -10,10 +10,11 @@
 #include <QtWidgets/qlayout.h>
 #include <QtWidgets/qapplication.h>
 #include <QtGui/qevent.h>
-#include "model.h"
-#include "paletteeditor.h"
-#include "tileeditor.h"
-#include "gameeditor.h"
+#include "model.hpp"
+#include "palette_editor.hpp"
+#include "tile_editor.hpp"
+#include "game_editor.hpp"
+
 using namespace nfsu;
 using namespace nfs;
 
@@ -35,7 +36,6 @@ Window::Window() {
 			"alternate-background-color: #303030;"
 			"font: 14px;"
 		"}"
-
 		
 		"QPushButton {"
 			"border: 1px solid #101010;"
@@ -95,14 +95,13 @@ Window::Window() {
 	);
 
 	setupUI();
-
 }
 
 Window::~Window() {
 	rom.dealloc();
 }
 
-///UI Actions
+//UI Actions
 
 void Window::setupUI() {
 	setupLayout();
@@ -114,21 +113,20 @@ void Window::setupUI() {
 
 void Window::setupLayout() {
 
-	setCentralWidget(central = new QWidget);
+	setCentralWidget(central = new QWidget());
 
-	central->setLayout(layout = new QHBoxLayout);
-	splitter = new QSplitter;
+	central->setLayout(layout = new QHBoxLayout());
+	splitter = new QSplitter();
 	layout->addWidget(splitter);
 
 	splitter->addWidget(left = new QSplitter(Qt::Vertical));
 
-	splitter->addWidget(right = new QWidget);
-	right->setLayout(rightLayout = new QVBoxLayout);
+	splitter->addWidget(right = new QWidget());
+	right->setLayout(rightLayout = new QVBoxLayout());
 
 	QList<int> size = QList<int>{ 0 /* minimum */, 1 /* everything */ };
 	splitter->setSizes(size);
 }
-
 
 int StopAlt::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidget *widget, QStyleHintReturn *returnData) const {
 
@@ -136,7 +134,6 @@ int StopAlt::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
 		return 0;
 
 	return QProxyStyle::styleHint(stylehint, opt, widget, returnData);
-
 }
 
 void Window::setupToolbar() {
@@ -150,15 +147,20 @@ void Window::setupToolbar() {
 	QMenu *options = qtb->addMenu("Options");
 	QMenu *help = qtb->addMenu("Help");
 
-	///File
+	//File
+
 	QAction *load = file->addAction("Load");
 	QAction *save = file->addAction("Save As");
 	QAction *saveCurrent = file->addAction("Save");
 	QAction *reload = file->addAction("Reload");
+
 	file->addSeparator();
+
 	QAction *exp = file->addAction("Export");
 	QAction *imp = file->addAction("Import");
+
 	file->addSeparator();
+
 	QAction *find = file->addAction("Find");
 	QAction *filter = file->addAction("Filter");
 	QAction *order = file->addAction("Order");
@@ -173,19 +175,22 @@ void Window::setupToolbar() {
 	connect(filter, &QAction::triggered, this, &Window::filterFiles);
 	connect(order, &QAction::triggered, this, &Window::orderFiles);
 
-	///View
+	//View
+
 	QAction *restore = view->addAction("Reset");
 	QAction *customize = view->addAction("Customize");
 
 	connect(restore, &QAction::triggered, this, &Window::restore);
 	connect(customize, &QAction::triggered, this, &Window::customize);
 
-	///Options
+	//Options
+
 	QAction *preferences = options->addAction("Preferences");
 
 	connect(preferences, &QAction::triggered, this, &Window::preferences);
 
-	///Help
+	//Help
+
 	QAction *about = help->addAction("About");
 	QAction *shortcuts = help->addAction("Shortcuts");
 	QAction *documentation = help->addAction("Documentation");
@@ -193,7 +198,6 @@ void Window::setupToolbar() {
 	connect(about, &QAction::triggered, this, &Window::about);
 	connect(shortcuts, &QAction::triggered, this, &Window::shortcuts);
 	connect(documentation, &QAction::triggered, this, &Window::documentation);
-
 }
 
 void Window::setupExplorer() {
@@ -205,14 +209,15 @@ void Window::setupExplorer() {
 	left->addWidget(view);
 
 	view->addResourceCallback(true, u32_MAX, [this, view](FileSystem &fs, FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
-		this->activateResource(fso, ao, view->mapToGlobal(point));
+		activateResource(fso, ao, view->mapToGlobal(point));
 	});
 
 	view->addExplorerCallback(false, [this](FileSystem &fs, FileSystemObject &fso, const QPoint &point) {
+
 		if (fso.isFile())
-			this->inspect(fso, fs.getResource(fso));
-		else
-			this->inspectFolder(fso);
+			inspect(fso, fs.getResource(fso));
+
+		else inspectFolder(fso);
 	});
 }
 
@@ -222,6 +227,7 @@ void Window::setupInfoWindow() {
 
 	infoWindow->setMinimumWidth(400);
 	infoWindow->setMinimumHeight(210);
+
 	infoWindow->setString("Path", "");
 	infoWindow->setString("Folders", "");
 	infoWindow->setString("Files", "");
@@ -229,7 +235,6 @@ void Window::setupInfoWindow() {
 	infoWindow->setString("Type", "");
 	infoWindow->setString("Offset", "");
 	infoWindow->setString("Length", "");
-
 }
 
 void Window::setupTabs(QLayout *layout) {
@@ -270,21 +275,20 @@ void Window::setupTabs(QLayout *layout) {
 
 	connect(tabs, &QTabWidget::currentChanged, this, [&](int idx) { 
 
-		if(this->selected != nullptr)
-			this->selected->hideInfo(infoWindow);
+		if(selected != nullptr)
+			selected->hideInfo(infoWindow);
 
-		this->selected = editors[idx];
-		this->selectedId = idx; 
+		selected = editors[idx];
+		selectedId = idx; 
 
-		if (this->selected != nullptr) {
-			this->selected->showInfo(infoWindow);
-			this->selected->onSwap();
+		if (selected != nullptr) {
+			selected->showInfo(infoWindow);
+			selected->onSwap();
 		}
 
 	});
 
 	rightLayout->addWidget(tabs);
-
 }
 
 void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
@@ -293,26 +297,30 @@ void Window::activateResource(FileSystemObject &fso, ArchiveObject &ao, const QP
 
 	QAction *view = contextMenu.addAction("View resource");
 	QAction *viewData = contextMenu.addAction("View data");
+
 	contextMenu.addSeparator();
+
 	QAction *expr = contextMenu.addAction("Export resource");
 	QAction *impr = contextMenu.addAction("Import resource");
+
 	contextMenu.addSeparator();
+
 	QAction *info = contextMenu.addAction("Documentation");
 
-	connect(view, &QAction::triggered, this, [&]() { this->viewResource(fso, ao); });
+	connect(view, &QAction::triggered, this, [&]() { viewResource(fso, ao); });
 	connect(viewData, &QAction::triggered, this, [&]() { this->viewData(ao.buf); });
-	connect(expr, &QAction::triggered, this, [&]() { this->exportResource(fso, ao); });
-	connect(impr, &QAction::triggered, this, [&]() { this->importResource(fso, ao); });
+	connect(expr, &QAction::triggered, this, [&]() { exportResource(fso, ao); });
+	connect(impr, &QAction::triggered, this, [&]() { importResource(fso, ao); });
 	connect(info, &QAction::triggered, this, [&]() { this->info(fso, ao); });
 
 	contextMenu.exec(point);
 }
 
-///File actions
+//File actions
 
 void Window::_load() {
 
-	if (rom.ptr != nullptr) {
+	if (rom.add()) {
 
 		QMessageBox::StandardButton reply = QMessageBox::question(nullptr, "Load ROM", "Loading a ROM will clear all resources and discard any progress. Do you want to continue?");
 
@@ -332,7 +340,7 @@ void Window::_load() {
 	load(file);
 }
 
-void Window::load(QString _file) {
+void Window::load(const QString &_file) {
 	file = _file;
 	reload();
 }
@@ -342,23 +350,19 @@ void Window::reload() {
 	fileSystem.clear();
 	rom.dealloc();
 
-	rom = Buffer::read(file.toStdString());
+	rom = Buffer::readFile(file.toStdString());
 
-	if (rom.ptr != nullptr) {
-
-		NDS *nds = (NDS*) rom.ptr;
+	if (NDS *nds = rom.add<NDS>()) {
 		setWindowTitle(QString("File System Utilities: ") + nds->title);
 		fileSystem = nds;
-
 	}
 
 	restore();
-
 }
 
 void Window::_reload() {
 
-	if (rom.ptr != nullptr) {
+	if (rom.add()) {
 
 		QMessageBox::StandardButton reply = QMessageBox::question(nullptr, "Reload ROM", "Reloading a ROM will clear all resources and discard any progress. Do you want to continue?");
 
@@ -367,7 +371,6 @@ void Window::_reload() {
 	}
 
 	reload();
-
 }
 
 void Window::_write() {
@@ -384,9 +387,9 @@ void Window::_write() {
 	write(file);
 }
 
-void Window::write(QString file) {
-	if (rom.ptr != nullptr)
-		rom.write(file.toStdString());
+void Window::write(const QString &file) {
+	if (rom.add())
+		rom.writeFile(file.toStdString());
 }
 
 void Window::_exportPatch() {
@@ -394,18 +397,18 @@ void Window::_exportPatch() {
 	exportPatch(file);
 }
 
-void Window::exportPatch(QString file) {
+void Window::exportPatch(const QString &file) {
 
-	if (rom.ptr == nullptr) {
+	if (!rom.add()) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "Please select a ROM before exporting a patch");
 		messageBox.setFixedSize(500, 200);
 		return;
 	}
 
-	Buffer original = Buffer::read(this->file.toStdString());
+	Buffer original = Buffer::readFile(file.toStdString());
 
-	if (original.ptr == nullptr) {
+	if (!original.add()) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "Couldn't load the original ROM. Please reload the ROM");
 		messageBox.setFixedSize(500, 200);
@@ -415,18 +418,20 @@ void Window::exportPatch(QString file) {
 	Buffer patch = Patcher::writePatch(original, rom);
 	original.dealloc();
 	
-	if (patch.ptr == nullptr) {
+	if (!patch.add()) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "Couldn't complete patch; files were probably identical");
 		messageBox.setFixedSize(500, 200);
 		return;
 	}
 
-	patch.write(file.toStdString());
+	patch.writeFile(file.toStdString());
 	patch.dealloc();
 }
 
 void Window::_importPatch() {
+
+	//TODO: Verify checksum to see if our files are the same (patch can have multiple checksums where one of them has to be applied)
 
 	QMessageBox::StandardButton reply = QMessageBox::question(nullptr, "Import Patch", "Importing a patch might damage the ROM, or might not work if applied on the wrong ROM. Do you want to continue?");
 
@@ -445,11 +450,11 @@ void Window::_importPatch() {
 	importPatch(file);
 }
 
-void Window::importPatch(QString file) {
+void Window::importPatch(const QString &file) {
 
-	Buffer buf = Buffer::read(file.toStdString());
+	Buffer buf = Buffer::readFile(file.toStdString());
 
-	if (buf.ptr == nullptr || rom.ptr == nullptr) {
+	if (!buf.add() || !rom.add()) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "To apply a patch, please select a valid file and ROM");
 		messageBox.setFixedSize(500, 200);
@@ -476,16 +481,17 @@ void Window::orderFiles() {
 	//TODO: Order on size, alphabetical, offset; ascending, descending
 }
 
-///View
+//View
 
 void Window::restore() {
 
-	NDS *nds = (NDS*)rom.ptr;
+	NDS *nds = rom.add<NDS>();
 
 	if (nds != nullptr) {
 		infoWindow->setString("Path", "/");
 		infoWindow->setString("Folders", QString::number(fileSystem.getFolders()));
 		infoWindow->setString("Files", QString::number(fileSystem.getFiles()));
+		infoWindow->setString("Supported files", QString::number(fileSystem.getSupportedFiles()));
 	} else {
 		infoWindow->setString("Folders", "");
 		infoWindow->setString("Files", "");
@@ -498,22 +504,20 @@ void Window::restore() {
 
 	explorerView->reset();
 
-	if (selected != nullptr)
+	if (selected)
 		selected->hideInfo(infoWindow);
 
 	for (ResourceEditor *editor : editors)
-		if (editor != nullptr) {
+		if (editor) {
 
 			editor->reset();
 
-			if (nds != nullptr)
+			if (nds)
 				editor->init(nds, fileSystem);
-
 		}
 
-	if (selected != nullptr)
+	if (selected)
 		selected->showInfo(infoWindow);
-
 }
 
 void Window::customize() {
@@ -525,18 +529,18 @@ void Window::preferences() {
 	//TODO: Save last folder & file & tab as preference
 }
 
-///Help
+//Help
 
 void Window::documentation() {
-	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded"));
+	QDesktopServices::openUrl(QUrl("https://github.com/NFSU/NFS/tree/NFS_Reloaded"));
 }
 
 void Window::shortcuts() {
-	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/guide/shortcut.md"));
+	QDesktopServices::openUrl(QUrl("https://github.com/NFSU/NFS/tree/NFS_Reloaded/guide/shortcut.md"));
 }
 
 void Window::about() {
-	QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/nfsu"));
+	QDesktopServices::openUrl(QUrl("https://github.com/NFSU/NFS/tree/NFS_Reloaded/nfsu"));
 }
 
 ///Right click resource actions
@@ -545,37 +549,40 @@ void Window::viewResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 
 	inspect(fso, ao);
 
-	if (selected == nullptr || !selected->allowsResource(fso, ao)) {
+	if (!selected || !selected->allowsResource(fso, ao)) {
 
 		u32 i = 0;
 
 		for(ResourceEditor *editor : editors)
+
 			if (editor != nullptr && editor->isPrimaryEditor(fso, ao)) {
 				tabs->setCurrentIndex(i);
 				break;
-			} else ++i;
+			}
+			
+			else ++i;
 
 		if(i == editors.size())
 			return;
-
 	}
 
 	selected->inspectResource(fileSystem, fso, ao);
 	selected->showInfo(infoWindow);
-
 }
 
 void Window::viewData(Buffer buf) {
 
-	if (selected == nullptr || !selected->allowsData()) {
+	if (!selected || !selected->allowsData()) {
 
 		u32 i = 0;
 
 		for (ResourceEditor *editor : editors)
+
 			if (editor != nullptr && editor->allowsData()) {
 				tabs->setCurrentIndex(i);
 				break;
 			}
+
 			else ++i;
 
 		if (i == editors.size())
@@ -590,17 +597,23 @@ void Window::exportResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) 
 
 	QString name = QString(ao.name.c_str()).split("/").last();
 	QString extension = name.split(".").last();
+	QString fileType = extension + " file";
 
-	QString file = QFileDialog::getSaveFileName(this, tr("Save Resource"), "", tr((extension + " file (*." + extension + ")").toStdString().c_str()));
+	if (extension.contains('?')) {
+		extension = '*';
+		fileType = "Any file";
+	}
 
-	if (file == "" || !file.endsWith("." + extension, Qt::CaseInsensitive)) {
+	QString file = QFileDialog::getSaveFileName(this, tr("Save Resource"), "", tr((fileType + " (*." + extension + ")").toStdString().c_str()));
+
+	if (file == "" || (!file.endsWith("." + extension, Qt::CaseInsensitive) && extension != "*")) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "Please select a valid ." + extension + " file to write to");
 		messageBox.setFixedSize(500, 200);
 		return;
 	}
 
-	if (!fso.buf.write(file.toStdString())) {
+	if (!fso.buf.writeFile(file.toStdString())) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "Couldn't write resource");
 		messageBox.setFixedSize(500, 200);
@@ -612,19 +625,25 @@ void Window::importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) 
 
 	QString name = QString(ao.name.c_str()).split("/").last();
 	QString extension = name.split(".").last();
+	QString fileType = extension + " file";
 
-	QString file = QFileDialog::getOpenFileName(nullptr, tr("Load Resource"), "", tr((extension + " file (*." + extension + ")").toStdString().c_str()));
+	if (extension.contains('?')) {
+		extension = '*';
+		fileType = "Any file";
+	}
 
-	if (file == "" || !file.endsWith("." + extension, Qt::CaseInsensitive)) {
+	QString file = QFileDialog::getOpenFileName(nullptr, tr("Load Resource"), "", tr((fileType + " (*." + extension + ")").toStdString().c_str()));
+
+	if (file == "" || (!file.endsWith("." + extension, Qt::CaseInsensitive) && extension != "*")) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "Please select a valid ." + extension + " file to read from");
 		messageBox.setFixedSize(500, 200);
 		return;
 	}
 
-	Buffer buf = Buffer::read(file.toStdString());
+	Buffer buf = Buffer::readFile(file.toStdString());
 
-	if (buf.size != fso.buf.size) {
+	if (buf.size() != fso.buf.size()) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "Resources can't change size");
 		messageBox.setFixedSize(500, 200);
@@ -632,15 +651,16 @@ void Window::importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) 
 		return;
 	}
 
-	memcpy(fso.buf.ptr, buf.ptr, buf.size);
+	std::memcpy(fso.buf.add(), buf.add(), buf.size());
 	buf.dealloc();
 }
 
 void Window::info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+
 	if (ao.info.magicNumber != ResourceHelper::getMagicNumber<NBUO>())
-		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs/resource" + QString::number(ao.info.type) + ".md"));
-	else
-		QDesktopServices::openUrl(QUrl("https://github.com/Nielsbishere/NFS/tree/NFS_Reloaded/docs"));
+		QDesktopServices::openUrl(QUrl("https://github.com/NFSU/NFS/tree/NFS_Reloaded/docs/resource" + QString::number(ao.info.type) + ".md"));
+
+	else QDesktopServices::openUrl(QUrl("https://github.com/NFSU/NFS/tree/NFS_Reloaded/docs"));
 }
 
 void Window::inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
@@ -649,16 +669,23 @@ void Window::inspect(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
 
 	infoWindow->setString("Folders", QString::number(fso.folders));
 	infoWindow->setString("Files", QString::number(fso.files));
+	infoWindow->clearString("Supported files");
 
 	infoWindow->setString("Path", fileName);
 	infoWindow->setString("Id", QString::number(fso.index));
 
-	int occur = fileName.lastIndexOf(".");
-	infoWindow->setString("Type", fileName.mid(occur + 1, fileName.size() - occur - 1));
+	if (ao.info.magicNumber != NBUO_num)
+		infoWindow->setString("Type", QString::fromStdString(
+			ResourceHelper::getName(nullptr, 0, ao.info.magicNumber, false)
+		));
 
-	infoWindow->setString("Offset", QString("0x") + QString::number((u32)(fso.buf.ptr - rom.ptr), 16));
-	infoWindow->setString("Length", QString::number(fso.buf.size));
+	else if (fileName.contains('.'))
+		infoWindow->setString("Type", fileName.remove(0, fileName.lastIndexOf('.') + 1));
 
+	else infoWindow->setString("Type", "Undefined");
+
+	infoWindow->setString("Offset", QString("0x") + QString::number(u32(fso.buf.add() - rom.add()), 16));
+	infoWindow->setString("Length", QString::number(fso.buf.size()));
 }
 
 void Window::inspectFolder(nfs::FileSystemObject &fso) {
@@ -668,6 +695,8 @@ void Window::inspectFolder(nfs::FileSystemObject &fso) {
 	infoWindow->setString("Folders", QString::number(fso.folders));
 	infoWindow->setString("Files", QString::number(fso.files));
 
+	infoWindow->clearString("Supported files");
+
 	infoWindow->setString("Path", fileName);
 	infoWindow->setString("Id", QString::number(fso.index));
 
@@ -675,5 +704,4 @@ void Window::inspectFolder(nfs::FileSystemObject &fso) {
 
 	infoWindow->setString("Offset", "");
 	infoWindow->setString("Length", "");
-
 }

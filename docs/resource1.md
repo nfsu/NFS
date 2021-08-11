@@ -49,7 +49,7 @@ struct NCGR {
 	u8 specialTiling;				//Seems to be set when images uses different tiling
 	u32 tileDataSize;				//tileDataSize / 1024 = tileCount; tileDataSize * (2 - (tileDepth - 3)) = pixels
 	u32 c_padding0;					//0x00000018
-	char rahc_data[size - sizeof(RAHC)];
+	u8 rahc_data[size - sizeof(RAHC)];
     
 	//SOPC (Not always present; only if sections > 1)
 	u32 magicNumber;				//MagicNumber; TTLP, PMCP, etc.
@@ -57,7 +57,7 @@ struct NCGR {
 	u32 c_padding;				    	//0x00000000
 	u16 tileWidth;				    	//= tileCount in RAHC
 	u16 tileHeight;				    	//= RAHC tileCount
-	char sopc_data[size - sizeof(SOPC)];
+	u8 sopc_data[size - sizeof(SOPC)];
 };
 ```
 Note that the struct declared above is only for demonstration; it doesn't actually compile. I had to do some template magic to get this to work.
@@ -99,7 +99,7 @@ You can use the fact that the first and second value of the iterator have to be 
 //*beg ^= *beg is always zero, so don't include it
 u16 next = *(beg + 1);
 u32 seed = CompressionHelper::generateRandom(*beg);
-bool reverse = ((next ^ seed) & 0xFFFFU) != 0;
+bool reverse = (next ^ seed) & 0xFFFF;
 ```
 
 At the example above, we place 'beg' at data + 0. We know that XORing it by the seed (itself) will always return 0, so we don't check it. The second value however, will only be 0 if the decryption is valid.
@@ -123,7 +123,7 @@ seed = beg[i];
 
 while ((reverse && i >= 0) || (!reverse && i <= endInd)) {
 	u8 seed0 = seed & 0xFF;
-	u8 seed1 = (seed & 0xFF00) >> 8;
+	u8 seed1 = (seed & >> 8) & 0xFF;
 	magic[i * 2] = seed0;
 	magic[i * 2 + 1] = seed1;
 	seed = CompressionHelper::generateRandom(seed);

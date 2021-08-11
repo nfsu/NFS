@@ -1,10 +1,10 @@
-#include "ntypes.h"
+#include "ntypes.hpp"
 using namespace nfs;
 
 NDSBanner *NDSBanner::get(NDS *nds) {
 	return (NDSBanner*)((u8*)nds + nds->iconOffset);
 }
 
-std::wstring NDSBanner::getTitle(NDSTitleLanguage lang) {
-	return std::wstring((wchar_t*)titles[(u32)lang]);
+WString NDSBanner::getTitle(NDSTitleLanguage lang) {
+	return WString((c16*) titles[usz(lang)]);
 }

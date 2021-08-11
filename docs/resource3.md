@@ -40,17 +40,17 @@ struct NARC {
 	u32 magicNumber;					//MagicNumber; TTLP, PMCP, etc.
 	u32 size;						//Size of section; including contents
 	u32 files;
-	char btaf_data[size - sizeof(BTAF)];
+	u8 btaf_data[size - sizeof(BTAF)];
     
 	//BNTF
 	u32 magicNumber;					//MagicNumber; TTLP, PMCP, etc.
 	u32 size;						//Size of section; including contents
-	char btnf_data[size - sizeof(BNTF)];
+	u8 btnf_data[size - sizeof(BNTF)];
   
 	//GMIF
 	u32 magicNumber;					//MagicNumber; TTLP, PMCP, etc.
 	u32 size;						//Size of section; including contents
-	char gmif_data[size - sizeof(GMIF)];
+	u8 gmif_data[size - sizeof(GMIF)];
 };
 ```
 Note that the struct declared above is only for demonstration; it doesn't actually compile. I had to do some template magic to get this to work.

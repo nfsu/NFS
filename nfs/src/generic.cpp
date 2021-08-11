@@ -1,92 +1,104 @@
-#include "generic.h"
+#include "generic.hpp"
 #include <fstream>
-#include <string.h>
 
-Buffer::Buffer(u32 _size, u8 *_ptr) : size(_size), ptr(_ptr) {}
+Buffer::Buffer(usz _size, u8 *_ptr) : len(_size), ptr(_ptr) {}
 Buffer::Buffer() : Buffer(0, nullptr) {}
-
-u8 *Buffer::end() { return size + ptr; }
 
 void Buffer::dealloc() {
 	if (ptr != nullptr) {
-		free(ptr);
-		size = 0;
+		std::free(ptr);
+		len = 0;
 		ptr = nullptr;
 	}
 }
 
-Buffer Buffer::offset(u32 len) {
-	if (len >= size) return {};
-	return { size - len, ptr + len };
+Buffer Buffer::offset(usz _len) const {
+
+	if (_len >= len) 
+		return {};
+
+	return { len - _len, ptr + _len };
 }
 
-Buffer &Buffer::addOffset(u32 i) {
-	if (i >= size) return *this;
+Buffer &Buffer::addOffset(usz i) {
+
+	if (i > len)
+		EXCEPTION("addOffset out of bounds");
+
+	if (i == len)
+		return *this = {};
+
 	return *this = offset(i);
 }
 
-u8 &Buffer::operator[](u32 i) {
+u8 &Buffer::operator[](usz i) {
 
-	if (i >= size)
+	if (i >= len)
 		EXCEPTION("Buffer Out of bounds exception");
 
 	return ptr[i];
 }
 
-Buffer Buffer::alloc(u32 size) {
-	return { size, (u8*)malloc(size) };
+Buffer Buffer::alloc(usz size) {
+
+	if(void *ptr = std::malloc(size))
+		return { size, (u8*) ptr };
+
+	EXCEPTION("Out of memory");
 }
 
-Buffer Buffer::alloc(u32 size, u8 *init) {
+Buffer Buffer::alloc(usz size, u8 *init) {
 	Buffer a = alloc(size);
-	memcpy(a.ptr, init, size);
+	std::memcpy(a.ptr, init, size);
 	return a;
 }
 
 void Buffer::set(u8 val) {
-	memset(ptr, val, size);
+	std::memset(ptr, val, len);
 }
 
-Buffer Buffer::allocEmpty(u32 size) {
+Buffer Buffer::allocEmpty(usz size) {
 	Buffer b = alloc(size);
 	b.set(0);
 	return b;
 }
 
-Buffer Buffer::read(std::string str) {
+Buffer Buffer::readFile(const String &str) {
 
 	std::ifstream in(str, std::ios::binary);
 
 	if (!in.good())
 		return { 0, nullptr };
 
-	u32 length = (u32)in.rdbuf()->pubseekoff(0, std::ios_base::end);
+	usz length = in.rdbuf()->pubseekoff(0, std::ios_base::end);
 
 	in.seekg(0, std::ios::beg);
 
 	Buffer b = alloc(length);
-	in.read((char*)b.ptr, length);
+	in.read((c8*) b.ptr, length);
 
 	return b;
 }
 
-bool Buffer::write(std::string str) {
+bool Buffer::writeFile(const String &str) {
 
 	std::ofstream out(str, std::ios::binary);
 
 	if (!out.good())
 		return false;
 
-	out.write((char*)ptr, size);
+	out.write((c8*) ptr, len);
 	out.close();
 	return true;
 }
 
 Buffer Buffer::copy(Buffer buf) {
-	if (buf.size == 0 || buf.ptr == nullptr)
+
+	if (!buf.len || !buf.ptr)
 		return buf;
 
-	Buffer cpy = alloc(buf.size);
-	memcpy(cpy.ptr, buf.ptr, buf.size);
+	Buffer cpy = alloc(buf.len);
+	std::memcpy(cpy.ptr, buf.ptr, buf.len);
+
 	return cpy;
 }

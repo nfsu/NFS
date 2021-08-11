@@ -1,4 +1,4 @@
-#include "model.h"
+#include "model.hpp"
 using namespace nfs;
 
 Info3D Info3D::get(u8 *ptr, u32 &len) {
@@ -50,7 +50,7 @@ ModelData ModelData::get(u8 *ptr, u32 &len) {
 
 	u8 *mat = ptr + dat.header->materialOffset - 40 + 0x40;
 
-	std::vector<u8> test(mat, mat + 256);
+	List<u8> test(mat, mat + 256);
 
 	dat.materialHeader = (MaterialHeader*)mat;
 	mat += sizeof(MaterialHeader);
@@ -97,7 +97,6 @@ Model::Model(BMD0 bmd0) {
 	Buffer tex0b = bmd0.get<1>();
 
 	u32 i = 0;
-	Info3D info = Info3D::get(mdl0b.ptr, i);
-	ModelData data = ModelData::get(mdl0b.ptr + i, i);
-
+	Info3D info = Info3D::get(mdl0b.add(), i);
+	ModelData data = ModelData::get(mdl0b.add(i), i);
 }
