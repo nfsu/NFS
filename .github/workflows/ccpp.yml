@@ -12,10 +12,10 @@ jobs:
       with:
         submodules: recursive
     - name: cmake build
-      run: mkdir builds && cd builds && cmake . -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Debug
+      run: mkdir builds && cd builds && cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Debug
     - name: build
       run: cmake --build .
     - name: cmake build Release
-      run: cd .. && del /F builds && mkdir builds && cd builds && cmake . -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release
+      run: cd .. && del /F builds && mkdir builds && cd builds && cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release
     - name: build Release
       run: cmake --build .
