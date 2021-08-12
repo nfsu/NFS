@@ -16,6 +16,6 @@ jobs:
     - name: build
       run: cd builds && cmake --build .
     - name: cmake build Release
-      run: cd .. && del /F builds && mkdir builds && cd builds && cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=RELEASE
+      run: cd .. && rmdir /s /q builds && mkdir builds && cd builds && cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=RELEASE
     - name: build Release
       run: cd builds && cmake --build .
