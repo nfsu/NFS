@@ -1,4 +1,5 @@
 ![NFS logo](https://i.imgur.com/uabtvGW.png)
+![](https://github.com/nfsu/NFS/workflows/C%2FC++%20CI/badge.svg)
 <br>
 
 Nintendo File System
