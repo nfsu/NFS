@@ -1,8 +1,12 @@
 #include "tile_renderer.hpp"
 #include "palette_renderer.hpp"
-#include <QtGui/qevent.h>
-#include <QtCore/qtimer.h>
-#include <QtWidgets/qapplication.h>
+
+#pragma warning(push, 0)
+	#include <QtGui/qevent.h>
+	#include <QtCore/qtimer.h>
+	#include <QtWidgets/qapplication.h>
+	#include <QtGui/qopengltexture.h>
+#pragma warning(pop)
 
 using namespace nfsu;
 using namespace nfs;
@@ -226,8 +230,8 @@ void TileRenderer::setTexture(Texture2D tex) {
 	offset = QVector2D(0, 0);
 }
 
-void TileRenderer::setPalette(nfs::Texture2D texture) {
-	palette = texture;
+void TileRenderer::setPalette(nfs::Texture2D tex) {
+	palette = tex;
 	updateTexture();
 }
 
@@ -304,8 +308,8 @@ void TileRenderer::setEditable(bool b) {
 	repaint();
 }
 
-void TileRenderer::setCursorSize(u32 scale) {
-	cursorSize = scale;
+void TileRenderer::setCursorSize(u32 cursorSiz) {
+	cursorSize = cursorSiz;
 	repaint();
 }
 
@@ -330,7 +334,7 @@ QPoint TileRenderer::globalToPixel(QPoint pos) {
 	uv += offset;
 	uv *= QVector2D(texture.getWidth(), texture.getHeight());
 
-	return QPoint(uv.x(), uv.y());
+	return QPoint(int(uv.x()), int(uv.y()));
 }
 
 QPoint TileRenderer::pixelToTexture(QPoint pos) {
@@ -536,12 +540,12 @@ void TileRenderer::fill(QPoint p0) {
 	if (!editable || p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
 		return;
 
-	u32 mask = texture.fetch(p0.x(), p0.y());
+	u32 mask = texture.fetch(u16(p0.x()), u16(p0.y()));
 	u32 targ = getSelectedPalette();
 
 	if (mask != targ) {
 
-		u32 w = texture.getWidth(), h = texture.getHeight(), j = w * h;
+		u32 w = texture.getWidth(), h = texture.getHeight(), j = w * h, i = 0;
 		List<bool> bits(j);
 
 		List<u32> marked, marked2;
@@ -553,21 +557,19 @@ void TileRenderer::fill(QPoint p0) {
 
 		marked2.reserve(j);
 
-		for (u32 i = 0; i < j; ++i) {
+		for (; i < j; ++i) {
 
-			u32 val = texture.fetch(i % w, i / w);
+			u32 val = texture.fetch(u16(i % w), u16(i / w));
 			bits[i] = val == mask;
 		}
 
-		bool hasNeighbors = false;
-
 		do {
 
-			for (usz i = 0, j = marked.size(); i < j; ++i) {
+			for (i = 0, j = u32(marked.size()); i < j; ++i) {
 
 				u32 xy = marked[i], x = xy % w, y = xy / w;
 
-				texture.store(x, y, targ);
+				texture.store(u16(x), u16(y), targ);
 
 				if (x && bits[xy - 1]) {
 					marked2.push_back(xy - 1);
@@ -606,7 +608,7 @@ u32 TileRenderer::get(QPoint p0) {
 	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
 		return 0;
 
-	return texture.read(p0.x(), p0.y());
+	return texture.read(u16(p0.x()), u16(p0.y()));
 }
 
 void TileRenderer::drawLine(QPoint p0, QPoint p1) {
@@ -667,7 +669,7 @@ void TileRenderer::drawSquare(QPoint p0, QPoint p1) {
 	for(i32 x = mix; x < max; ++x)
 		for (i32 y = miy; y < may; ++y) {
 			QPoint point = pixelToTexture(QPoint(x, y));
-			texture.store(point.x(), point.y(), getSelectedPalette());
+			texture.store(u16(point.x()), u16(point.y()), getSelectedPalette());
 		}
 }
 

@@ -1,7 +1,7 @@
 #include "resource_helper.hpp"
 using namespace nfs;
 
-u32 ResourceHelper::getType(const u8 *type, u32 size) {
+u32 ResourceHelper::getType(const u8 *type, usz size) {
 	return getType_inter(ResourceTypes{}, type, size);
 }
 
@@ -27,10 +27,7 @@ ResourceInfo ResourceHelper::read(u8 *rom, usz size, u8 *res) {
 
 String ResourceHelper::getName(u8 *loc, usz len, u32 magicNumber, bool flip) {
 
-	if (magicNumber == NBUO_num) {
-
-		u32 num;
-
+	if (magicNumber == NBUO_num)
 		switch (len) {
 
 			case 0: 
@@ -53,7 +50,6 @@ String ResourceHelper::getName(u8 *loc, usz len, u32 magicNumber, bool flip) {
 				magicNumber = *(const u32*)loc;
 				break;
 		}
-	}
 
 	c8 dat[5] = { 
 		(c8)((magicNumber >> 24) & 0xFF), 

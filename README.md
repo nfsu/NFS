@@ -228,7 +228,9 @@ u32 convertFromNCGR_func(Texture2D t, u16 i, u16 j, Texture2D tilemap, Texture2D
 //Performance optimization to force inlining with the fromShader call
 struct ConvertFromNCGR {
 	template<typename ...args> 
-	inline u32 operator()(args ...arg) const { return convertFromNCGR_func(arg...);  }
+	inline u32 operator()(args &&...arg) const { 
+        return convertFromNCGR_func(std::forward<args>(arg)...);  
+    }
 };
 
 Texture2D convertFromNCGR(NCGR &ncgr, NCLR &nclr) {

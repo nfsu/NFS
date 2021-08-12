@@ -66,7 +66,7 @@ namespace nfs {
 
 		static constexpr u32 signMask = !useSign ? 0 : u32(1 << (bits - 1));
 		static constexpr u32 fractMask = u32(1 << fract) - 1;
-		static constexpr u32 intMask = T(u32(-1) & ~signMask & ~fractMask);
+		static constexpr u32 intMask = T((u32_MAX & ~signMask) & ~fractMask);
 
 		static constexpr T enc(flp val) {
 

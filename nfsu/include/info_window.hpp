@@ -1,8 +1,12 @@
 #pragma once
-#include <QtWidgets/qwidget.h>
-#include <QtWidgets/qlayout.h>
-#include <QtWidgets/qtablewidget.h>
 #include "generic.hpp"
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qtablewidget.h>
+#pragma warning(pop)
+
+class QLayout;
+class QWidget;
 
 namespace nfsu {
 

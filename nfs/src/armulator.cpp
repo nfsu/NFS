@@ -164,7 +164,7 @@ inline bool Armulator::doCondition(ConditionValue condition) {
 
 	}
 
-	return val != (u32(condition) & 1);
+	return val != bool(u32(condition) & 1);
 }
 
 void Armulator::IRQ() {
@@ -441,9 +441,7 @@ inline bool Armulator::stepThumb() {
 			goto noConditionFlags;
 
 		default:
-
 			EXCEPTION("OpCode was invalid or isn't implemented");
-			return false;
 	}
 
 	//Set condition flags
@@ -468,5 +466,4 @@ inline bool Armulator::stepThumb() {
 
 inline bool Armulator::stepArm() {
 	EXCEPTION("Armulator::stepArm not implemented yet");
-	return false;
 }

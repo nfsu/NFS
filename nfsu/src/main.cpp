@@ -1,8 +1,10 @@
 #include "window.hpp"
 #include "armulator.hpp"
 
-#include <QtWidgets/qapplication.h>
-#include <QtGui/qicon.h>
+#pragma warning(push, 0)
+	#include <QtWidgets/qapplication.h>
+	#include <QtGui/qicon.h>
+#pragma warning(pop)
 
 #define USE_CONSOLE
 //#define TEST_ARMULATOR

@@ -21,7 +21,7 @@ void GameEditor::onSwap() {
 	logoEditor->setTiles(Texture2D((u8*)bannerData->icon, 32, 32, 1, TextureType::R4, TextureTiles::TILED8));
 }
 
-void GameEditor::init(NDS *nds, FileSystem &fs) {
+void GameEditor::init(NDS *nds, FileSystem&) {
 	rom = nds;
 	bannerData = NDSBanner::get(nds);
 	onSwap();

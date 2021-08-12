@@ -17,9 +17,9 @@ namespace nfs {
 		CompressionType::Copy,
 		CompressionType::LZ77,
 		CompressionType::LZ11,
-		CompressionType::Huffman,
+		//CompressionType::Huffman,
 		CompressionType::RLE,
-		CompressionType::LZ40
+		//CompressionType::LZ40
 	};
 
 	struct CompressionHelper {

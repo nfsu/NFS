@@ -1,5 +1,9 @@
 #include "nexplorer.hpp"
-#include <QtWidgets/qapplication.h>
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qapplication.h>
+#pragma warning(pop)
+
 using namespace nfsu;
 using namespace nfs;
 
@@ -25,8 +29,9 @@ FileSystemObject *NExplorer::getRoot() const {
 	return &fs[0];
 }
 
-int NExplorer::columnCount(const QModelIndex &parent) const { return 1; }
-QVariant NExplorer::headerData(int section, Qt::Orientation orientation, int role) const {
+int NExplorer::columnCount(const QModelIndex&) const { return 1; }
+
+QVariant NExplorer::headerData(int, Qt::Orientation orientation, int role) const {
 
 	if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
 		return QString("File");
@@ -85,7 +90,7 @@ QVariant NExplorer::data(const QModelIndex &index, int role) const {
 	return QString(fso.name.c_str()).split("/").last();
 }
 
-bool isIndex(FileSystem &fs, FileSystemObject &fso, usz i, usz index, usz folders, u32 value) {
+inline bool isIndex(FileSystem&, FileSystemObject &fso, usz i, usz, usz folders, u32 value) {
 
 	if (fso.isFile())
 		i = i + folders;
@@ -128,9 +133,9 @@ int NExplorer::rowCount(const QModelIndex &parent) const {
 		return 0;
 
 	if (parent.isValid())
-		return ((FileSystemObject*) parent.internalPointer())->objects;
+		return int(((FileSystemObject*) parent.internalPointer())->objects);
 	
-	return fs.size() > 0 ? fs[0].objects : 0;
+	return int(fs.size() > 0 ? fs[0].objects : 0);
 }
 
 Qt::ItemFlags NExplorer::flags(const QModelIndex &index) const {
@@ -175,9 +180,9 @@ void NExplorerView::onLeftClick(const QModelIndex &index) {
 
 	if (index.isValid()) {
 
-		FileSystemObject *current = (FileSystemObject*)index.internalPointer();
+		FileSystemObject *currentFile = (FileSystemObject*)index.internalPointer();
 		FileSystem &fs = exp->getFileSystem();
-		FileSystemObject &fso = *current;
+		FileSystemObject &fso = *currentFile;
 		ArchiveObject *ao = fso.isFile() ? &fs.getResource(fso) : nullptr;
 
 		QPoint point(-1, -1);

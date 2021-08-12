@@ -6,7 +6,7 @@ Archive::~Archive() {
 	clear();
 }
 
-Archive::Archive(NARC &narc, const String &debugName) {
+Archive::Archive(NARC &narc, const String&) {
 
 	BTAF &btaf = narc.at<0>();
 	Buffer btafb = narc.get<0>();
@@ -14,7 +14,6 @@ Archive::Archive(NARC &narc, const String &debugName) {
 	if (btafb.size() != usz(btaf.files) * 8)
 		EXCEPTION("Archive BTAF didn't match format");
 
-	GMIF &gmif = narc.at<2>();
 	Buffer gmifb = narc.get<2>();
 
 	struct UncompComp {

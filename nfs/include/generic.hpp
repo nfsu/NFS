@@ -9,6 +9,8 @@
 #include <string>
 #include <functional>
 
+//Data types
+
 using i8 = std::int8_t;
 using u8 = std::uint8_t;
 
@@ -31,6 +33,8 @@ using f64 = double;
 
 using usz = std::size_t;
 using isz = std::ptrdiff_t;
+
+//Classes
 
 template<typename K, typename V>
 using Map = std::unordered_map<K, V>;
@@ -55,27 +59,51 @@ using f32x3 = Array<f32, 3>;
 using String = std::string;
 using WString = std::wstring;
 
+//Casts
+
+constexpr u8 operator ""_u8(unsigned long long test) { return (u8)test; }
+constexpr i8 operator ""_i8(unsigned long long test) { return (i8)test; }
+
+constexpr u16 operator ""_u16(unsigned long long test) { return (u16)test; }
+constexpr i16 operator ""_i16(unsigned long long test) { return (i16)test; }
+
+constexpr u32 operator ""_u32(unsigned long long test) { return (u32)test; }
+constexpr i32 operator ""_i32(unsigned long long test) { return (i32)test; }
+
+constexpr u64 operator ""_u64(unsigned long long test) { return (u64)test; }
+constexpr i64 operator ""_i64(unsigned long long test) { return (i64)test; }
+
+constexpr usz operator ""_usz(unsigned long long test) { return (usz)test; }
+constexpr isz operator ""_isz(unsigned long long test) { return (isz)test; }
+
+constexpr f32 operator ""_f32(long double test) { return (f32)test; }
+constexpr f64 operator ""_f64(long double test) { return (f64)test; }
+
+//Max values
+
 static constexpr usz usz_MAX = usz(-1);
 static constexpr usz usz_SIZE = sizeof(usz);
 static constexpr usz usz_BITSIZE = usz_SIZE << 3;
 
-static constexpr u8 u8_MAX   = u8 (0xFF);
-static constexpr u8 u8_MIN   = u8 (0);
-static constexpr u16 u16_MAX = u16(0xFFFF);
-static constexpr u16 u16_MIN = u16(0);
-static constexpr u32 u32_MAX = u32(0xFFFFFFFF);
-static constexpr u32 u32_MIN = u32(0);
-static constexpr u64 u64_MAX = u64(0xFFFFFFFFFFFFFFFF);
-static constexpr u64 u64_MIN = u64(0);
+static constexpr u8 u8_MAX   = 0xFF_u8;
+static constexpr u8 u8_MIN   = 0_u8;
+static constexpr u16 u16_MAX = 0xFFFF_u16;
+static constexpr u16 u16_MIN = 0_u16;
+static constexpr u32 u32_MAX = 0xFFFFFFFF_u32;
+static constexpr u32 u32_MIN = 0_u32;
+static constexpr u64 u64_MAX = 0xFFFFFFFFFFFFFFFF_u64;
+static constexpr u64 u64_MIN = 0_u64;
+							   
+static constexpr i8 i8_MAX   = 0x7F_i8;
+static constexpr i8 i8_MIN   = 0x80_i8;
+static constexpr i16 i16_MAX = 0x7FFF_i16;
+static constexpr i16 i16_MIN = 0x8000_i16;
+static constexpr i32 i32_MAX = 0x7FFFFFFF_i32;
+static constexpr i32 i32_MIN = 0x80000000_i32;
+static constexpr i64 i64_MAX = 0x7FFFFFFFFFFFFFFF_i64;
+static constexpr i64 i64_MIN = 0x8000000000000000_i64;
 
-static constexpr i8 i8_MAX   = i8 (0x7F);
-static constexpr i8 i8_MIN   = i8 (0x80);
-static constexpr i16 i16_MAX = i16(0x7FFF);
-static constexpr i16 i16_MIN = i16(0x8000);
-static constexpr i32 i32_MAX = i32(0x7FFFFFFF);
-static constexpr i32 i32_MIN = i32(0x80000000);
-static constexpr i64 i64_MAX = i64(0x7FFFFFFFFFFFFFFF);
-static constexpr i64 i64_MIN = i64(0x8000000000000000);
+//Exceptions
 
 #ifndef NDEBUG
 	#define EXCEPTION(errror) \
@@ -132,6 +160,9 @@ public:
 
 	template<typename T = u8>
 	inline T &at(usz i = 0) const { return *(T*) (ptr + i); }
+
+	template<typename T = u8>
+	inline T &atBack(usz i = 0) const { return *(T*) (ptr - i); }
 
 	template<typename T = u8>
 	inline T *add(usz i = 0) const { return (T*) (ptr + i); }

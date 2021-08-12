@@ -1,8 +1,11 @@
 #include "palette_editor.hpp"
 #include "info_window.hpp"
-#include <QtWidgets/qgridlayout.h>
-#include <QtWidgets/qcolordialog.h>
-#include <QtGui/qevent.h>
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qgridlayout.h>
+	#include <QtWidgets/qcolordialog.h>
+	#include <QtGui/qevent.h>
+#pragma warning(pop)
 
 using namespace nfsu;
 using namespace nfs;
@@ -23,7 +26,7 @@ PaletteRenderer *PaletteEditor::getRenderer(){
 	return (PaletteRenderer*) this;
 }
 
-bool PaletteEditor::allowsResource(FileSystemObject &fso, ArchiveObject &ao) {
+bool PaletteEditor::allowsResource(FileSystemObject&, ArchiveObject &ao) {
 	return ao.info.magicNumber == NCLR::getMagicNumber();
 }
 

@@ -38,7 +38,7 @@ namespace nfs {
 		Texture2D(NCGR &tilemap, NCLR &palette);
 
 		//Allocate a new Texture2D from (loaded) palette and (loaded) tilemap
-		Texture2D(Texture2D &tilemap, Texture2D &palette);
+		Texture2D(const Texture2D &tilemap, const Texture2D &palette);
 
 		//Allocate a new Texture2D from palette, tilemap and map
 		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette);
@@ -118,8 +118,10 @@ namespace nfs {
 
 		Texture2D tex = Texture2D::alloc(w, h, 4U);
 
-		for (u32 i = 0; i < (u32)w * (u32)h; ++i)
-			((u32*)tex.data)[i] = t(tex, i % w, i / w, arg...);
+		u32 siz = u32(w) * h;
+
+		for (u32 i = 0; i < siz; ++i)
+			((u32*)tex.data)[i] = t(tex, u16(i % w), u16(i / w), arg...);
 
 		return tex;
 	}

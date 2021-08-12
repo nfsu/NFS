@@ -1,7 +1,6 @@
 #pragma once
 #include "generic_resource.hpp"
 #include "compression_helper.hpp"
-#include "fpx.hpp"
 
 namespace nfs {
 
@@ -72,7 +71,7 @@ namespace nfs {
 
 	typedef GenericResource<0x4352414E, false, BTAF, BTNF, GMIF> NARC;			//Archive file
 
-	//Model file
+	/*Model file
 
 	struct MDL0 : GenericSection { };
 
@@ -108,13 +107,13 @@ namespace nfs {
 
 	};
 
-	typedef GenericResource<0x30444D42, true, MDL0, TEX0> BMD0;
+	typedef GenericResource<0x30444D42, true, MDL0, TEX0> BMD0;*/
 
 	//All resource types
 
 	typedef Buffer NBUO;
 
-	typedef CompileTimeList<NCLR, NCGR, NSCR, NARC, BMD0, NBUO> ResourceTypes;
+	typedef CompileTimeList<NCLR, NCGR, NSCR, NARC, NBUO> ResourceTypes;
 
 	//Regular NDS info
 

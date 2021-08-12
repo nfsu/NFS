@@ -151,11 +151,11 @@ FileSystem::FileSystem(NDS *rom) {
 
 			u32 beg = fpos.at<u32>(fileOffset * 8);
 			u32 end = fpos.at<u32>(fileOffset * 8 + 4);
-			u32 len = end - beg;
+			u32 fileSiz = end - beg;
 
-			if (len) {
+			if (fileSiz) {
 
-				fso.buf = { len, (u8*) rom + beg };
+				fso.buf = { fileSiz, (u8*) rom + beg };
 
 				//Handle decompression
 
@@ -184,7 +184,7 @@ FileSystem::FileSystem(NDS *rom) {
 			fso.reservedSize = ((end + 511) & ~511) - beg;
 			fso.filePtrs = fpos.add<u32>(fileOffset * 8);
 
-			ResourceInfo inf = ResourceHelper::read(fso.buf.add(), len, narcDat);
+			ResourceInfo inf = ResourceHelper::read(fso.buf.add(), fileSiz, narcDat);
 			siz += inf.size;
 
 			if (inf.magicNumber != NBUO_num)
@@ -228,7 +228,7 @@ FileSystem::FileSystem(NDS *rom) {
 
 	usz offset = 0;
 
-	for (usz i = rootFolders; i < filesAndFolders; ++i) {
+	for (i = rootFolders; i < filesAndFolders; ++i) {
 
 		FileSystemObject &fso = fileSystem[i];
 		Buffer &buf = fso.buf;
@@ -292,7 +292,7 @@ FileSystem::FileSystem(NDS *rom) {
 
 	//Setup all threads
 
-	for (u32 i = 0; i < threadCount; ++i) {
+	for (i = 0; i < threadCount; ++i) {
 		
 		thread.narcCount = perThread + (i < perThreadr ? 1 : 0);
 		thread.narcs = narcs.data() + thread.narcId;
@@ -310,7 +310,6 @@ FileSystem::FileSystem(NDS *rom) {
 		threads[i] = std::move(std::async([rom](ThreadedNARC thread) -> usz {
 
 			u8 narcDat[maxResourceSize];
-			u8 resDat[maxResourceSize];
 			usz supported = 0;
 
 			for (usz i = 0, j = thread.narcCount; i < j; ++i) {
@@ -468,7 +467,7 @@ void FileSystem::_copy(const FileSystem &fs) {
 	}
 }
 
-bool FileSystem_InParent(FileSystem &fs, FileSystemObject &fso, usz i, usz index, FileSystemObject *parent, List<FileSystemObject*> *vec) {
+bool FileSystem_InParent(FileSystem&, FileSystemObject &fso, usz i, usz, FileSystemObject *parent, List<FileSystemObject*> *vec) {
 	
 	usz in = fso.isFolder() ? i : i + parent->folders;
 	vec->operator[](in) = &fso;
@@ -478,10 +477,10 @@ bool FileSystem_InParent(FileSystem &fs, FileSystemObject &fso, usz i, usz index
 
 List<FileSystemObject*> FileSystem::operator[](FileSystemObject &fso) {
 
-	List<FileSystemObject*> vec(fso.objects);
-	foreachInFolder(FileSystem_InParent, fso, &fso, &vec);
+	List<FileSystemObject*> lvec(fso.objects);
+	foreachInFolder(FileSystem_InParent, fso, &fso, &lvec);
 
-	return vec;
+	return lvec;
 }
 
 List<FileSystemObject*> FileSystem::traverse(FileSystemObject &root, bool includeDirs, bool includeSubfiles) {

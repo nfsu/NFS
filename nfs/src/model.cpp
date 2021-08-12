@@ -1,4 +1,4 @@
-#include "model.hpp"
+/*#include "model.hpp"
 using namespace nfs;
 
 Info3D Info3D::get(u8 *ptr, u32 &len) {
@@ -28,7 +28,7 @@ Info3D Info3D::get(u8 *ptr, u32 &len) {
 	return inf;
 }
 
-ModelData ModelData::get(u8 *ptr, u32 &len) {
+ModelData ModelData::get(u8*, u32&) {
 
 	ModelData dat;
 
@@ -60,7 +60,7 @@ ModelData ModelData::get(u8 *ptr, u32 &len) {
 
 	//Buffer renderCommands = Buffer(dat.header->materialOffset - dat.header->renderCmdOffset, ptr + dat.header->renderCmdOffset - len);
 
-	/*if (dat.header->meshes != 0) {
+	if (dat.header->meshes != 0) {
 
 		dat.meshes.resize(dat.header->meshes);
 
@@ -77,16 +77,15 @@ ModelData ModelData::get(u8 *ptr, u32 &len) {
 
 		}
 
-	}*/
+	}
 
 
 
-	/*for (u32 i = 0; i < dat.header->objects; ++i) {
+	for (u32 i = 0; i < dat.header->objects; ++i) {
 
-	}*/
+	}
 
 	return dat;
-
 }
 
 Model::Model(BMD0 bmd0) {
@@ -100,3 +99,5 @@ Model::Model(BMD0 bmd0) {
 	Info3D info = Info3D::get(mdl0b.add(), i);
 	ModelData data = ModelData::get(mdl0b.add(i), i);
 }
+
+*/

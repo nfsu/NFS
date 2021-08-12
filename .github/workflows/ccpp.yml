@@ -1,0 +1,28 @@
+name: C/C++ CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    name: Windows build debug
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: cmake build
+      run: cmake . -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Debug
+    - name: build
+      run: cmake --build .
+
+    name: Windows build
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: cmake build
+      run: cmake . -G "Visual Studio 16 2019" -A x64  -DCMAKE_BUILD_TYPE=Release
+    - name: build
+      run: cmake --build .

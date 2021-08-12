@@ -17,49 +17,49 @@ Texture2D::Texture2D(NCLR &palette):
 	tiles(u16(TextureTiles::NONE)), type(u16(TextureType::BGR5)), stride(2) 
 {
 	TTLP &ttlp = palette.at<0>();
-	width = ttlp.c_colors;
+	width = u16(ttlp.c_colors);
 	dataSize = ttlp.dataSize;
 	size = dataSize / stride;
-	height = size / width;
+	height = u16(size / width);
 	data = palette.get<0>().add();
 }
 
 static const Map<u16, u16> widthTable = {
-	{ 256, 16 },
-	{ 384, 16 },
-	{ 512, 16 },
-	{ 768, 16 },
-	{ 1024, 32 },
-	{ 1280, 16 },
-	{ 1408, 8 },
-	{ 1536, 16 },
-	{ 2048, 32 },
-	{ 2560, 16 },
-	{ 2816, 16 },
-	{ 4096, 64 },
-	{ 4480, 64 },
-	{ 5120, 8 },
-	{ 5632, 8 },
-	{ 6144, 32 },
-	{ 6208, 16 },
-	{ 6400, 64 },
-	{ 6656, 64 },
-	{ 7168, 16 },
-	{ 8192, 64 },
-	{ 9216, 48 },
-	{ 9536, 16 },
-	{ 10240, 32},
-	{ 12288, 32 },
-	{ 14336, 16 },
-	{ 15360, 32 },
-	{ 16384, 64 },
-	{ 17152, 64 },
-	{ 19456, 16 },
-	{ 20480, 64 },
-	{ 24576, 64 },
-	{ 34560, 32 },
-	{ 32768, 64 },
-	{ 51200, 64 }
+	{ 256_u16, 16_u16 },
+	{ 384_u16, 16_u16 },
+	{ 512_u16, 16_u16 },
+	{ 768_u16, 16_u16 },
+	{ 1024_u16, 32_u16 },
+	{ 1280_u16, 16_u16 },
+	{ 1408_u16, 8_u16 },
+	{ 1536_u16, 16_u16 },
+	{ 2048_u16, 32_u16 },
+	{ 2560_u16, 16_u16 },
+	{ 2816_u16, 16_u16 },
+	{ 4096_u16, 64_u16 },
+	{ 4480_u16, 64_u16 },
+	{ 5120_u16, 8_u16 },
+	{ 5632_u16, 8_u16 },
+	{ 6144_u16, 32_u16 },
+	{ 6208_u16, 16_u16 },
+	{ 6400_u16, 64_u16 },
+	{ 6656_u16, 64_u16 },
+	{ 7168_u16, 16_u16 },
+	{ 8192_u16, 64_u16 },
+	{ 9216_u16, 48_u16 },
+	{ 9536_u16, 16_u16 },
+	{ 10240_u16, 32_u16 },
+	{ 12288_u16, 32_u16 },
+	{ 14336_u16, 16_u16 },
+	{ 15360_u16, 32_u16 },
+	{ 16384_u16, 64_u16 },
+	{ 17152_u16, 64_u16 },
+	{ 19456_u16, 16_u16 },
+	{ 20480_u16, 64_u16 },
+	{ 24576_u16, 64_u16 },
+	{ 34560_u16, 32_u16 },
+	{ 32768_u16, 64_u16 },
+	{ 51200_u16, 64_u16 }
 };
 
 Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U) {
@@ -80,7 +80,7 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 		tiles = u16(TextureTiles::NONE);
 
 		u32 endInd = dataSize / 2 - 1;
-		u16 *beg = (u16*) data, *end = beg + endInd;
+		u16 *beg = (u16*) data;
 
 		u16 next = *(beg + 1);
 		u32 seed = CompressionHelper::generateRandom(*beg);
@@ -91,9 +91,9 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 
 		seed = beg[i];
 
-		while ((reverse && i >= 0) || (!reverse && i <= endInd)) {
-			magic[i * 2] = seed;
-			magic[i * 2 + 1] = seed >> 8;
+		while ((reverse && i >= 0) || (!reverse && i64(i) <= endInd)) {
+			magic[i * 2] = u8(seed);
+			magic[i * 2 + 1] = u8(seed >> 8);
 			seed = CompressionHelper::generateRandom(seed);
 			i += add;
 		}
@@ -103,30 +103,28 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 
 	if (tileWidth == u16_MAX || tileHeight == u16_MAX) {
 
-		auto it = widthTable.find(size);		//This is an estimation
+		auto it = widthTable.find(u16(size));		//This is an estimation
 		
 		if (it == widthTable.end()) {
 		
 			//EXCEPTION("Couldn't determine width of image");
-			width = 32 * (1 + (size >> 14));					//Temporary
+			width = u16(32 * (1 + (size >> 14)));					//Temporary
+		}
 		
-		} else
-			width = it->second;
+		else width = it->second;
 
-		if (rahc.sizeHint2 == 0) {
+		if (rahc.sizeHint2 == 0)
+			height = u16(size / width);
 
-			height = size / width;
-
-		} else {
+		else {
 
 			if (!rahc.specialTiling)
 				width = width * rahc.sizeHint2 / rahc.sizeHint1;
 
-			height = size / width;
-
+			height = u16(size / width);
 		}
 
-		if (width % 8 != 0 || height % 8 != 0)
+		if (width % 8 || height % 8)
 			EXCEPTION("Width or height of the image have to be base8");
 
 		std::printf("Texture2D Warning: NCGR size couldn't be determined, guessed %ux%u\r\n", width, height);
@@ -276,14 +274,14 @@ u32 Texture2D::getIndex(u16 i, u16 j) {
 
 	u32 index = u32(j) * width + i;
 
-	u32 tiles = getTiles();
+	u32 tileCount = getTiles();
 
-	if (!tiles)
+	if (!tileCount)
 		return index;
 
 	//Optimized for 8 tiled
 
-	if (tiles == 8) {
+	if (tileCount == 8) {
 
 		u32 tileX = i >> 3;
 		u32 tileY = j >> 3;
@@ -293,31 +291,31 @@ u32 Texture2D::getIndex(u16 i, u16 j) {
 		u32 tileOff = (offY << 3) | offX;
 		u32 tilePos = tileY * (width >> 3) + tileX;
 
-		return (tilePos << 6) | tilePos;
+		return (tilePos << 6) | tileOff;
 	}
 	
 	//Fallback
 
-	u32 tileX = i / tiles;
-	u32 tileY = j / tiles;
-	u32 offX = i % tiles;
-	u32 offY = j % tiles;
+	u32 tileX = i / tileCount;
+	u32 tileY = j / tileCount;
+	u32 offX = i % tileCount;
+	u32 offY = j % tileCount;
 	
-	u32 tilePos = tileY * (width / tiles) + tileX;
-	u32 tileOff = offY * tiles + offX;
+	u32 tilePos = tileY * (width / tileCount) + tileX;
+	u32 tileOff = offY * tileCount + offX;
 	
-	return tilePos * tiles * tiles + tileOff;
+	return tilePos * tileCount * tileCount + tileOff;
 }
 
-u32 Texture2D::fetch(u16 i, u16 j) {
+u32 Texture2D::fetch(u16 x, u16 y) {
 
 	if (!size || !data || stride > 4) 
 		return 0;
 
-	i %= width;
-	j %= height;
+	x %= width;
+	y %= height;
 
-	u32 index = getIndex(i, j);
+	u32 index = getIndex(x, y);
 
 	bool fourBit = type == u16(TextureType::R4);
 
@@ -417,7 +415,9 @@ inline u32 convert(Texture2D tex, u16 i, u16 j, Texture2D t, bool fixIntegers) {
 
 struct ToRGBA8 {
 	template<typename ...args> 
-	inline u32 operator()(args ...arg) const { return convert(arg...);  }
+	inline u32 operator()(args &&...arg) const {
+		return convert(std::forward<args>(arg)...);  
+	}
 };
 
 Texture2D Texture2D::toRGBA8(bool fixIntegers) {
@@ -436,7 +436,9 @@ inline u32 convertPT2D(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D
 
 struct PT2D {
 	template<typename ...args> 
-	inline u32 operator()(args ...arg) const { return convertPT2D(arg...);  }
+	inline u32 operator()(args &&...arg) const { 
+		return convertPT2D(std::forward<args>(arg)...);  
+	}
 };
 
 Texture2D::Texture2D(NCGR &tilemap, NCLR &palette) {
@@ -444,7 +446,7 @@ Texture2D::Texture2D(NCGR &tilemap, NCLR &palette) {
 	*this = fromShader(PT2D(), tm.width, tm.height, tm, pl);
 }
 
-Texture2D::Texture2D(Texture2D &tilemap, Texture2D &palette) {
+Texture2D::Texture2D(const Texture2D &tilemap, const Texture2D &palette) {
 	*this = fromShader(PT2D(), tilemap.width, tilemap.height, tilemap, palette);
 }
 
@@ -458,8 +460,8 @@ inline u32 convertPTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D ti
 
 		u32 tilesX = tilemap.getWidth() >> 3;
 
-		u32 tileX = i >> 3;
-		u32 tileY = j >> 3;
+		u16 tileX = u16(i >> 3);
+		u16 tileY = u16(j >> 3);
 		u32 offX  = i & 7;
 		u32 offY  = j & 7;
 
@@ -474,20 +476,20 @@ inline u32 convertPTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D ti
 		if (tileScl & 2)
 			offY = 7 - offY;
 
-		u32 tilemapX = ((tilePos % tilesX) << 3) | offX;
-		u32 tilemapY = ((tilePos / tilesX) << 3) | offY;
+		u16 tilemapX = u16(((tilePos % tilesX) << 3) | offX);
+		u16 tilemapY = u16(((tilePos / tilesX) << 3) | offY);
 
 		u32 val = tilemap.fetch(tilemapX, tilemapY);
 
-		return palette.read(val & 0xF, ((val >> 4) & 0xF) + tilePlt);
+		return palette.read(u16(val & 0xF), u16(((val >> 4) + tilePlt) & 0xF));
 	}
 
 	//Fallback
 
-	u32 tilesX = tilemap.getWidth() / tiles, tilesY = tilemap.getHeight() / tiles;
+	u32 tilesX = tilemap.getWidth() / tiles;
 
-	u32 tileX = i / tiles;
-	u32 tileY = j / tiles;
+	u16 tileX = u16(i / tiles);
+	u16 tileY = u16(j / tiles);
 	u32 offX = i % tiles;
 	u32 offY = j % tiles;
 
@@ -502,20 +504,22 @@ inline u32 convertPTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D ti
 	if (tileScl & 2)
 		offY = (tiles - 1) - offY;
 
-	u32 tilemapX = (tilePos % tilesX) * tiles + offX;
-	u32 tilemapY = (tilePos / tilesX) * tiles + offY;
+	u16 tilemapX = u16((tilePos % tilesX) * tiles + offX);
+	u16 tilemapY = u16((tilePos / tilesX) * tiles + offY);
 
 	u32 val = tilemap.fetch(tilemapX, tilemapY);
 
-	return palette.read(val & 0xF, ((val >> 4) & 0xF) + tilePlt);
+	return palette.read(u16(val & 0xF), u16(((val >> 4) + tilePlt) & 0xF));
 }
 
 struct PTT2D {
 	template<typename ...args> 
-	inline u32 operator()(args ...arg) const { return convertPTT2D(arg...);  }
+	inline u32 operator()(args &&...arg) const { 
+		return convertPTT2D(std::forward<args>(arg)...);  
+	}
 };
 
 Texture2D::Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette) {
 	Texture2D m = map, tm = tilemap, pl = palette;
-	*this = fromShader(PTT2D(), m.width * tm.getTiles(), m.height * tm.getTiles(), m, tm, pl);
+	*this = fromShader(PTT2D(), u16(m.width * tm.getTiles()), u16(m.height * tm.getTiles()), m, tm, pl);
 }

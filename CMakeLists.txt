@@ -1,24 +1,13 @@
-project(nfs)
-
-cmake_minimum_required(VERSION 3.9.0)
-
-set(CMAKE_BUILD_TYPE Debug)
-
-if(MSVC)
-set(CMAKE_CXX_FLAGS "-std=c++14 /EHsc")
-else(MSVC)
-set(CMAKE_CXX_FLAGS "-std=c++14")
-endif(MSVC)
+cmake_minimum_required(VERSION 3.13.0)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set(CMAKE_SUPPRESS_REGENERATION true)
+
 add_subdirectory(nfs)
 add_subdirectory(nfsu)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT nfsu)
-
-set(CMAKE_SUPPRESS_REGENERATION true)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-

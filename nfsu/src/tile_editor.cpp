@@ -2,10 +2,14 @@
 #include "tile_renderer.hpp"
 #include "info_window.hpp"
 #include "palette_renderer.hpp"
-#include <QtGui/qevent.h>
-#include <QtWidgets/qpushbutton.h>
-#include <QtWidgets/qmessagebox.h>
-#include <QtWidgets/qfiledialog.h>
+
+#pragma warning(push, 0)
+	#include <QtGui/qevent.h>
+	#include <QtWidgets/qpushbutton.h>
+	#include <QtWidgets/qmessagebox.h>
+	#include <QtWidgets/qfiledialog.h>
+	#include <QtWidgets/qgridlayout.h>
+#pragma warning(pop)
 
 using namespace nfsu;
 using namespace nfs;
@@ -19,7 +23,7 @@ TileEditor::TileEditor() {
 
 	//Buttons
 
-	QWidget *palette = new QWidget();
+	QWidget *paletteWidget = new QWidget();
 
 	QGridLayout *gridLayout = new QGridLayout();
 
@@ -48,7 +52,7 @@ TileEditor::TileEditor() {
 		if (hasTiledData && hasPaletteData)
 			filters += ";;";
 
-		if (palette)
+		if (paletteWidget)
 			filters += "NCLR file (*.NCLR)";
 		else if (hasPaletteData)
 			filters += "Palette data (*.bin)";
@@ -130,9 +134,9 @@ TileEditor::TileEditor() {
 	gridLayout->addWidget(paletteButton, 1, 2);
 
 	gridLayout->setMargin(5);
-	palette->setLayout(gridLayout);
-	palette->setContentsMargins(0, 0, 0, 0);
-	palette->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+	paletteWidget->setLayout(gridLayout);
+	paletteWidget->setContentsMargins(0, 0, 0, 0);
+	paletteWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
 	//Layout
 
@@ -141,7 +145,7 @@ TileEditor::TileEditor() {
 	layout->setMargin(0);
 	setLayout(layout);
 
-	layout->addWidget(palette);
+	layout->addWidget(paletteWidget);
 	layout->addWidget(renderer);
 
 	//TODO: Separation between file explorer and editor data
@@ -173,7 +177,7 @@ Texture2D TileEditor::getTiles() {
 	return renderer->getTexture();
 }
 
-bool TileEditor::allowsResource(FileSystemObject &fso, ArchiveObject &ao) {
+bool TileEditor::allowsResource(FileSystemObject&, ArchiveObject &ao) {
 	return ao.info.magicNumber == NCGR::getMagicNumber() || ao.info.magicNumber == NCLR::getMagicNumber();
 }
 
@@ -200,7 +204,7 @@ void TileEditor::inspectResource(FileSystem &fileSystem, FileSystemObject &fso, 
 	}
 }
 
-bool TileEditor::isPrimaryEditor(FileSystemObject &fso, ArchiveObject &ao) {
+bool TileEditor::isPrimaryEditor(FileSystemObject&, ArchiveObject &ao) {
 	return ao.info.magicNumber == NCGR::getMagicNumber();
 }
 

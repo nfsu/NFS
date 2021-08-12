@@ -1,6 +1,9 @@
 #pragma once
 #include "resource_editor.hpp"
-#include <QtWidgets/qsplitter.h>
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qsplitter.h>
+#pragma warning(pop)
 
 namespace nfsu {
 

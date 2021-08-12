@@ -1,6 +1,10 @@
 #include "palette_renderer.hpp"
-#include <QtGui/qevent.h>
-#include <QtWidgets/qcolordialog.h>
+
+#pragma warning(push, 0)
+	#include <QtGui/qevent.h>
+	#include <QtGui/qopengltexture.h>
+	#include <QtWidgets/qcolordialog.h>
+#pragma warning(pop)
 
 using namespace nfsu;
 
@@ -168,7 +172,7 @@ void PaletteRenderer::set(QPoint p0, u32 color) {
 	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
 		return;
 
-	texture.write(p0.x(), p0.y(), color);
+	texture.write(u16(p0.x()), u16(p0.y()), color);
 	updateTexture();
 }
 
@@ -177,11 +181,14 @@ u32 PaletteRenderer::get(QPoint p0) {
 	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
 		return 0;
 
-	return texture.read(p0.x(), p0.y());
+	return texture.read(u16(p0.x()), u16(p0.y()));
 }
 
 QPoint PaletteRenderer::globalToTexture(QPoint pos) {
-	return QPoint(f32(pos.x()) / width() * texture.getWidth(), f32(pos.y()) / height() * texture.getHeight());
+	return QPoint(
+		int(f32(pos.x()) / width() * texture.getWidth()), 
+		int(f32(pos.y()) / height() * texture.getHeight())
+	);
 }
 
 //Texture
@@ -227,7 +234,6 @@ void PaletteRenderer::setupGTexture() {
 void PaletteRenderer::mousePressEvent(QMouseEvent *e) {
 
 	QPoint tpos = globalToTexture(e->pos());
-	u8 pos = (tpos.y() << 4) | tpos.x();
 
 	if (editable && e->button() == Qt::LeftButton && texture.getWidth() != 0) {
 
@@ -263,8 +269,7 @@ void PaletteRenderer::resizeEvent(QResizeEvent *e) {
 
 void PaletteRenderer::mouseMoveEvent(QMouseEvent *e) {
 	QPoint tpos = globalToTexture(e->pos());
-	u8 pos = (tpos.y() << 4) | tpos.x();
-	primary = pos;
+	primary = u8((tpos.y() << 4) | tpos.x());
 	setFocus();
 }
 

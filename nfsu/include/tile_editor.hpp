@@ -1,9 +1,10 @@
 #pragma once
-#include <QtWidgets/qsplitter.h>
-#include <QtWidgets/qpushbutton.h>
-#include <QtWidgets/qgridlayout.h>
 #include "texture.hpp"
 #include "palette_editor.hpp"
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qwidget.h>
+#pragma warning(pop)
 
 namespace nfsu {
 

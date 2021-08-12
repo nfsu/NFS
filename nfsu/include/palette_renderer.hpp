@@ -1,9 +1,14 @@
 #pragma once
-#include <QtWidgets/qopenglwidget.h>
-#include <QtOpenGL/qglshaderprogram.h>
-#include <QtOpenGL/qglbuffer.h>
-#include <QtGui/qopengltexture.h>
 #include "texture.hpp"
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qopenglwidget.h>
+	#include <QtOpenGL/qglshaderprogram.h>
+	#include <QtOpenGL/qglbuffer.h>
+#pragma warning(pop)
+
+class QPoint;
+class QOpenGLTexture;
 
 namespace nfsu {
 

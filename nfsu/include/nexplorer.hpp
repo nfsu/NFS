@@ -1,7 +1,11 @@
 #pragma once
 
 #include "file_system.hpp"
-#include <QtWidgets/qtreeview.h>
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qtreeview.h>
+#pragma warning(pop)
+
 #include <functional>
 
 namespace nfsu {

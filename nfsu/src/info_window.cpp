@@ -1,7 +1,11 @@
 #include "info_window.hpp"
-#include <QtWidgets/qlabel.h>
-#include <QtWidgets/qheaderview.h>
-#include <QtWidgets/qscrollbar.h>
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qlabel.h>
+	#include <QtWidgets/qheaderview.h>
+	#include <QtWidgets/qscrollbar.h>
+#pragma warning(pop)
+
 using namespace nfsu;
 
 InfoWindow::InfoWindow(bool scrollHorizontal, bool scrollVertical, QWidget *parent):
@@ -28,7 +32,7 @@ InfoWindow::InfoWindow(bool scrollHorizontal, bool scrollVertical, QWidget *pare
 
 void InfoWindow::setString(QString key, QString value) {
 
-	usz i = 0;
+	u32 i = 0;
 
 	for(auto &elem : table)
 
@@ -54,7 +58,7 @@ void InfoWindow::setString(QString key, QString value) {
 
 void InfoWindow::clearString(QString key) {
 
-	usz i = 0;
+	u32 i = 0;
 
 	for (auto &elem : table)
 

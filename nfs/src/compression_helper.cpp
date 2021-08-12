@@ -13,9 +13,9 @@ u8 CompressionHelper::fromBGR5(u8 val) {
 
 u32 CompressionHelper::samplePixel(u16 pix) {
 
-	u32 b = fromBGR5(pix & 0x1FU);
-	u32 g = fromBGR5((pix & 0x3E0U) >> 5U);
-	u32 r = fromBGR5((pix & 0x7C00U) >> 10U);
+	u32 b = fromBGR5(u8(pix & 0x1FU));
+	u32 g = fromBGR5(u8((pix & 0x3E0U) >> 5U));
+	u32 r = fromBGR5(u8((pix & 0x7C00U) >> 10U));
 
 	return (0xFFU << 24U) | (r << 16U) | (g << 8U) | b;
 }
@@ -39,11 +39,11 @@ u8 CompressionHelper::toBGR5(u8 val) {
 
 u16 CompressionHelper::storePixel(u32 pix) {
 
-	u32 r = toBGR5(pix & 0xFFU);
-	u32 g = toBGR5((pix & 0xFF00U) >> 8U);
-	u32 b = toBGR5((pix & 0xFF0000U) >> 16U);
+	u32 r = toBGR5(u8(pix & 0xFFU));
+	u32 g = toBGR5(u8((pix & 0xFF00U) >> 8U));
+	u32 b = toBGR5(u8((pix & 0xFF0000U) >> 16U));
 
-	return b | (g << 5U) | (r << 10U);
+	return u16(b | (g << 5U) | (r << 10U));
 }
 
 u16 CompressionHelper::storeColor(const f32x3 &val) {
@@ -62,9 +62,9 @@ u32 CompressionHelper::generateRandom(u32 seed, u32 multiply, u32 add) {
 
 CompressionType CompressionHelper::getCompressionType(const u8 *tag, usz len) {
 
-	auto type = ResourceHelper::getMagicNum(ResourceHelper::getType(tag, len));
+	auto t = ResourceHelper::getMagicNum(ResourceHelper::getType(tag, len));
 
-	if (len < 5 || type != NBUO_num)
+	if (len < 5 || t != NBUO_num)
 		return CompressionType::None;
 
 	auto dat = CompressionType(*tag);
@@ -72,8 +72,8 @@ CompressionType CompressionHelper::getCompressionType(const u8 *tag, usz len) {
 	if (*tag >> 4 == 0x2)					//Exception for Huff
 		return CompressionType::Huffman;
 
-	for (const CompressionType &type : compressionTypes)
-		if (dat == type)
+	for (CompressionType ct : compressionTypes)
+		if (dat == ct)
 			return dat;
 
 	return CompressionType::None;
@@ -147,7 +147,7 @@ usz CompressionHelper::getDecompressionAllocation(Buffer in) {
 	return 0;
 }
 
-Buffer CompressionHelper::compressCopy(Buffer in, Buffer res, bool isDecompression) {
+Buffer CompressionHelper::compressCopy(Buffer in, Buffer, bool isDecompression) {
 
 	if (!isDecompression)
 		EXCEPTION("Unimplemented compressCopy");		//TODO:
@@ -181,7 +181,7 @@ Buffer CompressionHelper::compressLZBase(Buffer in, Buffer res, bool isDecompres
 	if (!isDecompression)
 		EXCEPTION("Unimplemented compressLZBase");	//TODO:
 
-	u32 decompSize = getDecompressionAllocation(in);
+	usz decompSize = getDecompressionAllocation(in);
 	in.addOffset((in.at<u32>() >> 8) == 0 ? 8 : 4);
 
 	bool allocated = false;
@@ -233,7 +233,7 @@ Buffer CompressionHelper::compressLZBase(Buffer in, Buffer res, bool isDecompres
 			//Copy the N+3 bytes located -disp relative to our current output
 
 			for (u8 i = 0; i < bytes; ++i)
-				resPtr.append(resPtr.at(-usz(disp)));
+				resPtr.append(resPtr.atBack(disp));
 
 		}
 
@@ -277,7 +277,7 @@ Buffer CompressionHelper::compressLZBase(Buffer in, Buffer res, bool isDecompres
 				EXCEPTION("Disp pointer was invalid. Pointed back too much");
 
 			for (u32 i = 0; i < bytes; ++i)
-				resPtr.append(resPtr.at(-usz(disp)));
+				resPtr.append(resPtr.atBack(disp));
 		}
 	}
 
@@ -304,7 +304,7 @@ Buffer CompressionHelper::compressHuffman(Buffer in, Buffer res, bool isDecompre
 	if (datSiz != 4 && datSiz != 8)
 		EXCEPTION("Invalid Huffman header");
 
-	u32 decompSize = getDecompressionAllocation(in);
+	usz decompSize = getDecompressionAllocation(in);
 	in.addOffset(4);
 
 	bool allocated = false;
@@ -365,7 +365,7 @@ Buffer CompressionHelper::compressRLE(Buffer in, Buffer res, bool isDecompressio
 	if (!isDecompression)
 		EXCEPTION("Compression not yet supported");
 
-	u32 decompSize = getDecompressionAllocation(in);
+	usz decompSize = getDecompressionAllocation(in);
 	in.addOffset(4);
 
 	bool allocated = false;
@@ -414,7 +414,6 @@ Buffer CompressionHelper::compressRLE(Buffer in, Buffer res, bool isDecompressio
 	return res;
 }
 
-Buffer CompressionHelper::compressLZ40(Buffer in, Buffer res, bool isDecompression) {
-
-	return res;
+Buffer CompressionHelper::compressLZ40(Buffer, Buffer, bool) {
+	return {};
 }

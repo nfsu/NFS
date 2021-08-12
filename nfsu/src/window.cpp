@@ -2,18 +2,21 @@
 #include "nexplorer.hpp"
 #include "info_window.hpp"
 #include "patcher.hpp"
-#include <QtGui/qdesktopservices.h>
-#include <QtWidgets/qfiledialog.h>
-#include <QtWidgets/qmessagebox.h>
-#include <QtCore/qurl.h>
-#include <QtWidgets/qmenubar.h>
-#include <QtWidgets/qlayout.h>
-#include <QtWidgets/qapplication.h>
-#include <QtGui/qevent.h>
-#include "model.hpp"
+//#include "model.hpp"
 #include "palette_editor.hpp"
 #include "tile_editor.hpp"
 #include "game_editor.hpp"
+
+#pragma warning(push, 0)
+	#include <QtGui/qdesktopservices.h>
+	#include <QtWidgets/qfiledialog.h>
+	#include <QtWidgets/qmessagebox.h>
+	#include <QtCore/qurl.h>
+	#include <QtWidgets/qmenubar.h>
+	#include <QtWidgets/qlayout.h>
+	#include <QtWidgets/qapplication.h>
+	#include <QtGui/qevent.h>
+#pragma warning(pop)
 
 using namespace nfsu;
 using namespace nfs;
@@ -170,7 +173,7 @@ void Window::setupToolbar() {
 	connect(imp, &QAction::triggered, this, &Window::_importPatch);
 	connect(reload, &QAction::triggered, this, &Window::_reload);
 	connect(save, &QAction::triggered, this, &Window::_write);
-	connect(saveCurrent, &QAction::triggered, this, [&]() { this->write(this->file); });
+	connect(saveCurrent, &QAction::triggered, this, [&]() { this->write(currentFile); });
 	connect(find, &QAction::triggered, this, &Window::findFile);
 	connect(filter, &QAction::triggered, this, &Window::filterFiles);
 	connect(order, &QAction::triggered, this, &Window::orderFiles);
@@ -208,17 +211,23 @@ void Window::setupExplorer() {
 	view->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
 	left->addWidget(view);
 
-	view->addResourceCallback(true, u32_MAX, [this, view](FileSystem &fs, FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
-		activateResource(fso, ao, view->mapToGlobal(point));
-	});
+	view->addResourceCallback(
+		true, u32_MAX, 
+		[this, view](FileSystem&, FileSystemObject &fso, ArchiveObject &ao, const QPoint &point) {
+			activateResource(fso, ao, view->mapToGlobal(point));
+		}
+	);
 
-	view->addExplorerCallback(false, [this](FileSystem &fs, FileSystemObject &fso, const QPoint &point) {
+	view->addExplorerCallback(
+		false, 
+		[this](FileSystem &fs, FileSystemObject &fso, const QPoint&) {
 
-		if (fso.isFile())
-			inspect(fso, fs.getResource(fso));
+			if (fso.isFile())
+				inspect(fso, fs.getResource(fso));
 
-		else inspectFolder(fso);
-	});
+			else inspectFolder(fso);
+		}
+	);
 }
 
 void Window::setupInfoWindow() {
@@ -237,7 +246,7 @@ void Window::setupInfoWindow() {
 	infoWindow->setString("Length", "");
 }
 
-void Window::setupTabs(QLayout *layout) {
+void Window::setupTabs(QLayout*) {
 
 	editors.resize(6);
 
@@ -341,7 +350,7 @@ void Window::_load() {
 }
 
 void Window::load(const QString &_file) {
-	file = _file;
+	currentFile = _file;
 	reload();
 }
 
@@ -350,7 +359,7 @@ void Window::reload() {
 	fileSystem.clear();
 	rom.dealloc();
 
-	rom = Buffer::readFile(file.toStdString());
+	rom = Buffer::readFile(currentFile.toStdString());
 
 	if (NDS *nds = rom.add<NDS>()) {
 		setWindowTitle(QString("File System Utilities: ") + nds->title);
@@ -632,16 +641,16 @@ void Window::importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) 
 		fileType = "Any file";
 	}
 
-	QString file = QFileDialog::getOpenFileName(nullptr, tr("Load Resource"), "", tr((fileType + " (*." + extension + ")").toStdString().c_str()));
+	QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Load Resource"), "", tr((fileType + " (*." + extension + ")").toStdString().c_str()));
 
-	if (file == "" || (!file.endsWith("." + extension, Qt::CaseInsensitive) && extension != "*")) {
+	if (fileName == "" || (!fileName.endsWith("." + extension, Qt::CaseInsensitive) && extension != "*")) {
 		QMessageBox messageBox;
 		messageBox.critical(0, "Error", "Please select a valid ." + extension + " file to read from");
 		messageBox.setFixedSize(500, 200);
 		return;
 	}
 
-	Buffer buf = Buffer::readFile(file.toStdString());
+	Buffer buf = Buffer::readFile(fileName.toStdString());
 
 	if (buf.size() != fso.buf.size()) {
 		QMessageBox messageBox;
@@ -655,7 +664,7 @@ void Window::importResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) 
 	buf.dealloc();
 }
 
-void Window::info(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) {
+void Window::info(nfs::FileSystemObject&, nfs::ArchiveObject &ao) {
 
 	if (ao.info.magicNumber != ResourceHelper::getMagicNumber<NBUO>())
 		QDesktopServices::openUrl(QUrl("https://github.com/NFSU/NFS/tree/NFS_Reloaded/docs/resource" + QString::number(ao.info.type) + ".md"));

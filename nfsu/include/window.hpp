@@ -1,11 +1,15 @@
 #pragma once
-#include <QtWidgets/qmainwindow.h>
-#include <QtWidgets/qsplitter.h>
-#include <QtWidgets/qtabwidget.h>
-#include <QtWidgets/qproxystyle.h>
 #include "file_system.hpp"
 #include "info_window.hpp"
 #include "resource_editor.hpp"
+
+#pragma warning(push, 0)
+	#include <QtWidgets/qproxystyle.h>
+	#include <QtWidgets/qmainwindow.h>
+#pragma warning(pop)
+
+class QSplitter;
+class QTabWidget;
 
 namespace nfsu {
 
@@ -92,7 +96,7 @@ namespace nfsu {
 
 	private:
 
-		QString file;
+		QString currentFile;
 		Buffer rom;
 		nfs::FileSystem fileSystem;
 
