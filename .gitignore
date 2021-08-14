@@ -50,3 +50,4 @@ lib/
 *.user
 x64/
 enc_temp_folder/
+builds/
