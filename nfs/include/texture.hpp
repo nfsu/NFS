@@ -4,7 +4,7 @@
 namespace nfs {
 
 	enum class TextureType : u16 {
-		ARGB8 = 32, BGR5 = 15, R4 = 4, INTEGER = 8
+		ARGB8 = 32, BGR5 = 15, R4 = 4, INTEGER = 8, INTEGER16 = 16
 	};
 
 	enum class TextureTiles : u16 {
@@ -53,7 +53,7 @@ namespace nfs {
 
 		//Allocate new texture; read from the file
 		//Texture2D will always be a RGBA8 Normal image
-		static Texture2D readFile(const String &file);
+		static Texture2D readFile(const String &file, bool is16Bit = false);
 
 		//Write to disk (only if Texture2D is RGBA8 Normal image)
 		void writeFile(const String &file);

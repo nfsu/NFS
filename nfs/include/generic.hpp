@@ -184,18 +184,38 @@ public:
 	}
 
 	template<typename T = u8>
-	inline void append(const T &t) { 
+	inline List<T> consumeList(usz len) { 
+
+		requireSize(sizeof(T) * len);
+
+		u8 *loc = ptr;
+		addOffset(sizeof(T) * len);
+
+		return List<T>((T*) loc, (T*)loc + len); 
+	}
+
+	template<typename T = u8, typename ...args>
+	inline void append(const T &t, const args &...arg) { 
 
 		requireSize(sizeof(T));
 
 		*(T*)ptr = t;
 		addOffset(sizeof(T));
+
+		if constexpr (sizeof...(args))
+			append(arg...);
 	}
 
 	inline void appendBuffer(Buffer buf) {
 		requireSize(buf.len);
 		std::memcpy(ptr, buf.ptr, buf.len);
 		addOffset(buf.len);
+	}
+
+	inline void appendString(const String &str) {
+		requireSize(str.size());
+		std::memcpy(ptr, str.data(), str.size());
+		addOffset(str.size());
 	}
 
 	inline String consumeString(usz l) {

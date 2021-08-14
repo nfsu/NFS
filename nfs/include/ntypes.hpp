@@ -19,7 +19,9 @@ namespace nfs {
 		u16 c_padding;						//0x0000
 	};
 
-	typedef GenericResource<0x4E434C52, false, TTLP, PMCP> NCLR;				//Palette ("Color") resource
+	static constexpr u32 NCLR_num = 0x4E434C52;
+
+	typedef GenericResource<NCLR_num, false, TTLP, PMCP> NCLR;				//Palette ("Color") resource
 
 	//NCGR (Tile file / image file)
 
@@ -47,7 +49,9 @@ namespace nfs {
 		u16 tileHeight;						//= RAHC tileCount
 	};
 
-	typedef GenericResource<0x4E434752, false, RAHC, SOPC> NCGR;				//Graphics resource
+	static constexpr u32 NCGR_num = 0x4E434752;
+
+	typedef GenericResource<NCGR_num, false, RAHC, SOPC> NCGR;				//Graphics resource
 
 	//NSCR (Tilemap file)
 
@@ -58,7 +62,9 @@ namespace nfs {
 		u32 screenDataSize;					//Size of screen data buffer
 	};
 
-	typedef GenericResource<0x4E534352, false, NRCS> NSCR;						//Screen resource
+	static constexpr u32 NSCR_num = 0x4E534352;
+
+	typedef GenericResource<NSCR_num, false, NRCS> NSCR;						//Screen resource
 
 	//NARC (Archive)
 
@@ -69,7 +75,9 @@ namespace nfs {
 	struct BTNF : GenericSection {};											//File name table
 	struct GMIF : GenericSection {};											//File image
 
-	typedef GenericResource<0x4352414E, false, BTAF, BTNF, GMIF> NARC;			//Archive file
+	static constexpr u32 NARC_num = 0x4352414E;
+
+	typedef GenericResource<NARC_num, false, BTAF, BTNF, GMIF> NARC;			//Archive file
 
 	/*Model file
 

@@ -156,25 +156,33 @@ Texture2D Texture2D::alloc(u16 w, u16 h, u32 stride, TextureType tt, TextureTile
 	return tex;
 }
 
-Texture2D Texture2D::readFile(const String &file) {
+Texture2D Texture2D::readFile(const String &file, bool is16Bit) {
+
+	int target = is16Bit ? 2 : 4;
+	auto type = is16Bit ? TextureType::INTEGER16 : TextureType::ARGB8;
 
 	int x, y, channels;
-	u8 *ptr = (u8*) stbi_load(file.c_str(), &x, &y, &channels, 4);
+	u8 *ptr = (u8*) stbi_load(file.c_str(), &x, &y, &channels, target);
 
-	Texture2D tex = Texture2D(ptr, u16(x), u16(y), 4, TextureType::ARGB8, TextureTiles::NONE);
+	Texture2D tex = Texture2D(ptr, u16(x), u16(y), target, type, TextureTiles::NONE);
 	tex.allocated = true;
 	return tex;
 }
 
 void Texture2D::writeFile(const String &file) {
 
-	if (type != u16(TextureType::ARGB8) || tiles != u16(TextureTiles::NONE))
+	if (
+		(type != u16(TextureType::ARGB8) && type != u16(TextureType::INTEGER16)) || 
+		tiles != u16(TextureTiles::NONE)
+	)
 		EXCEPTION("Texture2D Couldn't write image; please convert to RGBA8 first");
 
 	if (file.size() < 4 || String(file.end() - 4, file.end()) != ".png")
 		EXCEPTION("Texture2D Couldn't write image; it only supports .png");
 
-	if (!stbi_write_png(file.c_str(), (int)width, (int)height, 4, data, 4 * (int)width))
+	int str = type / 8;
+
+	if (!stbi_write_png(file.c_str(), (int)width, (int)height, str, data, str * (int)width))
 		EXCEPTION("Texture2D Couldn't write image");
 }
 

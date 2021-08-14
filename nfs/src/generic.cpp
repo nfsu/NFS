@@ -5,7 +5,7 @@ Buffer::Buffer(usz _size, u8 *_ptr) : len(_size), ptr(_ptr) {}
 Buffer::Buffer() : Buffer(0, nullptr) {}
 
 void Buffer::dealloc() {
-	if (ptr != nullptr) {
+	if (ptr) {
 		std::free(ptr);
 		len = 0;
 		ptr = nullptr;

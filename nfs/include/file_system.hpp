@@ -32,7 +32,7 @@ namespace nfs {
 
 		FileSystemObject *operator[](const String &path);
 
-		inline ArchiveObject &getResource(FileSystemObject &fso) {
+		inline ArchiveObject &getResource(const FileSystemObject &fso) {
 			return Archive::operator[](fso.resource);
 		}
 
