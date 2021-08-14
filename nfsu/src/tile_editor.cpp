@@ -35,6 +35,8 @@ TileEditor::TileEditor() {
 	QPushButton *gridButton = new QPushButton(QIcon(QPixmap("resources/grid.png")), "");
 
 	connect(paletteButton, &QPushButton::clicked, this, [&]() { setUsePalette(!getUsePalette()); });
+	connect(gridButton, &QPushButton::clicked, this, [&]() { setUseGrid(!getUseGrid()); });
+
 	//connect(gridButton, &QPushButton::clicked, this, )
 
 	connect(exportButton, &QPushButton::clicked, this, [&]() {
@@ -124,7 +126,7 @@ TileEditor::TileEditor() {
 		tex2d.writeFile(file.toStdString());
 	});
 
-	//TODO: Import button, import convert
+	//TODO: import button, import convert
 
 	gridLayout->addWidget(importButton, 0, 0);
 	gridLayout->addWidget(importConvertButton, 1, 0);
@@ -171,6 +173,14 @@ void TileEditor::setUsePalette(bool b) {
 
 bool TileEditor::getUsePalette() {
 	return renderer->getUsePalette();
+}
+
+void TileEditor::setUseGrid(bool b) {
+	renderer->setUseGrid(b);
+}
+
+bool TileEditor::getUseGrid() {
+	return renderer->getUseGrid();
 }
 
 Texture2D TileEditor::getTiles() {

@@ -36,6 +36,8 @@ void TileRenderer::paintGL() {
 	shader.setUniformValue("paletteY", i32(yOffset));
 	shader.setUniformValue("offset", offset);
 	shader.setUniformValue("scale", scale);
+	shader.setUniformValue("gridColor", gridColor);
+	shader.setUniformValue("distToPix", useGrid ? gridSize : -gridSize);
 
 	shader.setUniformValue("flags",
 		(texture.getType() == TextureType::R4 ? 1 : 0) |
@@ -104,6 +106,8 @@ void TileRenderer::initializeGL() {
 		"uniform int tiled;"
 		"uniform int flags;"
 		"uniform int paletteY;"
+		"uniform int gridColor;"
+		"uniform float distToPix;"
 
 		"uniform vec2 offset;"
 		"uniform vec2 scale;"
@@ -121,6 +125,7 @@ void TileRenderer::initializeGL() {
 			"vec2 pos = uv * scale + offset;"
 
 			"ivec2 px = ivec2(pos * vec2(width, height));"
+			"ivec2 pixx = px;"
 			"ivec2 size = ivec2(width, height);"
 
 			"px = px - ivec2(floor(vec2(px) / size) * size);"
@@ -184,13 +189,21 @@ void TileRenderer::initializeGL() {
 
 			"} else if((flags & 1) == 0) "
 				"output = vec3(val / 255.f, 0, 0);"
-			"else "
-				"output = vec3(val / 15.f, 0, 0);"
 
-			"color = vec4("
-						"mix(output, vec3(0), "
-							"float(px.x < 0 || px.y < 0 || px.x >= width || px.y >= height))"
-					", 1);"
+			"else output = vec3(val / 15.f, 0, 0);"
+
+			"vec2 delta = abs(fract(pixx / vec2(8)));"
+
+			"float minDelta = min(delta.x, delta.y);"
+
+			"vec3 sideColor = vec3(gridColor >> 16, (gridColor >> 8) & 0xFF, gridColor & 0xFF) / 255.f * 0.5f;"
+
+			"float overlay = 1 - floor(min(minDelta / 0.5, distToPix) / distToPix);"
+
+			"if(distToPix > 0)"
+				"output = mix(output, sideColor, overlay);"
+
+			"color = vec4(mix(output, vec3(0), float(any(lessThan(px, ivec2(0))) || any(greaterThanEqual(px, ivec2(width, height))))), 1);"
 		"}";
 
 	if(!shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader))
@@ -303,6 +316,11 @@ void TileRenderer::setUsePalette(bool b) {
 	repaint();
 }
 
+void TileRenderer::setUseGrid(bool b) {
+	useGrid = b;
+	repaint();
+}
+
 void TileRenderer::setEditable(bool b) {
 	editable = b;
 	repaint();
@@ -312,6 +330,13 @@ void TileRenderer::setCursorSize(u32 cursorSiz) {
 	cursorSize = cursorSiz;
 	repaint();
 }
+
+void TileRenderer::setGridColor(QColor color) {
+	gridColor = (color.red() << 16) | (color.green() << 8) | color.blue();
+	repaint();
+}
+
+void TileRenderer::setGridSize(f32 perc) { gridSize = perc; repaint(); }
 
 void TileRenderer::setPaletteOffset(u8 j) {
 	yOffset = j % 16;
@@ -367,6 +392,9 @@ void TileRenderer::keyPressEvent(QKeyEvent *e) {
 
 	else if(e->key() == Qt::Key::Key_X)
 		setUsePalette(!usePalette);
+
+	else if(e->key() == Qt::Key::Key_Z)
+		setUseGrid(!useGrid);
 
 	else if(e->key() == Qt::Key_Shift)
 		shift = true;
@@ -772,6 +800,6 @@ void TileRenderer::resizeEvent(QResizeEvent *e) {
 	i32 sizeX = i32(scaleX * texture.getWidth());
 	i32 sizeY = i32(scaleY * texture.getHeight());
 
-	resize(sizeX, sizeY);
+	resize(sizeX, sizeY);		//TODO: This can cause an infinite loop
 	updateGeometry();
 }

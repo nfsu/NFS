@@ -25,6 +25,9 @@ namespace nfsu {
 		void setUsePalette(bool b);
 		bool getUsePalette();
 
+		void setUseGrid(bool b);
+		bool getUseGrid();
+
 		bool allowsResource(nfs::FileSystemObject &fso, nfs::ArchiveObject &ao) override;
 
 		void inspectResource(

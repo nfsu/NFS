@@ -92,7 +92,7 @@ void PaletteRenderer::initializeGL() {
 
 			"float dist = abs(distToPix);"
 
-			"float overlay = 1 - min(minDelta, dist) / dist;"
+			"float overlay = 1 - floor(min(minDelta / 0.5, dist) / dist);"
 
 			"uint value = texture(paletteTexture, coord).r;"
 
@@ -104,7 +104,7 @@ void PaletteRenderer::initializeGL() {
 
 			"vec3 sideColor = vec3(gridColor >> 16, (gridColor >> 8) & 0xFF, gridColor & 0xFF) / 255.f * 0.5f;"
 
-			"vec3 selectedColor = mix(vec3(1, 1, 1), vec3(0, 0, 0), (outColor.r + outColor.g + outColor.b) / 3);"
+			"vec3 selectedColor = 1 - outColor;"
 
 			"sideColor = mix("
 							"mix("

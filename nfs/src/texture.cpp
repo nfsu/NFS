@@ -319,7 +319,7 @@ u32 Texture2D::fetch(u16 x, u16 y) {
 
 	bool fourBit = type == u16(TextureType::R4);
 
-	u8 *ptr = data + index * (stride >> u32(fourBit));
+	u8 *ptr = data + ((index * stride) >> u32(fourBit));
 	u32 val = 0;
 
 	for (u32 i = 0; i < stride; ++i)
@@ -358,7 +358,7 @@ bool Texture2D::store(u16 i, u16 j, u32 k, bool allowEncryptionHashOverrides) {
 	u32 index = getIndex(i, j);
 
 	bool fourBit = type == u16(TextureType::R4);
-	u32 bindex = index * (stride >> u32(fourBit));
+	u32 bindex = (index * stride) >> u32(fourBit);
 
 	u8 *ptr = data + bindex;
 

@@ -104,13 +104,26 @@ inline void set(InfoWindow *info, GameEditorType type, const QString &str) {
 	info->setString(strings[type], str);
 }
 
+inline void set(InfoWindow *info, GameEditorType type, const String &str) {
+	info->setString(strings[type], QString::fromStdString(str));
+}
+
 void GameEditor::showInfo(InfoWindow *info) {
 
 	if (rom != nullptr) {
 
-		set(info, TITLE, rom->title);
-		set(info, GAME_CODE, rom->gameCode);
-		set(info, MAKER_CODE, rom->makerCode);
+		String title = String(rom->title, rom->title + sizeof(rom->title));
+		title = title.substr(0, title.find_last_of('\0'));
+
+		String gameCode = String(rom->gameCode, rom->gameCode + sizeof(rom->gameCode));
+		gameCode = gameCode.substr(0, gameCode.find_last_of('\0'));
+
+		String makerCode = String(rom->makerCode, rom->makerCode + sizeof(rom->makerCode));
+		makerCode = makerCode.substr(0, makerCode.find_last_of('\0'));
+
+		set(info, TITLE, title);
+		set(info, GAME_CODE, gameCode);
+		set(info, MAKER_CODE, makerCode);
 		set(info, UNIT_CODE, QString::number(rom->unitCode));
 		set(info, VERSION, QString::number(rom->version));
 		set(info, ROM_SIZE, QString("#") + QString::number(rom->romSize, 16));

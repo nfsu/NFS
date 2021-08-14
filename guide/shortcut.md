@@ -42,6 +42,8 @@ All of the keys & mouse events require your cursor to be in the tile renderer wi
 
 **X**: Turns off/on viewing the image with palette
 
+**Z**: Turns off/on viewing the image with a 8x8 grid layover 
+
 ## CTRL+
 
 **Left drag**: Move image

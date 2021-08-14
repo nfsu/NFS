@@ -29,11 +29,15 @@ namespace nfsu {
 		nfs::Texture2D getPalette();
 
 		void setUsePalette(bool b);
+		void setUseGrid(bool b);
 		inline bool getUsePalette() const { return usePalette; }
+		inline bool getUseGrid() const { return useGrid; }
 
 		void setEditable(bool b);
 		
 		void setCursorSize(u32 size);
+		void setGridColor(QColor color);
+		void setGridSize(f32 percToPix);
 
 		//If the image is 4-bit, use as y offset into palette
 		void setPaletteOffset(u8 y);
@@ -78,9 +82,11 @@ namespace nfsu {
 	private:
 
 
+		i32 gridColor = 0xFFFFFF;
+		f32 gridSize = 0.2222f;
 		u32 cursorSize = 1;
 
-		bool usePalette = 1, editable = 1, 
+		bool usePalette = 1, editable = 1, useGrid = 0, 
 			 isMouseDown{}, isLeft{}, ctrl{}, shift{}, alt{};
 
 		TilePaintTool tool = TilePaintTool::BRUSH;
