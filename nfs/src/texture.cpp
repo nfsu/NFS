@@ -436,29 +436,39 @@ Texture2D Texture2D::toRGBA8(bool fixIntegers) {
 	return fromShader(ToRGBA8(), width, height, *this, false);		//This optimizes the if check per pixel
 }
 
-inline u32 convertPT2D(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette) {
-	u32 val = tilemap.fetch(i, j);
-	u32 color = palette.read(val & 0xF, (val >> 4) & 0xF);
-	return color;
-}
+//Palette+Tile 2D to BGR555 and RGBA8
 
-struct PT2D {
-	template<typename ...args> 
-	inline u32 operator()(args &&...arg) const { 
-		return convertPT2D(std::forward<args>(arg)...);  
+struct PT2Du32 {
+	inline u32 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette) const { 
+		u32 val = tilemap.fetch(i, j);
+		u32 color = palette.read(val & 0xF, (val >> 4) & 0xF);
+		return color;
 	}
 };
 
-Texture2D::Texture2D(NCGR &tilemap, NCLR &palette) {
-	Texture2D tm = tilemap, pl = palette;
-	*this = fromShader(PT2D(), tm.width, tm.height, tm, pl);
+struct PT2Du16 {
+	inline u16 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette) const { 
+		u32 val = tilemap.fetch(i, j);
+		return u16(palette.fetch(val & 0xF, (val >> 4) & 0xF));
+	}
+};
+
+Texture2D::Texture2D(NCGR &tilemap, NCLR &palette, bool is16Bit):
+	Texture2D(Texture2D(tilemap), Texture2D(palette), is16Bit) { }
+
+Texture2D::Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit) {
+
+	if (is16Bit) {
+		*this = fromShader<true>(PT2Du16(), tilemap.width, tilemap.height, tilemap, palette);
+		return;
+	}
+
+	*this = fromShader(PT2Du32(), tilemap.width, tilemap.height, tilemap, palette);
 }
 
-Texture2D::Texture2D(const Texture2D &tilemap, const Texture2D &palette) {
-	*this = fromShader(PT2D(), tilemap.width, tilemap.height, tilemap, palette);
-}
+//Palette+Tile+Tilemap 2D to BGR555 and RGBA8
 
-inline u32 convertPTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap, Texture2D palette) {
+inline Array<u32, 2> palettePTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap) {
 
 	u32 tiles = tilemap.getTiles();
 
@@ -487,9 +497,7 @@ inline u32 convertPTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D ti
 		u16 tilemapX = u16(((tilePos % tilesX) << 3) | offX);
 		u16 tilemapY = u16(((tilePos / tilesX) << 3) | offY);
 
-		u32 val = tilemap.fetch(tilemapX, tilemapY);
-
-		return palette.read(u16(val & 0xF), u16(((val >> 4) + tilePlt) & 0xF));
+		return { tilemap.fetch(tilemapX, tilemapY), tilePlt };
 	}
 
 	//Fallback
@@ -515,19 +523,31 @@ inline u32 convertPTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D ti
 	u16 tilemapX = u16((tilePos % tilesX) * tiles + offX);
 	u16 tilemapY = u16((tilePos / tilesX) * tiles + offY);
 
-	u32 val = tilemap.fetch(tilemapX, tilemapY);
-
-	return palette.read(u16(val & 0xF), u16(((val >> 4) + tilePlt) & 0xF));
+	return { tilemap.fetch(tilemapX, tilemapY), tilePlt };
 }
 
-struct PTT2D {
-	template<typename ...args> 
-	inline u32 operator()(args &&...arg) const { 
-		return convertPTT2D(std::forward<args>(arg)...);  
+struct PTT2Du32 {
+	inline u32 operator()(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap, Texture2D palette) const { 
+		auto val = palettePTT2D(tex, i, j, map, tilemap);  
+		return palette.read(u16(val[0] & 0xF), u16(((val[0] >> 4) + val[1]) & 0xF));
 	}
 };
 
-Texture2D::Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette) {
+struct PTT2Du16 {
+	inline u16 operator()(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap, Texture2D palette) const { 
+		auto val = palettePTT2D(tex, i, j, map, tilemap);  
+		return u16(palette.fetch(u16(val[0] & 0xF), u16(((val[0] >> 4) + val[1]) & 0xF)));
+	}
+};
+
+Texture2D::Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit) {
+
 	Texture2D m = map, tm = tilemap, pl = palette;
-	*this = fromShader(PTT2D(), u16(m.width * tm.getTiles()), u16(m.height * tm.getTiles()), m, tm, pl);
+
+	if (is16Bit) {
+		*this = fromShader<true>(PTT2Du16(), u16(m.width * tm.getTiles()), u16(m.height * tm.getTiles()), m, tm, pl);
+		return;
+	}
+
+	*this = fromShader(PTT2Du32(), u16(m.width * tm.getTiles()), u16(m.height * tm.getTiles()), m, tm, pl);
 }

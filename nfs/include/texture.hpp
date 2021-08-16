@@ -35,20 +35,20 @@ namespace nfs {
 		Texture2D &operator=(Texture2D &&other);
 
 		//Allocate a new Texture2D from palette and tilemap
-		Texture2D(NCGR &tilemap, NCLR &palette);
+		Texture2D(NCGR &tilemap, NCLR &palette, bool is16Bit = false);
 
 		//Allocate a new Texture2D from (loaded) palette and (loaded) tilemap
-		Texture2D(const Texture2D &tilemap, const Texture2D &palette);
+		Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit = false);
 
 		//Allocate a new Texture2D from palette, tilemap and map
-		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette);
+		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit = false);
 
 		//Allocate new texture
 		static Texture2D alloc(u16 w, u16 h, u32 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);
 
 		//Allocate new texture, created through cpu 'pixel shader' (Please use functors for more aggressive inlining)
 		//Texture2D will always be a RGBA8 Normal image
-		template<typename T, typename ...args>
+		template<bool is16Bit = false, typename T, typename ...args>
 		static Texture2D fromShader(T t, u16 w, u16 h, args... arg);
 
 		//Allocate new texture; read from the file
@@ -113,15 +113,20 @@ namespace nfs {
 	};
 
 
-	template<typename T, typename ...args>
+	template<bool is16Bit, typename T, typename ...args>
 	Texture2D Texture2D::fromShader(T t, u16 w, u16 h, args... arg) {
 
-		Texture2D tex = Texture2D::alloc(w, h, 4U);
+		Texture2D tex = Texture2D::alloc(w, h, is16Bit ? 2 : 4, is16Bit ? TextureType::INTEGER16 : TextureType::ARGB8);
 
 		u32 siz = u32(w) * h;
 
-		for (u32 i = 0; i < siz; ++i)
-			((u32*)tex.data)[i] = t(tex, u16(i % w), u16(i / w), arg...);
+		for (u32 i = 0; i < siz; ++i) {
+
+			if constexpr(is16Bit)
+				((u16*)tex.data)[i] = t(tex, u16(i % w), u16(i / w), arg...);
+
+			else ((u32*)tex.data)[i] = t(tex, u16(i % w), u16(i / w), arg...);
+		}
 
 		return tex;
 	}
