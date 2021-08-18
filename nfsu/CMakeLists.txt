@@ -5,12 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(MSVC)
-	set(CMAKE_CXX_FLAGS "/W4 /WX /MD /MP /wd26812 /wd4201 /EHsc /GR")
-else()
-	set(CMAKE_CXX_FLAGS "-Wall -Wpedantic -Wextra -Werror")
-endif()
-
 file(GLOB_RECURSE nfsu_SRC
 	"include/*.h"
 	"src/*.c"
@@ -25,6 +19,12 @@ add_executable(
 	${nfsu_SRC}
 	${CMAKE_CURRENT_SOURCE_DIR}/resources/logo.rc
 )
+
+if(MSVC)
+    target_compile_options(nfsu PRIVATE /W4 /WX /MD /MP /wd26812 /wd4201 /EHsc /GR)
+else()
+    target_compile_options(nfsu PRIVATE -Wall -fms-extensions -Wextra -Werror)
+endif()
 
 target_include_directories(nfsu PUBLIC ../nfs/include)
 target_include_directories(nfsu PUBLIC include)

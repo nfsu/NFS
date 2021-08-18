@@ -278,6 +278,10 @@ ChangeDimensionsResult Texture2D::changeDimensions(u16 w, u16 h) {
 	return ChangeDimensionsResult::SUCCESS;
 }
 
+void Texture2D::revokeOwnership() {
+	allocated = false;
+}
+
 u32 Texture2D::getIndex(u16 i, u16 j) {
 
 	u32 index = u32(j) * width + i;
@@ -438,28 +442,40 @@ Texture2D Texture2D::toRGBA8(bool fixIntegers) {
 
 //Palette+Tile 2D to BGR555 and RGBA8
 
+template<bool airIsPalette0 = false>
 struct PT2Du32 {
 	inline u32 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette) const { 
 		u32 val = tilemap.fetch(i, j);
+		if constexpr (airIsPalette0) if(!val) return 0;
 		u32 color = palette.read(val & 0xF, (val >> 4) & 0xF);
 		return color;
 	}
 };
 
+template<bool airIsPalette0 = false>
 struct PT2Du16 {
 	inline u16 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette) const { 
 		u32 val = tilemap.fetch(i, j);
-		return u16(palette.fetch(val & 0xF, (val >> 4) & 0xF));
+		if constexpr (airIsPalette0) if(!val) return 0;
+		return u16(palette.fetch(val & 0xF, (val >> 4) & 0xF)) | (u16(1) << 15);
 	}
 };
 
-Texture2D::Texture2D(NCGR &tilemap, NCLR &palette, bool is16Bit):
-	Texture2D(Texture2D(tilemap), Texture2D(palette), is16Bit) { }
-
-Texture2D::Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit) {
+Texture2D::Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit, bool airIsPalette0) {
 
 	if (is16Bit) {
+
+		if (airIsPalette0) {
+			*this = fromShader<true>(PT2Du16<true>(), tilemap.width, tilemap.height, tilemap, palette);
+			return;
+		}
+
 		*this = fromShader<true>(PT2Du16(), tilemap.width, tilemap.height, tilemap, palette);
+		return;
+	}
+
+	if (airIsPalette0) {
+		*this = fromShader(PT2Du32<true>(), tilemap.width, tilemap.height, tilemap, palette);
 		return;
 	}
 
@@ -526,26 +542,41 @@ inline Array<u32, 2> palettePTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Te
 	return { tilemap.fetch(tilemapX, tilemapY), tilePlt };
 }
 
+template<bool airIsPalette0 = false>
 struct PTT2Du32 {
 	inline u32 operator()(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap, Texture2D palette) const { 
 		auto val = palettePTT2D(tex, i, j, map, tilemap);  
+		if constexpr (airIsPalette0) if(!val[0]) return 0;
 		return palette.read(u16(val[0] & 0xF), u16(((val[0] >> 4) + val[1]) & 0xF));
 	}
 };
 
+template<bool airIsPalette0 = false>
 struct PTT2Du16 {
 	inline u16 operator()(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap, Texture2D palette) const { 
 		auto val = palettePTT2D(tex, i, j, map, tilemap);  
-		return u16(palette.fetch(u16(val[0] & 0xF), u16(((val[0] >> 4) + val[1]) & 0xF)));
+		if constexpr (airIsPalette0) if(!val[0]) return 0;
+		return u16(palette.fetch(u16(val[0] & 0xF), u16(((val[0] >> 4) + val[1]) & 0xF))) | (u16(1) << 15);
 	}
 };
 
-Texture2D::Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit) {
+Texture2D::Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit, bool airIsPalette0) {
 
 	Texture2D m = map, tm = tilemap, pl = palette;
 
 	if (is16Bit) {
+
+		if (airIsPalette0) {
+			*this = fromShader<true>(PTT2Du16<true>(), u16(m.width * tm.getTiles()), u16(m.height * tm.getTiles()), m, tm, pl);
+			return;
+		}
+
 		*this = fromShader<true>(PTT2Du16(), u16(m.width * tm.getTiles()), u16(m.height * tm.getTiles()), m, tm, pl);
+		return;
+	}
+
+	if (airIsPalette0) {
+		*this = fromShader(PTT2Du32<true>(), u16(m.width * tm.getTiles()), u16(m.height * tm.getTiles()), m, tm, pl);
 		return;
 	}
 

@@ -34,14 +34,11 @@ namespace nfs {
 		Texture2D &operator=(const Texture2D &other);
 		Texture2D &operator=(Texture2D &&other);
 
-		//Allocate a new Texture2D from palette and tilemap
-		Texture2D(NCGR &tilemap, NCLR &palette, bool is16Bit = false);
-
 		//Allocate a new Texture2D from (loaded) palette and (loaded) tilemap
-		Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit = false);
+		Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit = false, bool airIsPalette0 = false);
 
 		//Allocate a new Texture2D from palette, tilemap and map
-		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit = false);
+		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit = false, bool airIsPalette0 = false);
 
 		//Allocate new texture
 		static Texture2D alloc(u16 w, u16 h, u32 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);
@@ -100,6 +97,10 @@ namespace nfs {
 		bool write(u16 i, u16 j, u32 k);
 
 		u32 getIndex(u16 i, u16 j);
+
+		//If we want to release ownership over the allocated memory. 
+		//This requires you to handle the data acquired from getPtr to ensure it is released at the appropriate time
+		void revokeOwnership();
 
 	private:
 
