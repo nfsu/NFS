@@ -18,6 +18,7 @@ add_executable(
 	nfsu
 	${nfsu_SRC}
 	${CMAKE_CURRENT_SOURCE_DIR}/resources/logo.rc
+	CMakeLists.txt
 )
 
 if(MSVC)
@@ -37,18 +38,6 @@ target_link_libraries(nfsu PRIVATE opengl32)
 target_link_libraries(nfsu PRIVATE debug qt5cored qt5guid qt5opengld qt5widgetsd)
 target_link_libraries(nfsu PRIVATE optimized qt5core qt5gui qt5opengl qt5widgets)
 
-add_custom_command(
-        TARGET nfsu POST_BUILD
-        COMMAND 
-	${CMAKE_COMMAND} -E copy_directory
-	${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG>
-	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>
-)
-				
-add_custom_command(
-        TARGET nfsu POST_BUILD
-        COMMAND
-	${CMAKE_COMMAND} -E copy_directory
-	${CMAKE_CURRENT_SOURCE_DIR}/resources
-	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/resources
-)
+add_custom_command(TARGET nfsu POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
+
+add_custom_command(TARGET nfsu POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/resources)

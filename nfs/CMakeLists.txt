@@ -15,6 +15,7 @@ file(GLOB nfs_SRC
 add_library(
 	nfs STATIC
 	${nfs_SRC}
+	CMakeLists.txt
 )
 
 if(MSVC)
