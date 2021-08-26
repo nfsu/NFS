@@ -69,9 +69,6 @@ CompressionType CompressionHelper::getCompressionType(const u8 *tag, usz len) {
 
 	auto dat = CompressionType(*tag);
 
-	if (*tag >> 4 == 0x2)					//Exception for Huff
-		return CompressionType::Huffman;
-
 	for (CompressionType ct : compressionTypes)
 		if (dat == ct)
 			return dat;
