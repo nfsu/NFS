@@ -444,42 +444,42 @@ Texture2D Texture2D::toRGBA8(bool fixIntegers) {
 
 template<bool airIsPalette0 = false>
 struct PT2Du32 {
-	inline u32 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette) const { 
+	inline u32 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette, u8 paletteOffsetY) const { 
 		u32 val = tilemap.fetch(i, j);
 		if constexpr (airIsPalette0) if(!val) return 0;
-		u32 color = palette.read(val & 0xF, (val >> 4) & 0xF);
+		u32 color = palette.read(val & 0xF, ((val >> 4) + paletteOffsetY) & 0xF);
 		return color;
 	}
 };
 
 template<bool airIsPalette0 = false>
 struct PT2Du16 {
-	inline u16 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette) const { 
+	inline u16 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette, u8 paletteOffsetY) const { 
 		u32 val = tilemap.fetch(i, j);
 		if constexpr (airIsPalette0) if(!val) return 0;
-		return u16(palette.fetch(val & 0xF, (val >> 4) & 0xF)) | (u16(1) << 15);
+		return u16(palette.fetch(val & 0xF, ((val >> 4) + paletteOffsetY) & 0xF)) | (u16(1) << 15);
 	}
 };
 
-Texture2D::Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit, bool airIsPalette0) {
+Texture2D::Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit, bool airIsPalette0, u8 paletteOffsetY) {
 
 	if (is16Bit) {
 
 		if (airIsPalette0) {
-			*this = fromShader<true>(PT2Du16<true>(), tilemap.width, tilemap.height, tilemap, palette);
+			*this = fromShader<true>(PT2Du16<true>(), tilemap.width, tilemap.height, tilemap, palette, paletteOffsetY);
 			return;
 		}
 
-		*this = fromShader<true>(PT2Du16(), tilemap.width, tilemap.height, tilemap, palette);
+		*this = fromShader<true>(PT2Du16(), tilemap.width, tilemap.height, tilemap, palette, paletteOffsetY);
 		return;
 	}
 
 	if (airIsPalette0) {
-		*this = fromShader(PT2Du32<true>(), tilemap.width, tilemap.height, tilemap, palette);
+		*this = fromShader(PT2Du32<true>(), tilemap.width, tilemap.height, tilemap, palette, paletteOffsetY);
 		return;
 	}
 
-	*this = fromShader(PT2Du32(), tilemap.width, tilemap.height, tilemap, palette);
+	*this = fromShader(PT2Du32(), tilemap.width, tilemap.height, tilemap, palette, paletteOffsetY);
 }
 
 //Palette+Tile+Tilemap 2D to BGR555 and RGBA8

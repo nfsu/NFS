@@ -286,7 +286,7 @@ void TileRenderer::setupGTexture() {
 		paletteTexture->setFormat(QOpenGLTexture::R16U);
 		paletteTexture->setSize(palette.getWidth(), palette.getHeight());
 		paletteTexture->allocateStorage();
-		paletteTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, palette.getPtr());
+		paletteTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, (const void*) palette.getPtr());
 	}
 
 	if (!texture.getWidth())
@@ -297,7 +297,7 @@ void TileRenderer::setupGTexture() {
 	tiledTexture->setFormat(QOpenGLTexture::R8U);
 	tiledTexture->setSize(texture.getDataSize() / texture.getHeight(), texture.getHeight());
 	tiledTexture->allocateStorage();
-	tiledTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, texture.getPtr());
+	tiledTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, (const void*) texture.getPtr());
 
 	if (texture.useEncryption()) {
 		magicTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
@@ -305,7 +305,7 @@ void TileRenderer::setupGTexture() {
 		magicTexture->setFormat(QOpenGLTexture::R8U);
 		magicTexture->setSize(texture.getDataSize() / texture.getHeight(), texture.getHeight());
 		magicTexture->allocateStorage();
-		magicTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, texture.getMagicTexture());
+		magicTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, (const void*) texture.getMagicTexture());
 	}
 }
 

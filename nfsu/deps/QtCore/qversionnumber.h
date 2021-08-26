@@ -1,32 +1,39 @@
 /****************************************************************************
 **
-** Copyright (C) 2015 The Qt Company Ltd.
+** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2016 Intel Corporation.
 ** Copyright (C) 2014 Keith Gardner <kreios4004@gmail.com>
-** Contact: http://www.qt.io/licensing/
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** $QT_BEGIN_LICENSE:LGPL21$
+** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
 ** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see http://www.qt.io/terms-conditions. For further
-** information use the contact form at http://www.qt.io/contact-us.
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
 ** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 or version 3 as published by the Free
-** Software Foundation and appearing in the file LICENSE.LGPLv21 and
-** LICENSE.LGPLv3 included in the packaging of this file. Please review the
-** following information to ensure the GNU Lesser General Public License
-** requirements will be met: https://www.gnu.org/licenses/lgpl.html and
-** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** General Public License version 3 as published by the Free Software
+** Foundation and appearing in the file LICENSE.LGPL3 included in the
+** packaging of this file. Please review the following information to
+** ensure the GNU Lesser General Public License version 3 requirements
+** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
 **
-** As a special exception, The Qt Company gives you certain additional
-** rights. These rights are described in The Qt Company LGPL Exception
-** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 2.0 or (at your option) the GNU General
+** Public license version 3 or any later version approved by the KDE Free
+** Qt Foundation. The licenses are as published by the Free Software
+** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-2.0.html and
+** https://www.gnu.org/licenses/gpl-3.0.html.
 **
 ** $QT_END_LICENSE$
 **
@@ -80,7 +87,7 @@ class QVersionNumber
         };
 
         // set the InlineSegmentMarker and set length to zero
-        SegmentStorage() Q_DECL_NOTHROW : dummy(1) {}
+        SegmentStorage() noexcept : dummy(1) {}
 
         SegmentStorage(const QVector<int> &seg)
         {
@@ -112,14 +119,13 @@ class QVersionNumber
             return *this;
         }
 
-#ifdef Q_COMPILER_RVALUE_REFS
-        SegmentStorage(SegmentStorage &&other) Q_DECL_NOTHROW
+        SegmentStorage(SegmentStorage &&other) noexcept
             : dummy(other.dummy)
         {
             other.dummy = 1;
         }
 
-        SegmentStorage &operator=(SegmentStorage &&other) Q_DECL_NOTHROW
+        SegmentStorage &operator=(SegmentStorage &&other) noexcept
         {
             qSwap(dummy, other.dummy);
             return *this;
@@ -132,8 +138,6 @@ class QVersionNumber
             else
                 pointer_segments = new QVector<int>(std::move(seg));
         }
-#endif
-#ifdef Q_COMPILER_INITIALIZER_LISTS
         SegmentStorage(std::initializer_list<int> args)
         {
             if (dataFitsInline(args.begin(), int(args.size()))) {
@@ -142,14 +146,13 @@ class QVersionNumber
                 pointer_segments = new QVector<int>(args);
             }
         }
-#endif
 
         ~SegmentStorage() { if (isUsingPointer()) delete pointer_segments; }
 
-        bool isUsingPointer() const Q_DECL_NOTHROW
+        bool isUsingPointer() const noexcept
         { return (inline_segments[InlineSegmentMarker] & 1) == 0; }
 
-        int size() const Q_DECL_NOTHROW
+        int size() const noexcept
         { return isUsingPointer() ? pointer_segments->size() : (inline_segments[InlineSegmentMarker] >> 1); }
 
         void setInlineSize(int len)
@@ -211,7 +214,7 @@ class QVersionNumber
     } m_segments;
 
 public:
-    inline QVersionNumber() Q_DECL_NOTHROW
+    inline QVersionNumber() noexcept
         : m_segments()
     {}
     inline explicit QVersionNumber(const QVector<int> &seg)
@@ -220,17 +223,13 @@ public:
 
     // compiler-generated copy/move ctor/assignment operators and the destructor are ok
 
-#ifdef Q_COMPILER_RVALUE_REFS
     explicit QVersionNumber(QVector<int> &&seg)
         : m_segments(std::move(seg))
     {}
-#endif
 
-#ifdef Q_COMPILER_INITIALIZER_LISTS
     inline QVersionNumber(std::initializer_list<int> args)
         : m_segments(args)
     {}
-#endif
 
     inline explicit QVersionNumber(int maj)
     { m_segments.setSegments(1, maj); }
@@ -241,39 +240,43 @@ public:
     inline explicit QVersionNumber(int maj, int min, int mic)
     { m_segments.setSegments(3, maj, min, mic); }
 
-    inline bool isNull() const Q_DECL_NOTHROW Q_REQUIRED_RESULT
+    Q_REQUIRED_RESULT inline bool isNull() const noexcept
     { return segmentCount() == 0; }
 
-    inline bool isNormalized() const Q_DECL_NOTHROW Q_REQUIRED_RESULT
+    Q_REQUIRED_RESULT inline bool isNormalized() const noexcept
     { return isNull() || segmentAt(segmentCount() - 1) != 0; }
 
-    inline int majorVersion() const Q_DECL_NOTHROW Q_REQUIRED_RESULT
+    Q_REQUIRED_RESULT inline int majorVersion() const noexcept
     { return segmentAt(0); }
 
-    inline int minorVersion() const Q_DECL_NOTHROW Q_REQUIRED_RESULT
+    Q_REQUIRED_RESULT inline int minorVersion() const noexcept
     { return segmentAt(1); }
 
-    inline int microVersion() const Q_DECL_NOTHROW Q_REQUIRED_RESULT
+    Q_REQUIRED_RESULT inline int microVersion() const noexcept
     { return segmentAt(2); }
 
-    Q_CORE_EXPORT QVersionNumber normalized() const Q_REQUIRED_RESULT;
+    Q_REQUIRED_RESULT Q_CORE_EXPORT QVersionNumber normalized() const;
 
-    Q_CORE_EXPORT QVector<int> segments() const Q_REQUIRED_RESULT;
+    Q_REQUIRED_RESULT Q_CORE_EXPORT QVector<int> segments() const;
 
-    inline int segmentAt(int index) const Q_DECL_NOTHROW Q_REQUIRED_RESULT
+    Q_REQUIRED_RESULT inline int segmentAt(int index) const noexcept
     { return (m_segments.size() > index) ? m_segments.at(index) : 0; }
 
-    inline int segmentCount() const Q_DECL_NOTHROW Q_REQUIRED_RESULT
+    Q_REQUIRED_RESULT inline int segmentCount() const noexcept
     { return m_segments.size(); }
 
-    Q_CORE_EXPORT bool isPrefixOf(const QVersionNumber &other) const Q_DECL_NOTHROW Q_REQUIRED_RESULT;
+    Q_REQUIRED_RESULT Q_CORE_EXPORT bool isPrefixOf(const QVersionNumber &other) const noexcept;
 
-    Q_CORE_EXPORT static int compare(const QVersionNumber &v1, const QVersionNumber &v2) Q_DECL_NOTHROW Q_REQUIRED_RESULT;
+    Q_REQUIRED_RESULT Q_CORE_EXPORT static int compare(const QVersionNumber &v1, const QVersionNumber &v2) noexcept;
 
-    Q_CORE_EXPORT static Q_DECL_PURE_FUNCTION QVersionNumber commonPrefix(const QVersionNumber &v1, const QVersionNumber &v2) Q_REQUIRED_RESULT;
+    Q_REQUIRED_RESULT Q_CORE_EXPORT static Q_DECL_PURE_FUNCTION QVersionNumber commonPrefix(const QVersionNumber &v1, const QVersionNumber &v2);
 
-    Q_CORE_EXPORT QString toString() const Q_REQUIRED_RESULT;
-    Q_CORE_EXPORT static Q_DECL_PURE_FUNCTION QVersionNumber fromString(const QString &string, int *suffixIndex = Q_NULLPTR) Q_REQUIRED_RESULT;
+    Q_REQUIRED_RESULT Q_CORE_EXPORT QString toString() const;
+#if QT_STRINGVIEW_LEVEL < 2
+    Q_REQUIRED_RESULT Q_CORE_EXPORT static Q_DECL_PURE_FUNCTION QVersionNumber fromString(const QString &string, int *suffixIndex = nullptr);
+#endif
+    Q_REQUIRED_RESULT Q_CORE_EXPORT static Q_DECL_PURE_FUNCTION QVersionNumber fromString(QLatin1String string, int *suffixIndex = nullptr);
+    Q_REQUIRED_RESULT Q_CORE_EXPORT static Q_DECL_PURE_FUNCTION QVersionNumber fromString(QStringView string, int *suffixIndex = nullptr);
 
 private:
 #ifndef QT_NO_DATASTREAM
@@ -288,22 +291,22 @@ Q_DECLARE_TYPEINFO(QVersionNumber, Q_MOVABLE_TYPE);
 Q_CORE_EXPORT QDebug operator<<(QDebug, const QVersionNumber &version);
 #endif
 
-Q_REQUIRED_RESULT inline bool operator> (const QVersionNumber &lhs, const QVersionNumber &rhs) Q_DECL_NOTHROW
+Q_REQUIRED_RESULT inline bool operator> (const QVersionNumber &lhs, const QVersionNumber &rhs) noexcept
 { return QVersionNumber::compare(lhs, rhs) > 0; }
 
-Q_REQUIRED_RESULT inline bool operator>=(const QVersionNumber &lhs, const QVersionNumber &rhs) Q_DECL_NOTHROW
+Q_REQUIRED_RESULT inline bool operator>=(const QVersionNumber &lhs, const QVersionNumber &rhs) noexcept
 { return QVersionNumber::compare(lhs, rhs) >= 0; }
 
-Q_REQUIRED_RESULT inline bool operator< (const QVersionNumber &lhs, const QVersionNumber &rhs) Q_DECL_NOTHROW
+Q_REQUIRED_RESULT inline bool operator< (const QVersionNumber &lhs, const QVersionNumber &rhs) noexcept
 { return QVersionNumber::compare(lhs, rhs) < 0; }
 
-Q_REQUIRED_RESULT inline bool operator<=(const QVersionNumber &lhs, const QVersionNumber &rhs) Q_DECL_NOTHROW
+Q_REQUIRED_RESULT inline bool operator<=(const QVersionNumber &lhs, const QVersionNumber &rhs) noexcept
 { return QVersionNumber::compare(lhs, rhs) <= 0; }
 
-Q_REQUIRED_RESULT inline bool operator==(const QVersionNumber &lhs, const QVersionNumber &rhs) Q_DECL_NOTHROW
+Q_REQUIRED_RESULT inline bool operator==(const QVersionNumber &lhs, const QVersionNumber &rhs) noexcept
 { return QVersionNumber::compare(lhs, rhs) == 0; }
 
-Q_REQUIRED_RESULT inline bool operator!=(const QVersionNumber &lhs, const QVersionNumber &rhs) Q_DECL_NOTHROW
+Q_REQUIRED_RESULT inline bool operator!=(const QVersionNumber &lhs, const QVersionNumber &rhs) noexcept
 { return QVersionNumber::compare(lhs, rhs) != 0; }
 
 QT_END_NAMESPACE

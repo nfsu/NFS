@@ -141,7 +141,7 @@ int NExplorer::rowCount(const QModelIndex &parent) const {
 Qt::ItemFlags NExplorer::flags(const QModelIndex &index) const {
 
 	if (!index.isValid())
-		return 0;
+		return Qt::ItemFlag::NoItemFlags;
 
 	return QAbstractItemModel::flags(index);
 }

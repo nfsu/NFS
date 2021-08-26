@@ -224,7 +224,7 @@ void PaletteRenderer::setupGTexture() {
 	paletteTexture->setFormat(QOpenGLTexture::R16U);
 	paletteTexture->setSize(texture.getWidth(), texture.getHeight());
 	paletteTexture->allocateStorage();
-	paletteTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, texture.getPtr());
+	paletteTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, (const void*) texture.getPtr());
 
 	repaint();
 }

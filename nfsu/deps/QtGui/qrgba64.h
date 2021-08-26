@@ -1,31 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 2015 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Copyright (C) 2016 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** $QT_BEGIN_LICENSE:LGPL21$
+** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
 ** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see http://www.qt.io/terms-conditions. For further
-** information use the contact form at http://www.qt.io/contact-us.
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
 ** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 or version 3 as published by the Free
-** Software Foundation and appearing in the file LICENSE.LGPLv21 and
-** LICENSE.LGPLv3 included in the packaging of this file. Please review the
-** following information to ensure the GNU Lesser General Public License
-** requirements will be met: https://www.gnu.org/licenses/lgpl.html and
-** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** General Public License version 3 as published by the Free Software
+** Foundation and appearing in the file LICENSE.LGPL3 included in the
+** packaging of this file. Please review the following information to
+** ensure the GNU Lesser General Public License version 3 requirements
+** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
 **
-** As a special exception, The Qt Company gives you certain additional
-** rights. These rights are described in The Qt Company LGPL Exception
-** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 2.0 or (at your option) the GNU General
+** Public license version 3 or any later version approved by the KDE Free
+** Qt Foundation. The licenses are as published by the Free Software
+** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-2.0.html and
+** https://www.gnu.org/licenses/gpl-3.0.html.
 **
 ** $QT_END_LICENSE$
 **
@@ -34,7 +40,7 @@
 #ifndef QRGBA64_H
 #define QRGBA64_H
 
-#include <QtCore/qglobal.h>
+#include <QtGui/qtguiglobal.h>
 #include <QtCore/qprocessordetection.h>
 
 QT_BEGIN_NAMESPACE
@@ -44,7 +50,7 @@ class QRgba64 {
 
     // Make sure that the representation always has the order: red green blue alpha, independent
     // of byte order. This way, vector operations that assume 4 16-bit values see the correct ones.
-    enum {
+    enum Shifts {
 #if Q_BYTE_ORDER == Q_BIG_ENDIAN
         RedShift = 48,
         GreenShift = 32,
@@ -58,26 +64,14 @@ class QRgba64 {
 #endif
     };
 
-    // No constructors are allowed in C++98, since this needs to be usable in a union.
-    // We however require one for constexprs in C++11/C++14
-#ifdef Q_COMPILER_CONSTEXPR
     explicit Q_ALWAYS_INLINE Q_DECL_CONSTEXPR QRgba64(quint64 c) : rgba(c) { }
-#endif
 public:
-#ifdef Q_COMPILER_CONSTEXPR
-    Q_ALWAYS_INLINE Q_DECL_CONSTEXPR QRgba64() : rgba(0) { }
-#endif
+    QRgba64() = default;
 
     Q_DECL_CONSTEXPR static
     QRgba64 fromRgba64(quint64 c)
     {
-#ifdef Q_COMPILER_CONSTEXPR
         return QRgba64(c);
-#else
-        QRgba64 rgba64;
-        rgba64.rgba = c;
-        return rgba64;
-#endif
     }
     Q_DECL_CONSTEXPR static
     QRgba64 fromRgba64(quint16 red, quint16 green, quint16 blue, quint16 alpha)
@@ -124,7 +118,27 @@ public:
     Q_DECL_CONSTEXPR quint8 alpha8() const { return div_257(alpha()); }
     Q_DECL_CONSTEXPR uint toArgb32() const
     {
+#if defined(__cpp_constexpr) && __cpp_constexpr-0 >= 201304
+        quint64 br = rgba & Q_UINT64_C(0xffff0000ffff);
+        quint64 ag = (rgba >> 16) & Q_UINT64_C(0xffff0000ffff);
+        br += Q_UINT64_C(0x8000000080);
+        ag += Q_UINT64_C(0x8000000080);
+        br = (br - ((br >> 8) & Q_UINT64_C(0xffff0000ffff))) >> 8;
+        ag = (ag - ((ag >> 8) & Q_UINT64_C(0xffff0000ffff)));
+#if Q_BYTE_ORDER == Q_BIG_ENDIAN
+        return ((br << 24) & 0xff000000)
+             | ((ag >> 24) & 0xff0000)
+             | ((br >> 24) & 0xff00)
+             | ((ag >> 8)  & 0xff);
+#else
+        return ((ag >> 16) & 0xff000000)
+             | ((br << 16) & 0xff0000)
+             | (ag         & 0xff00)
+             | ((br >> 32) & 0xff);
+#endif
+#else
         return uint((alpha8() << 24) | (red8() << 16) | (green8() << 8) | blue8());
+#endif
     }
     Q_DECL_CONSTEXPR ushort toRgb16() const
     {
@@ -133,11 +147,24 @@ public:
 
     Q_DECL_RELAXED_CONSTEXPR QRgba64 premultiplied() const
     {
-        const quint32 a = alpha();
-        const quint16 r = div_65535(red()   * a);
-        const quint16 g = div_65535(green() * a);
-        const quint16 b = div_65535(blue()  * a);
-        return fromRgba64(r, g, b, quint16(a));
+        if (isOpaque())
+            return *this;
+        if (isTransparent())
+            return QRgba64::fromRgba64(0);
+        const quint64 a = alpha();
+        quint64 br = (rgba & Q_UINT64_C(0xffff0000ffff)) * a;
+        quint64 ag = ((rgba >> 16) & Q_UINT64_C(0xffff0000ffff)) * a;
+        br = (br + ((br >> 16) & Q_UINT64_C(0xffff0000ffff)) + Q_UINT64_C(0x800000008000));
+        ag = (ag + ((ag >> 16) & Q_UINT64_C(0xffff0000ffff)) + Q_UINT64_C(0x800000008000));
+#if Q_BYTE_ORDER == Q_BIG_ENDIAN
+        ag = ag & Q_UINT64_C(0xffff0000ffff0000);
+        br = (br >> 16) & Q_UINT64_C(0xffff00000000);
+        return fromRgba64(a | br | ag);
+#else
+        br = (br >> 16) & Q_UINT64_C(0xffff0000ffff);
+        ag = ag & Q_UINT64_C(0xffff0000);
+        return fromRgba64((a << 48) | br | ag);
+#endif
     }
 
     Q_DECL_RELAXED_CONSTEXPR QRgba64 unpremultiplied() const
@@ -165,7 +192,6 @@ private:
 
     static Q_DECL_CONSTEXPR Q_ALWAYS_INLINE quint8 div_257_floor(uint x) { return quint8((x - (x >> 8)) >> 8); }
     static Q_DECL_CONSTEXPR Q_ALWAYS_INLINE quint8 div_257(quint16 x) { return div_257_floor(x + 128U); }
-    static Q_DECL_CONSTEXPR Q_ALWAYS_INLINE quint16 div_65535(uint x) { return quint16((x + (x>>16) + 0x8000U) >> 16); }
     Q_DECL_RELAXED_CONSTEXPR Q_ALWAYS_INLINE QRgba64 unpremultiplied_32bit() const
     {
         if (isOpaque() || isTransparent())

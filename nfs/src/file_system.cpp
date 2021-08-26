@@ -5,6 +5,52 @@
 #include <future>
 using namespace nfs;
 
+void FileSystem::addRootFile(NDS *rom, usz &i, const String &name, u32 &size, u32 offset, usz &siz, u8 *narcDat, usz &fileOffset, usz startFile) {
+
+	auto &fso = fileSystem[i];
+	auto &parent = fileSystem[0];
+
+	fso.name = name;
+	fso.index = i;
+	fso.parent = 0;
+	fso.resource = fileOffset - startFile;
+	fso.buf = Buffer(size, (u8*)rom + offset);
+	fso.reservedSize = ((offset + size + 511) & ~511) - offset;
+
+	Buffer buf = fso.buf;
+
+	try {
+
+		fso.compressed = fso.buf;
+		fso.buf = CompressionHelper::decompressBLZ(fso.compressed, rom);
+
+		//We returned data from our "compressed" buffer. This means it wasn't actually compressed, it just has a bit of paddding
+		//Unset compressed to avoid freeing this and copies
+
+		if (fso.buf.add() >= fso.compressed.add() && fso.buf.add() < fso.compressed.end())
+			fso.compressed = {};
+
+	} CATCH(e) {
+		fso.buf = buf;
+		fso.compressed = {};
+	}
+
+	fso.filePtr1 = &size;
+	fso.indexInFolder = parent.objects++;
+	fso.fileHint = fso.folderHint = FileSystemObject::root;
+
+	if (parent.fileHint == FileSystemObject::root)
+		parent.fileHint = i;
+
+	ResourceInfo inf = ResourceHelper::read(fso.buf.add(), fso.buf.size(), narcDat);
+	siz += inf.size;
+
+	++parent.files;
+
+	++i;
+	++fileOffset;
+}
+
 FileSystem::FileSystem() {}
 FileSystem::FileSystem(NDS *rom) {
 
@@ -212,10 +258,10 @@ FileSystem::FileSystem(NDS *rom) {
 	//Resize buffers to support sub resources
 
 	usz filesAndFolders = fileSystem.size();
-	
+
 	buffer = Buffer::alloc(siz + subfiles * maxResourceSize);
 	vec = List<ArchiveObject>(filesAndFolders - rootFolders + subfiles);
-	fileSystem.resize(fileSystem.size() + subfiles);
+	fileSystem.resize(fileSystem.size() + subfiles + 4);
 
 	#ifdef USE_TIMER
 		t.lap("Resize buffer and fileSystem for subresources");
@@ -403,6 +449,17 @@ FileSystem::FileSystem(NDS *rom) {
 
 	#ifdef USE_TIMER
 		t.lap("Intialize subresource threads");
+	#endif
+
+	i = fileSystem.size() - 4;
+
+	addRootFile(rom, i, "arm9.bin", rom->arm9_size, rom->arm9_offset, siz, narcDat, fileOffset, startFile);
+	addRootFile(rom, i, "arm7.bin", rom->arm7_size, rom->arm7_offset, siz, narcDat, fileOffset, startFile);
+	addRootFile(rom, i, "overlay_arm9.bin", rom->arm9_olen, rom->arm9_ooff, siz, narcDat, fileOffset, startFile);
+	addRootFile(rom, i, "overlay_arm7.bin", rom->arm7_olen, rom->arm7_ooff, siz, narcDat, fileOffset, startFile);
+
+	#ifdef USE_TIMER
+		t.lap("Initialize code binaries");
 	#endif
 
 	std::printf(

@@ -125,9 +125,11 @@ Buffer CompressionHelper::compress(Buffer in, Buffer result, bool isDecompressio
 	return in;
 }
 
-usz CompressionHelper::getDecompressionAllocation(Buffer in) {
+usz CompressionHelper::getDecompressionAllocation(Buffer in, CompressionType overrideType) {
 
-	switch (getCompressionType(in.add(), in.size())) {
+	CompressionType type = overrideType == CompressionType::None ? getCompressionType(in.add(), in.size()) : overrideType;
+
+	switch (type) {
 
 		case CompressionType::LZ77:
 		case CompressionType::LZ11:
@@ -137,6 +139,8 @@ usz CompressionHelper::getDecompressionAllocation(Buffer in) {
 
 			if (!(in.at<u32>() >> 8) && in.size() >= 8)
 				return in.at<u32>(4);
+
+			[[fallthrough]];
 
 		case CompressionType::Huffman:
 		case CompressionType::RLE:
@@ -168,6 +172,90 @@ Buffer CompressionHelper::compressLZ11(Buffer in, Buffer res, bool isDecompressi
 	return compressLZBase(in, res, isDecompression, CompressionType::LZ11);
 }
 
+//Thanks PPRE. Kinda handy to be able to grab this
+
+Buffer CompressionHelper::compressBLZ(Buffer in, bool isDecompression, NDS *nds) {
+
+	if (!isDecompression)
+		EXCEPTION("Unimplemented compressBLZ");
+
+	//Find the blz markers
+
+	static constexpr u32 blzStart = 0xDEC00621;
+	static constexpr u64 blzMarker = 0x2106C0DEDEC00621;
+
+	usz offset = usz_MAX;
+
+	for (u64 *start = in.begin<u64>(), *end = in.end<u64>(); start + 1 < end; start = (u64*)((u32*)start + 1))
+		if (*start == blzMarker)
+			offset = usz(start) - usz(in.add());
+
+	if (offset == usz_MAX || offset <= 4)
+		EXCEPTION("Marker not found. Probably uncompressed");
+
+	offset -= 8;
+
+	u32 end = in.at<u32>(offset);
+
+	//Already decompressed
+
+	if (!end || in.at<u32>(end - nds->arm9_load) != blzStart)
+		EXCEPTION("Invalid marker. Probably uncompressed");
+
+	end -= nds->arm9_load;
+
+	//Setup output
+
+	u32 diff = in.at<u32>(end - 4);
+	u32 newLen = u32(in.size()) + diff;
+
+	Buffer res = Buffer::alloc(newLen);
+	res.appendBufferConst(in).set(0);
+
+	FINALLY(res.dealloc(););
+
+	//Handle the decompression
+
+	u32 topInfo = in.at<u32>(end - 8);
+	u32 stop = end - topInfo & 0xFFFFFF;
+	u32 cur = end + diff;
+	u32 ptr = end - (topInfo >> 24);
+
+	while (ptr > stop) {
+
+		--ptr;
+		u8 control = res[ptr];
+
+		for (u8 i = 0; i < 8 && ptr > stop; ++i)
+
+			if (!((control >> (7 - i)) & 1)) {
+				--ptr;
+				--cur;
+				res[cur] = res[ptr];
+			}
+
+			else {
+
+				--ptr;
+				i16 count = res[ptr];
+
+				--ptr;
+				u16 off = ((u16(res[ptr]) | (count << 8)) & 0xFFF) + 2;
+
+				count += 32;
+
+				while (count >= 0) {
+					res[cur - 1] = res[cur + off];
+					--cur;
+					count -= 16;
+				}
+			}
+	}
+
+	END_FINALLY;
+	return res;
+}
+
 //LZ keeps certain bytes inline until it finds the same pattern of characters later
 //Then it references that by pointing back to it.
 //For example: my boy, my boy
@@ -175,26 +263,32 @@ Buffer CompressionHelper::compressLZ11(Buffer in, Buffer res, bool isDecompressi
 
 Buffer CompressionHelper::compressLZBase(Buffer in, Buffer res, bool isDecompression, CompressionType type) {
 
-	if (isDecompression && res.size() && res.size() != getDecompressionAllocation(in))
+	usz decompSize = getDecompressionAllocation(in, type);
+
+	if (isDecompression && res.size() && res.size() != decompSize)
 		EXCEPTION("Mismatching pre-defined size");
 
 	if (!isDecompression)
 		EXCEPTION("Unimplemented compressLZBase");	//TODO:
 
-	usz decompSize = getDecompressionAllocation(in);
-	in.addOffset((in.at<u32>() >> 8) == 0 ? 8 : 4);
+	bool enableLZ77 = type == CompressionType::LZ77;
 
 	bool allocated = false;
+
+	//Cleaning and decompression
+
+	FINALLY(
+
+		if (allocated)
+			res.dealloc();
+	);
+
+	in.addOffset((in.at<u32>() >> 8) == 0 ? 8 : 4);
 
 	if (!res.size()) {
 		res = Buffer::alloc(decompSize);
 		allocated = true;
 	}
-
-	FINALLY(
-		if (allocated)
-			res.dealloc();
-	);
 
 	Buffer resPtr = res;
 
@@ -206,7 +300,7 @@ Buffer CompressionHelper::compressLZBase(Buffer in, Buffer res, bool isDecompres
 
 		//This part basically does the whole 8-block for loop
 
-		if (mask != 1) [[likely]]
+		if (mask != 1)
 			mask >>= 1;
 
 		else {
@@ -214,10 +308,10 @@ Buffer CompressionHelper::compressLZBase(Buffer in, Buffer res, bool isDecompres
 			mask = 0x80;
 		}
 
-		if (!(flags & mask)) [[likely]]
+		if (!(flags & mask))
 			resPtr.append(in.consume());
 
-		else if(type == CompressionType::LZ77) {
+		else if(enableLZ77) {
 
 			//Displacement is apparently stored weirdly. You'd think byte count would be in low nibble, not high
 
@@ -227,14 +321,15 @@ Buffer CompressionHelper::compressLZBase(Buffer in, Buffer res, bool isDecompres
 
 			u16 disp = ((u16(compressionInfo & 0xF) << 8) | in.consume()) + 1;
 
-			if (disp > resPtr.add() - res.add())
+			bool outOfBounds = disp > resPtr.add() - res.add();
+
+			if(outOfBounds)
 				EXCEPTION("Disp pointer was invalid. Pointed back too much");
 
 			//Copy the N+3 bytes located -disp relative to our current output
 
 			for (u8 i = 0; i < bytes; ++i)
-				resPtr.append(resPtr.atBack(disp));
-
+				resPtr.append(resPtr.atBackwards(disp));
 		}
 
 		//LZ11 or 11LZS or whatever
@@ -277,7 +372,7 @@ Buffer CompressionHelper::compressLZBase(Buffer in, Buffer res, bool isDecompres
 				EXCEPTION("Disp pointer was invalid. Pointed back too much");
 
 			for (u32 i = 0; i < bytes; ++i)
-				resPtr.append(resPtr.atBack(disp));
+				resPtr.append(resPtr.atBackwards(disp));
 		}
 	}
 

@@ -359,7 +359,9 @@ void Window::reload() {
 	fileSystem.clear();
 	rom.dealloc();
 
-	rom = Buffer::readFile(currentFile.toStdString());
+	String file = currentFile.toStdString();
+
+	rom = Buffer::readFile(file);
 
 	if (NDS *nds = rom.add<NDS>()) {
 		setWindowTitle(QString("File System Utilities: ") + nds->title);

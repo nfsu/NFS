@@ -11,7 +11,7 @@ namespace nfs {
 		Buffer compressed;
 		usz reservedSize = 0;
 
-		u32 *filePtrs;
+		u32 *filePtrs{}, *filePtr1{};
 
 		usz folders = 0, files = 0, objects = 0, index = 0;
 		usz parent = 0, resource = 0, fileHint = 0, folderHint = 0;

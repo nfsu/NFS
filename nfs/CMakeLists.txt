@@ -19,7 +19,13 @@ add_library(
 )
 
 if(MSVC)
-    target_compile_options(nfs PRIVATE /W4 /WX /MD /MP /wd26812 /wd4201 /EHsc /GR)
+
+	add_compile_options(
+		"$<$<CONFIG:DEBUG>:/MDd>"
+		"$<$<CONFIG:RELEASE>:/MD>"
+	)
+
+    target_compile_options(nfs PRIVATE /W4 /WX /MP /wd26812 /wd4201 /EHsc /GR)
 else()
     target_compile_options(nfs PRIVATE -Wall -fms-extensions -Wextra -Werror)
 endif()

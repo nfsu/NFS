@@ -96,7 +96,7 @@ namespace nfsu {
 
 	private:
 
-		QString currentFile;
+		QString currentFile{};
 		Buffer rom;
 		nfs::FileSystem fileSystem;
 

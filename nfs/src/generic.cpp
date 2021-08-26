@@ -39,6 +39,75 @@ u8 &Buffer::operator[](usz i) {
 	return ptr[i];
 }
 
+void Buffer::requireSize(usz siz) const {
+	if (siz > len)
+		EXCEPTION("No space left in Buffer");
+}
+
+void Buffer::appendBuffer(Buffer buf) {
+	requireSize(buf.len);
+	std::memcpy(ptr, buf.ptr, buf.len);
+	addOffset(buf.len);
+}
+
+Buffer Buffer::appendBufferConst(Buffer buf) const {
+	requireSize(buf.len);
+	std::memcpy(ptr, buf.ptr, buf.len);
+	return offset(buf.len);
+}
+
+void Buffer::appendString(const String &str) {
+	requireSize(str.size());
+	std::memcpy(ptr, str.data(), str.size());
+	addOffset(str.size());
+}
+
+String Buffer::consumeString(usz l) {
+	requireSize(l);
+	String res = String((c8*)ptr, l);
+	addOffset(l);
+	return res;
+}
+
+Buffer Buffer::splitConsume(usz l) {
+	requireSize(l);
+	Buffer res = Buffer(l, ptr);
+	addOffset(l);
+	return res;
+}
+
+void Buffer::decreaseEnd(usz siz) {
+	requireSize(siz);
+	len -= siz;
+}
+
+Buffer Buffer::cutEnd(usz siz) const {
+	requireSize(siz);
+	return Buffer(len - siz, ptr);
+}
+
+Buffer Buffer::subset(usz beg, usz siz) const {
+	requireSize(beg + siz);
+	return Buffer(siz, ptr + beg);
+}
+
+Buffer Buffer::copyReverse() const {
+
+	if (!len)
+		return {};
+
+	Buffer res = Buffer::alloc(len);
+
+	for (usz i = 0, j = len - 1; i < len; ++i, --j)
+		res[i] = ptr[j];
+
+	return res;
+}
+
+Buffer Buffer::copy() const {
+	return Buffer::copy(*this);
+}
+
 Buffer Buffer::alloc(usz size) {
 
 	if(void *ptr = std::malloc(size))

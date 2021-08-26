@@ -12,6 +12,11 @@ namespace nfs {
 
 		Buffer res = CompressionHelper::compress(buf, largerComp);
 
+		if (filePtr1) {
+			*filePtr1 = u32(res.size());
+			return;
+		}
+
 		filePtrs[1] = u32(filePtrs[0] + res.size());
 	}
 

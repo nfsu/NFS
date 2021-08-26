@@ -3,14 +3,21 @@
 
 namespace nfs {
 
+	struct NDS;
+
 	enum class CompressionType : u8 {
+
 		Copy,							//Used in case it contains pure binary to avoid unintentional compression markers
-		LZ77	= 0x10,
-		LZ11	= 0x11,
-		Huffman = 0x20,
-		RLE		= 0x30,
-		LZ40	= 0x40,
-		None	= 0xFF
+		LZ77		= 0x10,
+		LZ11		= 0x11,
+		Huffman		= 0x20,
+		RLE			= 0x30,
+		LZ40		= 0x40,
+
+		//These aren't actually magic numbers, but only hints to our system
+
+		BLZ			= 0xFE,
+		None		= 0xFF
 	};
 
 	static constexpr CompressionType compressionTypes[] = {
@@ -56,9 +63,6 @@ namespace nfs {
 		//A len to avoid reading null size files or files that can't use compression
 		static CompressionType getCompressionType(const u8 *tag, usz len);
 
-		//Whether or not decompression needs to allocate some separate space and how much
-		static usz getDecompressionAllocation(Buffer b);
-
 		//Compress a file. You can use a pre-allocated version, but since size is not known, it might throw.
 		static Buffer compress(Buffer b, Buffer result = {}) { return compress(b, result, false); }
 
@@ -66,9 +70,17 @@ namespace nfs {
 		//Otherwise it will return a newly allocated buffer
 		static Buffer decompress(Buffer b, Buffer result = {}) { return compress(b, result, true); }
 
+		static Buffer compressBLZ(Buffer in, NDS *nds) { return compressBLZ(in, false, nds); }
+		static Buffer decompressBLZ(Buffer in, NDS *nds) { return compressBLZ(in, true, nds); }
+
+		//Whether or not decompression needs to allocate some separate space and how much
+		static usz getDecompressionAllocation(Buffer b, CompressionType overrideType = CompressionType::None);
+
 	private:
 
 		static Buffer compress(Buffer in, Buffer result, bool isDecompression);
+
+		static Buffer compressBLZ(Buffer in, bool isDecompression, NDS *nds);
 
 		static Buffer compressCopy(Buffer in, Buffer result, bool isDecompression);
 		static Buffer compressLZ77(Buffer in, Buffer result, bool isDecompression);

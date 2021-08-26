@@ -22,7 +22,13 @@ add_executable(
 )
 
 if(MSVC)
-    target_compile_options(nfsu PRIVATE /W4 /WX /MD /MP /wd26812 /wd4201 /EHsc /GR)
+
+	add_compile_options(
+		"$<$<CONFIG:DEBUG>:/MDd>"
+		"$<$<CONFIG:RELEASE>:/MD>"
+	)
+
+    target_compile_options(nfsu PRIVATE /W4 /WX /MP /wd26812 /wd4201 /EHsc /GR)
 else()
     target_compile_options(nfsu PRIVATE -Wall -fms-extensions -Wextra -Werror)
 endif()
@@ -31,12 +37,18 @@ target_include_directories(nfsu PUBLIC ../nfs/include)
 target_include_directories(nfsu PUBLIC include)
 target_include_directories(nfsu PUBLIC deps)
 
-target_link_libraries(nfsu PUBLIC nfs)
+target_link_libraries(nfsu nfs)
 
-target_link_libraries(nfsu PRIVATE opengl32)
+target_link_libraries(nfsu opengl32)
 
-target_link_libraries(nfsu PRIVATE debug qt5cored qt5guid qt5opengld qt5widgetsd)
-target_link_libraries(nfsu PRIVATE optimized qt5core qt5gui qt5opengl qt5widgets)
+target_link_libraries(nfsu debug qt5cored)
+target_link_libraries(nfsu optimized qt5core)
+target_link_libraries(nfsu debug qt5guid)
+target_link_libraries(nfsu optimized qt5gui)
+target_link_libraries(nfsu debug qt5opengld)
+target_link_libraries(nfsu optimized qt5opengl)
+target_link_libraries(nfsu debug qt5widgetsd)
+target_link_libraries(nfsu optimized qt5widgets)
 
 add_custom_command(TARGET nfsu POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
 

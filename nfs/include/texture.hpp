@@ -35,7 +35,7 @@ namespace nfs {
 		Texture2D &operator=(Texture2D &&other);
 
 		//Allocate a new Texture2D from (loaded) palette and (loaded) tilemap
-		Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit = false, bool airIsPalette0 = false);
+		Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit = false, bool airIsPalette0 = false, u8 paletteOffsetY = 0);
 
 		//Allocate a new Texture2D from palette, tilemap and map
 		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit = false, bool airIsPalette0 = false);

@@ -162,15 +162,13 @@ public:
 	inline T &at(usz i = 0) const { return *(T*) (ptr + i); }
 
 	template<typename T = u8>
-	inline T &atBack(usz i = 0) const { return *(T*) (ptr - i); }
+	inline T &atBackwards(usz i = 0) const { return *(T*) (ptr - i); }
+
+	template<typename T = u8>
+	inline T &atBack(usz i = 0) const { return *(T*) (end() - i); }
 
 	template<typename T = u8>
 	inline T *add(usz i = 0) const { return (T*) (ptr + i); }
-
-	inline void requireSize(usz siz) const {
-		if (siz > len)
-			EXCEPTION("No space left in Buffer");
-	}
 
 	template<typename T = u8>
 	inline T &consume() { 
@@ -206,34 +204,25 @@ public:
 			append(arg...);
 	}
 
-	inline void appendBuffer(Buffer buf) {
-		requireSize(buf.len);
-		std::memcpy(ptr, buf.ptr, buf.len);
-		addOffset(buf.len);
-	}
+	void requireSize(usz siz) const;
 
-	inline void appendString(const String &str) {
-		requireSize(str.size());
-		std::memcpy(ptr, str.data(), str.size());
-		addOffset(str.size());
-	}
+	void appendBuffer(Buffer buf);
+	Buffer appendBufferConst(Buffer buf) const;
+	void appendString(const String &str);
 
-	inline String consumeString(usz l) {
-		requireSize(l);
-		String res = String((c8*)ptr, l);
-		addOffset(l);
-		return res;
-	}
+	String consumeString(usz l);
+	Buffer splitConsume(usz l);
 
-	inline Buffer splitConsume(usz l) {
-		requireSize(l);
-		Buffer res = Buffer(l, ptr);
-		addOffset(l);
-		return res;
-	}
+	void decreaseEnd(usz siz);
+	Buffer cutEnd(usz siz) const;
+
+	Buffer subset(usz beg, usz len) const;
 
 	inline usz size() const { return len; }
 	
+	Buffer copyReverse() const;
+	Buffer copy() const;
+
 	static Buffer alloc(usz size);
 	static Buffer alloc(usz size, u8 *init);
 	static Buffer allocEmpty(usz size);			//allocate and memset to 0

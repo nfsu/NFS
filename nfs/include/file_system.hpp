@@ -78,6 +78,8 @@ namespace nfs {
 		void _copy(const FileSystem &other);
 		void _move(FileSystem &&other);
 
+		void addRootFile(NDS *rom, usz &i, const String &name, u32 &size, u32 offset, usz &resourceSize, u8 *narcData, usz &fileOffset, usz startFile);
+
 	private:
 
 		List<FileSystemObject> fileSystem;
@@ -86,7 +88,7 @@ namespace nfs {
 
 
 	template<typename ...args>
-	FileSystemObject *FileSystem::foreachInFolder(bool(*isMatch)(FileSystem &fs, FileSystemObject &fso, usz i, usz index, args... arg), FileSystemObject &start, args... arg) {
+	FileSystemObject *FileSystem::foreachInFolder(bool (*isMatch)(FileSystem &fs, FileSystemObject &fso, usz i, usz index, args... arg), FileSystemObject &start, args... arg) {
 
 		usz folderC = 0;
 		for (usz i = start.folderHint; i < folders && folderC < start.folders; ++i) {
