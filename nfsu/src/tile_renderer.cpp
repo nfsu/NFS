@@ -295,7 +295,7 @@ void TileRenderer::setupGTexture() {
 	tiledTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
 	tiledTexture->setMinMagFilters(QOpenGLTexture::NearestMipMapNearest, QOpenGLTexture::Nearest);
 	tiledTexture->setFormat(QOpenGLTexture::R8U);
-	tiledTexture->setSize(texture.getDataSize() / texture.getHeight(), texture.getHeight());
+	tiledTexture->setSize(int(texture.getDataSize() / texture.getHeight()), int(texture.getHeight()));
 	tiledTexture->allocateStorage();
 	tiledTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, (const void*) texture.getPtr());
 
@@ -303,7 +303,7 @@ void TileRenderer::setupGTexture() {
 		magicTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
 		magicTexture->setMinMagFilters(QOpenGLTexture::NearestMipMapNearest, QOpenGLTexture::Nearest);
 		magicTexture->setFormat(QOpenGLTexture::R8U);
-		magicTexture->setSize(texture.getDataSize() / texture.getHeight(), texture.getHeight());
+		magicTexture->setSize(int(texture.getDataSize() / texture.getHeight()), int(texture.getHeight()));
 		magicTexture->allocateStorage();
 		magicTexture->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, (const void*) texture.getMagicTexture());
 	}
@@ -357,7 +357,7 @@ QPoint TileRenderer::globalToPixel(QPoint pos) {
 	QVector2D uv(f32(pos.x()) / width(), f32(pos.y()) / height());
 	uv *= scale;
 	uv += offset;
-	uv *= QVector2D(texture.getWidth(), texture.getHeight());
+	uv *= QVector2D(float(texture.getWidth()), float(texture.getHeight()));
 
 	return QPoint(int(uv.x()), int(uv.y()));
 }
@@ -367,7 +367,7 @@ QPoint TileRenderer::pixelToTexture(QPoint pos) {
 	if (!texture.getWidth())
 		return {};
 
-	QVector2D size = QVector2D(texture.getWidth(), texture.getHeight());
+	QVector2D size = QVector2D(float(texture.getWidth()), float(texture.getHeight()));
 
 	QPoint px{ i32(pos.x()), i32(pos.y()) };
 
@@ -565,7 +565,7 @@ void TileRenderer::drawPoint(QPoint point) {
 
 void TileRenderer::fill(QPoint p0) {
 
-	if (!editable || p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
+	if (!editable || p0.x() < 0 || p0.y() < 0 || p0.x() >= int(texture.getWidth()) || p0.y() >= int(texture.getHeight()))
 		return;
 
 	u32 mask = texture.fetch(u16(p0.x()), u16(p0.y()));
@@ -633,7 +633,7 @@ u32 TileRenderer::get(QPoint p0) {
 
 	p0 = globalToTexture(p0);
 
-	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
+	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= int(texture.getWidth()) || p0.y() >= int(texture.getHeight()))
 		return 0;
 
 	return texture.read(u16(p0.x()), u16(p0.y()));

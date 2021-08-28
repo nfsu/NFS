@@ -1,12 +1,18 @@
 #include "texture.hpp"
-#include "stbi_write.h"
-#include "stbi_load.h"
+
+#pragma warning(push, 0)
+	#define STB_IMAGE_WRITE_IMPLEMENTATION
+	#define STB_IMAGE_IMPLEMENTATION
+	#include "stbi_write.h"
+	#include "stbi_load.h"
+#pragma warning(pop)
+
 #include <math.h>
 #include <cstring>
 using namespace nfs;
 
-Texture2D::Texture2D(u8 *ptr, u16 w, u16 h, u32 _stride, TextureType tt, TextureTiles tti): 
-	data(ptr), width(w), height(h), stride(_stride), size(w * h), type(u16(tt)), tiles(u16(tti))
+Texture2D::Texture2D(u8 *ptr, u32 w, u32 h, u16 _stride, TextureType tt, TextureTiles tti): 
+	data(ptr), width(w), height(h), stride(_stride), size(usz(w) * h), type(u16(tt)), tiles(u16(tti))
 {
 	dataSize = size * stride / (tt == TextureType::R4 ? 2 : 1);
 }
@@ -17,52 +23,52 @@ Texture2D::Texture2D(NCLR &palette):
 	tiles(u16(TextureTiles::NONE)), type(u16(TextureType::BGR5)), stride(2) 
 {
 	TTLP &ttlp = palette.at<0>();
-	width = u16(ttlp.c_colors);
+	width = ttlp.c_colors;
 	dataSize = ttlp.dataSize;
 	size = dataSize / stride;
-	height = u16(size / width);
+	height = u32(size / width);
 	data = palette.get<0>().add();
 }
 
-static const Map<u16, u16> widthTable = {
-	{ 256_u16, 16_u16 },
-	{ 384_u16, 16_u16 },
-	{ 512_u16, 16_u16 },
-	{ 768_u16, 16_u16 },
-	{ 1024_u16, 32_u16 },
-	{ 1280_u16, 16_u16 },
-	{ 1408_u16, 8_u16 },
-	{ 1536_u16, 16_u16 },
-	{ 2048_u16, 32_u16 },
-	{ 2560_u16, 16_u16 },
-	{ 2816_u16, 16_u16 },
-	{ 4096_u16, 64_u16 },
-	{ 4480_u16, 64_u16 },
-	{ 5120_u16, 8_u16 },
-	{ 5632_u16, 8_u16 },
-	{ 6144_u16, 32_u16 },
-	{ 6208_u16, 16_u16 },
-	{ 6400_u16, 64_u16 },
-	{ 6656_u16, 64_u16 },
-	{ 7168_u16, 16_u16 },
-	{ 8192_u16, 64_u16 },
-	{ 9216_u16, 48_u16 },
-	{ 9536_u16, 16_u16 },
-	{ 10240_u16, 32_u16 },
-	{ 12288_u16, 32_u16 },
-	{ 14336_u16, 16_u16 },
-	{ 15360_u16, 32_u16 },
-	{ 16384_u16, 64_u16 },
-	{ 17152_u16, 64_u16 },
-	{ 19456_u16, 16_u16 },
-	{ 20480_u16, 64_u16 },
-	{ 24576_u16, 64_u16 },
-	{ 34560_u16, 32_u16 },
-	{ 32768_u16, 64_u16 },
-	{ 51200_u16, 64_u16 }
+static const Map<u32, u32> widthTable = {
+	{ 256, 16 },
+	{ 384, 16 },
+	{ 512, 16 },
+	{ 768, 16 },
+	{ 1024, 32 },
+	{ 1280, 16 },
+	{ 1408, 8 },
+	{ 1536, 16 },
+	{ 2048, 32 },
+	{ 2560, 16 },
+	{ 2816, 16 },
+	{ 4096, 64 },
+	{ 4480, 64 },
+	{ 5120, 8 },
+	{ 5632, 8 },
+	{ 6144, 32 },
+	{ 6208, 16 },
+	{ 6400, 64 },
+	{ 6656, 64 },
+	{ 7168, 16 },
+	{ 8192, 64 },
+	{ 9216, 48 },
+	{ 9536, 16 },
+	{ 10240, 32 },
+	{ 12288, 32 },
+	{ 14336, 16 },
+	{ 15360, 32 },
+	{ 16384, 64 },
+	{ 17152, 64 },
+	{ 19456, 16 },
+	{ 20480, 64 },
+	{ 24576, 64 },
+	{ 34560, 32 },
+	{ 32768, 64 },
+	{ 51200, 64 }
 };
 
-Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U) {
+Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1) {
 
 	RAHC &rahc = tilemap.at<0>();
 	bool fourBit = rahc.tileDepth == 3;
@@ -79,19 +85,19 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 
 		tiles = u16(TextureTiles::NONE);
 
-		u32 endInd = dataSize / 2 - 1;
+		isz endInd = isz(dataSize / 2 - 1);
 		u16 *beg = (u16*) data;
 
 		u16 next = *(beg + 1);
 		u32 seed = CompressionHelper::generateRandom(*beg);
 		bool reverse = ((next ^ seed) & 0xFFFFU) != 0;
 
-		i32 add = reverse ? -1 : 1;
-		i32 i = reverse ? endInd : 0;
+		isz add = reverse ? -1 : 1;
+		isz i = reverse ? i64(endInd) : 0;
 
 		seed = beg[i];
 
-		while ((reverse && i >= 0) || (!reverse && i64(i) <= endInd)) {
+		while ((reverse && i >= 0) || (!reverse && i <= endInd)) {
 			magic[i * 2] = u8(seed);
 			magic[i * 2 + 1] = u8(seed >> 8);
 			seed = CompressionHelper::generateRandom(seed);
@@ -108,20 +114,20 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 		if (it == widthTable.end()) {
 		
 			//EXCEPTION("Couldn't determine width of image");
-			width = u16(32 * (1 + (size >> 14)));					//Temporary
+			width = 32 * u32(1 + (size >> 14));					//Temporary
 		}
 		
 		else width = it->second;
 
 		if (rahc.sizeHint2 == 0)
-			height = u16(size / width);
+			height = u32(size / width);
 
 		else {
 
 			if (!rahc.specialTiling)
 				width = width * rahc.sizeHint2 / rahc.sizeHint1;
 
-			height = u16(size / width);
+			height = u32(size / width);
 		}
 
 		if (width % 8 || height % 8)
@@ -130,24 +136,24 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1U
 		std::printf("Texture2D Warning: NCGR size couldn't be determined, guessed %ux%u\r\n", width, height);
 
 	} else {
-		width = tileWidth * 8U;
-		height = tileHeight * 8U;
+		width = tileWidth * 8;
+		height = tileHeight * 8;
 	}
 }
 
-Texture2D::Texture2D(NSCR &map): tiles((u16)TextureTiles::NONE), stride(2U), type((u16)TextureType::INTEGER) {
+Texture2D::Texture2D(NSCR &map): tiles((u16)TextureTiles::NONE), stride(2), type((u16)TextureType::INTEGER) {
 
 	NRCS &nrcs = map.at<0>();
 
 	width = nrcs.screenWidth >> 3;
 	height = nrcs.screenHeight >> 3;
-	dataSize = stride * width * height;
-	size = width * height;
+	size = usz(width) * height;
+	dataSize = size * stride;
 
 	data = map.get<0>().add();
 }
 
-Texture2D Texture2D::alloc(u16 w, u16 h, u32 stride, TextureType tt, TextureTiles tti) {
+Texture2D Texture2D::alloc(u32 w, u32 h, u16 stride, TextureType tt, TextureTiles tti) {
 
 	Texture2D tex = Texture2D(nullptr, w, h, stride, tt, tti);
 	tex.data = Buffer::allocEmpty(tex.getDataSize()).add();
@@ -157,19 +163,38 @@ Texture2D Texture2D::alloc(u16 w, u16 h, u32 stride, TextureType tt, TextureTile
 }
 
 Texture2D Texture2D::readFile(const String &file, bool is16Bit) {
+	return readBuffer(Buffer::readFile(file), is16Bit);
+}
+
+Texture2D Texture2D::readBuffer(const Buffer &file, bool is16Bit) {
+
+	if (!file.size())
+		return {};
+
+	if (file.size() > usz(i32_MAX))
+		EXCEPTION("File size not supported by stbi");
 
 	int target = is16Bit ? 2 : 4;
 	auto type = is16Bit ? TextureType::INTEGER16 : TextureType::ARGB8;
 
 	int x, y, channels;
-	u8 *ptr = (u8*) stbi_load(file.c_str(), &x, &y, &channels, target);
+	u8 *ptr = (u8*) stbi_load_from_memory(file.add(), int(file.size()), &x, &y, &channels, target);
 
-	Texture2D tex = Texture2D(ptr, u16(x), u16(y), target, type, TextureTiles::NONE);
+	Texture2D tex = Texture2D(ptr, u32(x), u32(y), u16(target), type, TextureTiles::NONE);
 	tex.allocated = true;
 	return tex;
 }
 
 void Texture2D::writeFile(const String &file) {
+
+	if (file.size() < 4 || String(file.end() - 4, file.end()) != ".png")
+		EXCEPTION("Texture2D Couldn't write image; it only supports .png");
+
+	if(!writeBuffer().writeFile(file.c_str()))
+	   EXCEPTION("Couldn't write image");
+}
+
+Buffer Texture2D::writeBuffer() {
 
 	if (
 		(type != u16(TextureType::ARGB8) && type != u16(TextureType::INTEGER16)) || 
@@ -177,13 +202,12 @@ void Texture2D::writeFile(const String &file) {
 	)
 		EXCEPTION("Texture2D Couldn't write image; please convert to RGBA8 first");
 
-	if (file.size() < 4 || String(file.end() - 4, file.end()) != ".png")
-		EXCEPTION("Texture2D Couldn't write image; it only supports .png");
+	int str = type / 8, outLen{};
 
-	int str = type / 8;
+	if (u8 *dat = stbi_write_png_to_mem(data, 0, (int)width, (int)height, str, &outLen))
+		return Buffer(usz(outLen), dat);
 
-	if (!stbi_write_png(file.c_str(), (int)width, (int)height, str, data, str * (int)width))
-		EXCEPTION("Texture2D Couldn't write image");
+	EXCEPTION("Texture2D Couldn't write image");
 }
 
 //Copying & moving
@@ -259,9 +283,9 @@ Texture2D &Texture2D::operator=(Texture2D &&other) {
 	return *this;
 }
 
-ChangeDimensionsResult Texture2D::changeDimensions(u16 w, u16 h) {
+ChangeDimensionsResult Texture2D::changeDimensions(u32 w, u32 h) {
 
-	u32 siz = u32(w) * h;
+	usz siz = usz(w) * h;
 
 	if (size != siz) {
 		std::printf("Texture2D Couldn't change dimensions; sizes didn't match\n");
@@ -282,9 +306,9 @@ void Texture2D::revokeOwnership() {
 	allocated = false;
 }
 
-u32 Texture2D::getIndex(u16 i, u16 j) {
+usz Texture2D::getIndex(u32 i, u32 j) {
 
-	u32 index = u32(j) * width + i;
+	usz index = usz(j) * width + i;
 
 	u32 tileCount = getTiles();
 
@@ -303,7 +327,7 @@ u32 Texture2D::getIndex(u16 i, u16 j) {
 		u32 tileOff = (offY << 3) | offX;
 		u32 tilePos = tileY * (width >> 3) + tileX;
 
-		return (tilePos << 6) | tileOff;
+		return (usz(tilePos) << 6) | tileOff;
 	}
 	
 	//Fallback
@@ -316,10 +340,10 @@ u32 Texture2D::getIndex(u16 i, u16 j) {
 	u32 tilePos = tileY * (width / tileCount) + tileX;
 	u32 tileOff = offY * tileCount + offX;
 	
-	return tilePos * tileCount * tileCount + tileOff;
+	return usz(tilePos) * tileCount * tileCount + tileOff;
 }
 
-u32 Texture2D::fetch(u16 x, u16 y) {
+u32 Texture2D::fetch(u32 x, u32 y) {
 
 	if (!size || !data || stride > 4) 
 		return 0;
@@ -327,18 +351,18 @@ u32 Texture2D::fetch(u16 x, u16 y) {
 	x %= width;
 	y %= height;
 
-	u32 index = getIndex(x, y);
+	usz index = getIndex(x, y);
 
 	bool fourBit = type == u16(TextureType::R4);
 
-	u8 *ptr = data + ((index * stride) >> u32(fourBit));
+	u8 *ptr = data + ((index * stride) >> usz(fourBit));
 	u32 val = 0;
 
 	for (u32 i = 0; i < stride; ++i)
 		val |= ptr[i] << (i * 8);
 
 	if (magic && stride == 1)
-		val ^= magic[index >> u32(fourBit)];
+		val ^= magic[index >> usz(fourBit)];
 
 	if (fourBit && index % 2 == 0)
 		val &= 0xF;
@@ -349,7 +373,7 @@ u32 Texture2D::fetch(u16 x, u16 y) {
 	return val;
 }
 
-u32 Texture2D::read(u16 i, u16 j) {
+u32 Texture2D::read(u32 i, u32 j) {
 
 	u32 pix = fetch(i, j);
 
@@ -359,7 +383,7 @@ u32 Texture2D::read(u16 i, u16 j) {
 	return pix;
 }
 
-bool Texture2D::store(u16 i, u16 j, u32 k, bool allowEncryptionHashOverrides) {
+bool Texture2D::store(u32 i, u32 j, u32 k, bool allowEncryptionHashOverrides) {
 
 	if (!size || !data || stride > 4)
 		return false;
@@ -367,10 +391,10 @@ bool Texture2D::store(u16 i, u16 j, u32 k, bool allowEncryptionHashOverrides) {
 	i %= width;
 	j %= height;
 
-	u32 index = getIndex(i, j);
+	usz index = getIndex(i, j);
 
 	bool fourBit = type == u16(TextureType::R4);
-	u32 bindex = (index * stride) >> u32(fourBit);
+	usz bindex = (index * stride) >> usz(fourBit);
 
 	u8 *ptr = data + bindex;
 
@@ -389,7 +413,7 @@ bool Texture2D::store(u16 i, u16 j, u32 k, bool allowEncryptionHashOverrides) {
 		k = (k & 0xF) << ((index & 1) * 4);
 
 	if (magic && stride == 1)
-		k ^= magic[index >> u32(fourBit)];
+		k ^= magic[index >> usz(fourBit)];
 
 	if (fourBit && !(index & 1))
 		*ptr = (*ptr & 0xF0) | (k & 0xF);
@@ -401,16 +425,15 @@ bool Texture2D::store(u16 i, u16 j, u32 k, bool allowEncryptionHashOverrides) {
 	return true;
 }
 
-bool Texture2D::write(u16 i, u16 j, u32 k) {
+bool Texture2D::write(u32 i, u32 j, u32 k) {
 
-	
 	if (type == u16(TextureType::BGR5))
 		k = CompressionHelper::storePixel(k);
 
 	return store(i, j, k);
 }
 
-inline u32 convert(Texture2D tex, u16 i, u16 j, Texture2D t, bool fixIntegers) {
+inline u32 convert(Texture2D tex, u32 i, u32 j, Texture2D t, bool fixIntegers) {
 	
 	u32 val = t.read(i, j);
 
@@ -444,7 +467,7 @@ Texture2D Texture2D::toRGBA8(bool fixIntegers) {
 
 template<bool airIsPalette0 = false>
 struct PT2Du32 {
-	inline u32 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette, u8 paletteOffsetY) const { 
+	inline u32 operator()(Texture2D tex, u32 i, u32 j, Texture2D tilemap, Texture2D palette, u8 paletteOffsetY) const { 
 		u32 val = tilemap.fetch(i, j);
 		if constexpr (airIsPalette0) if(!val) return 0;
 		u32 color = palette.read(val & 0xF, ((val >> 4) + paletteOffsetY) & 0xF);
@@ -454,7 +477,7 @@ struct PT2Du32 {
 
 template<bool airIsPalette0 = false>
 struct PT2Du16 {
-	inline u16 operator()(Texture2D tex, u16 i, u16 j, Texture2D tilemap, Texture2D palette, u8 paletteOffsetY) const { 
+	inline u16 operator()(Texture2D tex, u32 i, u32 j, Texture2D tilemap, Texture2D palette, u8 paletteOffsetY) const { 
 		u32 val = tilemap.fetch(i, j);
 		if constexpr (airIsPalette0) if(!val) return 0;
 		return u16(palette.fetch(val & 0xF, ((val >> 4) + paletteOffsetY) & 0xF)) | (u16(1) << 15);
@@ -484,7 +507,7 @@ Texture2D::Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is
 
 //Palette+Tile+Tilemap 2D to BGR555 and RGBA8
 
-inline Array<u32, 2> palettePTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap) {
+inline Array<u32, 2> palettePTT2D(Texture2D tex, u32 i, u32 j, Texture2D map, Texture2D tilemap) {
 
 	u32 tiles = tilemap.getTiles();
 
@@ -510,8 +533,8 @@ inline Array<u32, 2> palettePTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Te
 		if (tileScl & 2)
 			offY = 7 - offY;
 
-		u16 tilemapX = u16(((tilePos % tilesX) << 3) | offX);
-		u16 tilemapY = u16(((tilePos / tilesX) << 3) | offY);
+		u32 tilemapX = (u32(tilePos % tilesX) << 3) | offX;
+		u32 tilemapY = (u32(tilePos / tilesX) << 3) | offY;
 
 		return { tilemap.fetch(tilemapX, tilemapY), tilePlt };
 	}
@@ -536,27 +559,27 @@ inline Array<u32, 2> palettePTT2D(Texture2D tex, u16 i, u16 j, Texture2D map, Te
 	if (tileScl & 2)
 		offY = (tiles - 1) - offY;
 
-	u16 tilemapX = u16((tilePos % tilesX) * tiles + offX);
-	u16 tilemapY = u16((tilePos / tilesX) * tiles + offY);
+	u32 tilemapX = u32(tilePos % tilesX) * tiles + offX;
+	u32 tilemapY = u32(tilePos / tilesX) * tiles + offY;
 
 	return { tilemap.fetch(tilemapX, tilemapY), tilePlt };
 }
 
 template<bool airIsPalette0 = false>
 struct PTT2Du32 {
-	inline u32 operator()(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap, Texture2D palette) const { 
+	inline u32 operator()(Texture2D tex, u32 i, u32 j, Texture2D map, Texture2D tilemap, Texture2D palette) const { 
 		auto val = palettePTT2D(tex, i, j, map, tilemap);  
 		if constexpr (airIsPalette0) if(!val[0]) return 0;
-		return palette.read(u16(val[0] & 0xF), u16(((val[0] >> 4) + val[1]) & 0xF));
+		return palette.read(val[0] & 0xF, ((val[0] >> 4) + val[1]) & 0xF);
 	}
 };
 
 template<bool airIsPalette0 = false>
 struct PTT2Du16 {
-	inline u16 operator()(Texture2D tex, u16 i, u16 j, Texture2D map, Texture2D tilemap, Texture2D palette) const { 
+	inline u16 operator()(Texture2D tex, u32 i, u32 j, Texture2D map, Texture2D tilemap, Texture2D palette) const { 
 		auto val = palettePTT2D(tex, i, j, map, tilemap);  
 		if constexpr (airIsPalette0) if(!val[0]) return 0;
-		return u16(palette.fetch(u16(val[0] & 0xF), u16(((val[0] >> 4) + val[1]) & 0xF))) | (u16(1) << 15);
+		return u16(palette.fetch(val[0] & 0xF, ((val[0] >> 4) + val[1]) & 0xF)) | (u16(1) << 15);
 	}
 };
 

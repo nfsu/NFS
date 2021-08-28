@@ -151,6 +151,9 @@ Buffer Buffer::readFile(const String &str) {
 
 bool Buffer::writeFile(const String &str) {
 
+	if (!len)
+		return false;
+
 	std::ofstream out(str, std::ios::binary);
 
 	if (!out.good())

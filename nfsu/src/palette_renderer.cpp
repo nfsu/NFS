@@ -169,7 +169,7 @@ void PaletteRenderer::setGridColor(QColor color) {
 
 void PaletteRenderer::set(QPoint p0, u32 color) {
 	
-	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
+	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= int(texture.getWidth()) || p0.y() >= int(texture.getHeight()))
 		return;
 
 	texture.write(u16(p0.x()), u16(p0.y()), color);
@@ -178,7 +178,7 @@ void PaletteRenderer::set(QPoint p0, u32 color) {
 
 u32 PaletteRenderer::get(QPoint p0) {
 
-	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= texture.getWidth() || p0.y() >= texture.getHeight())
+	if (p0.x() < 0 || p0.y() < 0 || p0.x() >= int(texture.getWidth()) || p0.y() >= int(texture.getHeight()))
 		return 0;
 
 	return texture.read(u16(p0.x()), u16(p0.y()));

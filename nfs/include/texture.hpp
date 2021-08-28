@@ -23,7 +23,7 @@ namespace nfs {
 
 		Texture2D();
 		~Texture2D();
-		Texture2D(u8 *ptr, u16 w, u16 h, u32 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);
+		Texture2D(u8 *ptr, u32 w, u32 h, u16 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);
 		Texture2D(NCLR &palette);
 		Texture2D(NCGR &tilemap);
 		Texture2D(NSCR &map);
@@ -41,19 +41,26 @@ namespace nfs {
 		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit = false, bool airIsPalette0 = false);
 
 		//Allocate new texture
-		static Texture2D alloc(u16 w, u16 h, u32 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);
+		static Texture2D alloc(u32 w, u32 h, u16 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);
 
 		//Allocate new texture, created through cpu 'pixel shader' (Please use functors for more aggressive inlining)
 		//Texture2D will always be a RGBA8 Normal image
 		template<bool is16Bit = false, typename T, typename ...args>
-		static Texture2D fromShader(T t, u16 w, u16 h, args... arg);
+		static Texture2D fromShader(T t, u32 w, u32 h, args... arg);
+
+		//Allocate new texture; read from the file
+		//Texture2D will always be a RGBA8 Normal image
+		static Texture2D readBuffer(const Buffer &file, bool is16Bit = false);
 
 		//Allocate new texture; read from the file
 		//Texture2D will always be a RGBA8 Normal image
 		static Texture2D readFile(const String &file, bool is16Bit = false);
 
-		//Write to disk (only if Texture2D is RGBA8 Normal image)
+		//Write to disk (only if Texture2D is RGBA8 or INTEGER16 image)
 		void writeFile(const String &file);
+
+		//Write to memory (only if Texture2D is RGBA8 INTEGER16 image)
+		Buffer writeBuffer();
 
 		//Allocate new texture and convert to RGBA8
 		//If fixIntegers is true, it will inverse integer formats, so it will range from white opaque to black invisible
@@ -62,11 +69,11 @@ namespace nfs {
 
 		inline TextureType getType() const { return (TextureType)type; }
 
-		inline u16 getWidth() const { return width; }
-		inline u16 getHeight() const { return height; }
-		inline u32 getSize() const { return size; }
+		inline u32 getWidth() const { return width; }
+		inline u32 getHeight() const { return height; }
+		inline usz getSize() const { return size; }
 		inline u32 getTiles() const { return tiles; }
-		inline u32 getDataSize() const { return dataSize; }
+		inline usz getDataSize() const { return dataSize; }
 		inline u32 getBitsPerPixel() const { return u32(type); }
 
 		inline Buffer toBuffer() const { return Buffer(dataSize, data); }
@@ -82,21 +89,21 @@ namespace nfs {
 		//changeDimensions(64, 64) <- INVALID_PIXEL_COUNT (1) (64x64 != 64x48)
 		//changeDimensions(32, 96) <- SUCCESS (0)
 		//changeDimensions(3, 1024) <- INVALID_TILING (2) (3x1024 is same size, but tiles don't match (3 % 8 = 3 != 0)
-		ChangeDimensionsResult changeDimensions(u16 w, u16 h);
+		ChangeDimensionsResult changeDimensions(u32 w, u32 h);
 
 		//Fetch the data for the pixel (if it uses BGR555 it will fetch 2 bytes, RGBA8 will fetch 4 bytes)
-		u32 fetch(u16 i, u16 j);
+		u32 fetch(u32 i, u32 j);
 
 		//Fetch the data and convert to RGBA8 (if possible); BGR555 -> ARGB8 for example
-		u32 read(u16 i, u16 j);
+		u32 read(u32 i, u32 j);
 
 		//Store the data for the pixel (converts it to the appropriate type first)
-		bool store(u16 i, u16 j, u32 k, bool allowEncryptionHashOverrides = false);
+		bool store(u32 i, u32 j, u32 k, bool allowEncryptionHashOverrides = false);
 
 		//Convert pixel to image format and then store it
-		bool write(u16 i, u16 j, u32 k);
+		bool write(u32 i, u32 j, u32 k);
 
-		u32 getIndex(u16 i, u16 j);
+		usz getIndex(u32 i, u32 j);
 
 		//If we want to release ownership over the allocated memory. 
 		//This requires you to handle the data acquired from getPtr to ensure it is released at the appropriate time
@@ -104,9 +111,9 @@ namespace nfs {
 
 	private:
 
-		u32 size, dataSize, stride;
-		u16 width, height;
-		u16 tiles, type;
+		usz size, dataSize;
+		u32 width, height;
+		u16 tiles, type, stride;
 
 		u8 *data, *magic = nullptr /* Decryption buffer */;
 		bool allocated = false;
@@ -115,7 +122,7 @@ namespace nfs {
 
 
 	template<bool is16Bit, typename T, typename ...args>
-	Texture2D Texture2D::fromShader(T t, u16 w, u16 h, args... arg) {
+	Texture2D Texture2D::fromShader(T t, u32 w, u32 h, args... arg) {
 
 		Texture2D tex = Texture2D::alloc(w, h, is16Bit ? 2 : 4, is16Bit ? TextureType::INTEGER16 : TextureType::ARGB8);
 
@@ -124,9 +131,9 @@ namespace nfs {
 		for (u32 i = 0; i < siz; ++i) {
 
 			if constexpr(is16Bit)
-				((u16*)tex.data)[i] = t(tex, u16(i % w), u16(i / w), arg...);
+				((u16*)tex.data)[i] = t(tex, i % w, i / w, arg...);
 
-			else ((u32*)tex.data)[i] = t(tex, u16(i % w), u16(i / w), arg...);
+			else ((u32*)tex.data)[i] = t(tex, i % w, i / w, arg...);
 		}
 
 		return tex;

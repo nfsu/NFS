@@ -135,9 +135,25 @@ struct Scope {										\
 			lambda();								\
 	}												\
 													\
-} scope{ scopeCleanupLambda };
+} scope{ scopeCleanupLambda }
 
 #define END_FINALLY scope.lambda = nullptr
+
+#define FINALLY_X(x, ...)							\
+auto scopeCleanupLambda##x = [&]() { __VA_ARGS__ };	\
+struct Scope##x {									\
+													\
+	std::function<void()> lambda;					\
+													\
+	~Scope##x() {									\
+		if(lambda)									\
+			lambda();								\
+	}												\
+													\
+} scope##x{ scopeCleanupLambda##x }
+
+#define END_FINALLY_X(x) scope##x.lambda = nullptr
+#define EXECUTE_FINALLY_X(x) { scope##x.lambda(); END_FINALLY_X(x); }
 
 //Simple wrapper around a pointer with size
 //Can be managed or unmanaged, up to the user (if .alloc is called .dealloc must be called manually)
@@ -199,6 +215,20 @@ public:
 
 		*(T*)ptr = t;
 		addOffset(sizeof(T));
+
+		if constexpr (sizeof...(args))
+			append(arg...);
+	}
+
+	template<typename T, typename ...args>
+	inline void append(const List<T> &t, const args &...arg) {
+
+		usz siz = sizeof(T) * t.size();
+
+		requireSize(siz);
+
+		std::memcpy(ptr, t.data(), siz);
+		addOffset(siz);
 
 		if constexpr (sizeof...(args))
 			append(arg...);
