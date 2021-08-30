@@ -125,7 +125,8 @@ namespace nfs {
 
 	//Regular NDS info
 
-	struct NDS {																//NDS file format
+	struct NDS {				//NDS file format
+
 		c8 title[12];
 		c8 gameCode[4];
 		c8 makerCode[2];
@@ -170,6 +171,10 @@ namespace nfs {
 		u32 dRomSize;			//Debug rom size
 		u32 reserved2;
 		u8 reserved3[144];
+
+		inline u32 gameCodeNoRegion() const {
+			return (*(const u32*)gameCode) << 8 >> 8;
+		}
 	};
 
 	struct NDSTitle {
