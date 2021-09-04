@@ -50,6 +50,11 @@ target_link_libraries(nfsu optimized qt5opengl)
 target_link_libraries(nfsu debug qt5widgetsd)
 target_link_libraries(nfsu optimized qt5widgets)
 
+set_target_properties(
+	nfsu PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>
+)
+
 add_custom_command(TARGET nfsu POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
 
 add_custom_command(TARGET nfsu POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/resources)

@@ -111,11 +111,8 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1)
 
 		auto it = widthTable.find(u16(size));		//This is an estimation
 		
-		if (it == widthTable.end()) {
-		
-			//EXCEPTION("Couldn't determine width of image");
+		if (it == widthTable.end())
 			width = 32 * u32(1 + (size >> 14));					//Temporary
-		}
 		
 		else width = it->second;
 
@@ -130,7 +127,7 @@ Texture2D::Texture2D(NCGR &tilemap): tiles((u16)TextureTiles::TILED8), stride(1)
 			height = u32(size / width);
 		}
 
-		if (width % 8 || height % 8)
+		if (width & 7 || height & 7)
 			EXCEPTION("Width or height of the image have to be base8");
 
 		std::printf("Texture2D Warning: NCGR size couldn't be determined, guessed %ux%u\r\n", width, height);
