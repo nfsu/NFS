@@ -23,13 +23,7 @@ void PaletteRenderer::paintGL() {
 	shader.setUniformValue("gridColor", gridColor);
 	shader.setUniformValue("primary", getPrimary());
 
-	quad.bind();
-
-	int pos = shader.attributeLocation("pos");
-	shader.enableAttributeArray(pos);
-	shader.setAttributeBuffer(pos, GL_FLOAT, 0, 2);
-
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	if (paletteTexture)
 		paletteTexture->release(0);
@@ -39,89 +33,79 @@ void PaletteRenderer::paintGL() {
 
 void PaletteRenderer::initializeGL() {
 
-	//Setup vbo
-
-	quad = QGLBuffer(QGLBuffer::VertexBuffer);
-	quad.create();
-	quad.bind();
-	quad.allocate(quadData, sizeof(quadData));
-
 	//Setup shader
 
 	//TODO: Clean this up
 
-	const c8 *vertShader = 
+	const c8 *vertShader = R"(#version 330 core
 
-		"#version 330 core\r\n"
+		out vec2 uv;
 
-		"layout(location=0) in vec2 pos;"
+		void main() {
+			uv = vec2(ivec2(gl_VertexID << 1, gl_VertexID) & 2);
+			gl_Position = vec4(uv * 2 - 1, 0, 1);
+			uv.y = 1 - uv.y;
+		}
+	)";
 
-		"out vec2 uv;"
+	const c8 *fragShader = R"(#version 330 core
 
-		"void main() {"
-			"uv = vec2(pos.x, 1 - pos.y);"
-			"gl_Position = vec4(pos * 2 - 1, 0, 1);"
-		"}";
+		in vec2 uv;
 
-	const c8 *fragShader =
+		uniform int height;
+		uniform usampler2D paletteTexture;
 
-		"#version 330 core\r\n"
+		uniform float distToPix;
+		uniform int gridColor;
 
-		"in vec2 uv;"
+		uniform int primary;
 
-		"uniform int height;"
-		"uniform usampler2D paletteTexture;"
+		out vec4 color;
 
-		"uniform float distToPix;"
-		"uniform int gridColor;"
-
-		"uniform int primary;"
-
-		"out vec4 color;"
-
-		"void main() {"
+		void main() {
 
 			//Pad to 16x16 (even for 16x1 images)
-			"ivec2 pos = ivec2(uv * 16);"
-			"int coord1 = pos.x + pos.y * 16;"
-			"vec2 coord = vec2(pos) / vec2(16, height);"
 
-			"vec2 delta = abs(uv * 16 - round(uv * 16));"
+			ivec2 pos = ivec2(uv * 16);
+			int coord1 = pos.x + pos.y * 16;
+			vec2 coord = vec2(pos) / vec2(16, height);
 
-			"float minDelta = min(delta.x, delta.y);"
+			vec2 delta = abs(uv * 16 - round(uv * 16));
 
-			"float dist = abs(distToPix);"
+			float minDelta = min(delta.x, delta.y);
 
-			"float overlay = 1 - floor(min(minDelta / 0.5, dist) / dist);"
+			float dist = abs(distToPix);
 
-			"uint value = texture(paletteTexture, coord).r;"
+			float overlay = 1 - floor(min(minDelta / 0.5, dist) / dist);
 
-			"uint r = value & 0x1FU;"
-			"uint g = (value & 0x3E0U) >> 5U;"
-			"uint b = (value & 0x7C00U) >> 10U;"
+			uint value = texture(paletteTexture, coord).r;
 
-			"vec3 outColor = vec3(r, g, b) / 31.0f;"
+			uvec3 rgb = (uvec3(value) >> uvec3(0u, 5u, 10u)) & 0x1Fu;
+			uvec3 gridColorRgb = (uvec3(gridColor) >> uvec3(16u, 8u, 0u)) & 0xFFu;
 
-			"vec3 sideColor = vec3(gridColor >> 16, (gridColor >> 8) & 0xFF, gridColor & 0xFF) / 255.f * 0.5f;"
+			vec3 outColor = vec3(rgb) / 31.0f;
 
-			"vec3 selectedColor = 1 - outColor;"
+			vec3 sideColor = vec3(gridColorRgb) / 255.f * 0.5f;
 
-			"sideColor = mix("
-							"mix("
-								"sideColor, outColor, 0 - min(sign(distToPix), 0)"
-							"), "
-							"selectedColor + (1 - outColor) * 1.5f, float(coord1 == primary) * 0.9f"
-						");"
+			vec3 selectedColor = 1 - outColor;
+
+			sideColor = mix(
+				mix(
+					sideColor, outColor, 0 - min(sign(distToPix), 0)
+				), 
+				selectedColor + (1 - outColor) * 1.5f, 
+				float(coord1 == primary) * 0.9f
+			);
 
 			//Sample from texture
-			"color = vec4("
-				"mix("
-					"outColor,"
-					"sideColor,"
-					"overlay"
-				"), 1);"
-
-		"}";
+			color = vec4(
+				mix(
+					outColor,
+					sideColor,
+					overlay
+				)
+			, 1);
+		})";
 
 	if (!shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader))
 		EXCEPTION("Couldn't compile vertex shader");
@@ -138,7 +122,6 @@ PaletteRenderer::PaletteRenderer() : QOpenGLWidget() {
 }
 
 PaletteRenderer::~PaletteRenderer() {
-	quad.destroy();
 	shader.deleteLater();
 }
 
@@ -156,7 +139,6 @@ nfs::Texture2D PaletteRenderer::getTexture() {
 //TODO: Move short setters/getters to header
 
 QOpenGLTexture *PaletteRenderer::getGPUTexture() { return paletteTexture; }
-QGLBuffer PaletteRenderer::getQuad() { return quad; }
 u16 PaletteRenderer::getPrimary() { return primary; }
 void PaletteRenderer::setShowGrid(bool b) { showGrid = b; repaint(); }
 void PaletteRenderer::setEditable(bool b) { editable = b; repaint(); }

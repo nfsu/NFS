@@ -8,19 +8,22 @@
 
 namespace nfsu {
 
-	class TileRenderer;
+	class TilemapRenderer;
 
-	class TileEditor : public QWidget, public ResourceEditor {
+	class TilemapEditor : public QWidget, public ResourceEditor {
 
 	public:
 
-		TileEditor();
+		TilemapEditor();
 
 		void setPalette(nfs::Texture2D tex);
 		nfs::Texture2D getPalette();
 
 		void setTiles(nfs::Texture2D tex);
 		nfs::Texture2D getTiles();
+
+		void setTilemap(nfs::Texture2D tex);
+		nfs::Texture2D getTilemap();
 
 		void setUsePalette(bool b);
 		bool getUsePalette();
@@ -44,11 +47,12 @@ namespace nfsu {
 
 	private:
 
-		TileRenderer *renderer;
+		TilemapRenderer *renderer;
 
+		nfs::NSCR *tilemap = nullptr;
 		nfs::NCGR *tile = nullptr;
 		nfs::NCLR *palette = nullptr;
 
-		QString tileName, paletteName;
+		QString tilemapName, tileName, paletteName;
 	};
 }

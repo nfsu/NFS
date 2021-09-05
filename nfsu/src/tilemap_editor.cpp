@@ -1,5 +1,5 @@
-#include "tile_editor.hpp"
-#include "tile_renderer.hpp"
+#include "tilemap_editor.hpp"
+#include "tilemap_renderer.hpp"
 #include "info_window.hpp"
 #include "palette_renderer.hpp"
 
@@ -14,11 +14,11 @@
 using namespace nfsu;
 using namespace nfs;
 
-TileEditor::TileEditor() {
+TilemapEditor::TilemapEditor() {
 
 	//Renderer
 
-	renderer = new TileRenderer();
+	renderer = new TilemapRenderer();
 	renderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
 	//Buttons
@@ -43,28 +43,36 @@ TileEditor::TileEditor() {
 
 		QString filters;
 
-		bool hasTiledData = renderer->getTexture().getWidth();
+		bool hasTilemapData = renderer->getTilemap().getWidth();
+		bool hasTileData = renderer->getTiles().getWidth();
 		bool hasPaletteData = renderer->getPalette().getWidth();
 
 		static const c8 *ncgrFile = "NCGR file (*.NCGR)";
 		static const c8 *nclrFile = "NCLR file (*.NCLR)";
-		static const c8 *tileDataFile = "Tiled data (*.bin)";
+		static const c8 *nscrFile = "NSCR file (*.NSCR)";
+		static const c8 *tiledDataFile = "Tiled data (*.bin)";
 		static const c8 *paletteDataFile = "Palette data (*.bin)";
 
 		if (tile)
 			filters += ncgrFile;
-		else if (hasTiledData)
-			filters += tileDataFile;
+		else if (hasTileData)
+			filters += tiledDataFile;
 
-		if (hasTiledData && hasPaletteData)
+		if (hasTileData && hasPaletteData)
 			filters += ";;";
 
 		if (paletteWidget)
 			filters += nclrFile;
 		else if (hasPaletteData)
-			filters += paletteDataFile;
+			filters += "";
 
-		if (!hasTiledData && !hasPaletteData) {
+		if(filters.size() && hasTilemapData)
+			filters += ";;";
+
+		if(hasTilemapData)
+			filters += nscrFile;
+
+		if (!hasTileData && !hasPaletteData && !hasTilemapData) {
 			QMessageBox messageBox;
 			messageBox.critical(0, "Error", "Please select a palette and/or tiled image");
 			messageBox.setFixedSize(500, 200);
@@ -91,11 +99,17 @@ TileEditor::TileEditor() {
 
 		if (filter == ncgrFile)
 			buf = tile->toBuffer();
+
 		else if (filter == nclrFile)
-			buf = this->palette->toBuffer();
+			buf = palette->toBuffer();
+
+		else if (filter == nscrFile)
+			buf = tilemap->toBuffer();
+
 		else if (filter == paletteDataFile)
 			buf = renderer->getPalette().toBuffer();
-		else buf = renderer->getTexture().toBuffer();
+
+		else buf = renderer->getTiles().toBuffer();
 
 		ofile.write((const c8*) buf.add(), buf.size());
 		ofile.close();
@@ -106,19 +120,21 @@ TileEditor::TileEditor() {
 		static const c8 *convertedFile = "Converted file (*.png)";
 		static const c8 *paletteFile = "Palette file (*.png)";
 		static const c8 *tilesFile = "Tiles file (*.png)";
+		static const c8 *tilemapFile = "Tilemap file (*.png)";
 
 		QString filter;
-		QString file = QFileDialog::getSaveFileName(nullptr, tr("Save converted resource"), "", QString(convertedFile) + ";;" + paletteFile + ";;" + tilesFile, &filter);
+		QString file = QFileDialog::getSaveFileName(nullptr, tr("Save converted resource"), "", QString(convertedFile) + ";;" + paletteFile + ";;" + tilesFile + ";;" + tilemapFile, &filter);
 
 		if (file.isEmpty())
 			return;
 
-		bool hasTiledData = renderer->getTexture().getWidth();
+		bool hasTilemapData = renderer->getTilemap().getWidth();
+		bool hasTileData = renderer->getTiles().getWidth();
 		bool hasPaletteData = renderer->getPalette().getWidth();
 
-		if ((!hasTiledData && !hasPaletteData) || !renderer->getUsePalette()) {
+		if ((!hasTileData && !hasPaletteData && !hasTilemapData) || !renderer->getUsePalette()) {
 			QMessageBox messageBox;
-			messageBox.critical(0, "Error", "Please select a palette and tiled image and enable the palette");
+			messageBox.critical(0, "Error", "Please select a palette, tilemap and tiled image and enable the palette");
 			messageBox.setFixedSize(500, 200);
 			return;
 		}
@@ -126,11 +142,15 @@ TileEditor::TileEditor() {
 		Texture2D tex2d;
 
 		if (filter == convertedFile)
-			tex2d = Texture2D(renderer->getTexture(), renderer->getPalette(), false, false, renderer->getPaletteOffsetY());
+			tex2d = Texture2D(renderer->getTilemap(), renderer->getTiles(), renderer->getPalette());
+
 		else if (filter == paletteFile)
 			tex2d = renderer->getPalette().toRGBA8();
 
-		else tex2d = renderer->getTexture().toRGBA8(false);
+		else if (filter == tilemapFile)
+			tex2d = renderer->getTilemap().toRGBA8(false);	//TODO: Fix this
+
+		else tex2d = renderer->getTiles().toRGBA8(false);
 
 		tex2d.writeFile(file.toStdString());
 	});
@@ -164,43 +184,54 @@ TileEditor::TileEditor() {
 	//TODO: Allow changing size, tool, color
 }
 
-void TileEditor::setPalette(Texture2D tex) {
+void TilemapEditor::setPalette(Texture2D tex) {
 	renderer->setPalette(tex);
 }
 
-Texture2D TileEditor::getPalette() {
+Texture2D TilemapEditor::getPalette() {
 	return renderer->getPalette();
 }
 
-void TileEditor::setTiles(Texture2D tex) {
-	renderer->setTexture(tex);
+void TilemapEditor::setTilemap(Texture2D tex) {
+	renderer->setTilemap(tex);
 }
 
-void TileEditor::setUsePalette(bool b) {
+Texture2D TilemapEditor::getTilemap() {
+	return renderer->getTilemap();
+}
+
+void TilemapEditor::setTiles(Texture2D tex) {
+	renderer->setTiles(tex);
+}
+
+Texture2D TilemapEditor::getTiles() {
+	return renderer->getTiles();
+}
+
+void TilemapEditor::setUsePalette(bool b) {
 	renderer->setUsePalette(b);
 }
 
-bool TileEditor::getUsePalette() {
+bool TilemapEditor::getUsePalette() {
 	return renderer->getUsePalette();
 }
 
-void TileEditor::setUseGrid(bool b) {
+void TilemapEditor::setUseGrid(bool b) {
 	renderer->setUseGrid(b);
 }
 
-bool TileEditor::getUseGrid() {
+bool TilemapEditor::getUseGrid() {
 	return renderer->getUseGrid();
 }
 
-Texture2D TileEditor::getTiles() {
-	return renderer->getTexture();
+bool TilemapEditor::allowsResource(FileSystemObject&, ArchiveObject &ao) {
+	return 
+		ao.info.magicNumber == NCGR::getMagicNumber() || 
+		ao.info.magicNumber == NCLR::getMagicNumber() || 
+		ao.info.magicNumber == NSCR::getMagicNumber();
 }
 
-bool TileEditor::allowsResource(FileSystemObject&, ArchiveObject &ao) {
-	return ao.info.magicNumber == NCGR::getMagicNumber() || ao.info.magicNumber == NCLR::getMagicNumber();
-}
-
-void TileEditor::inspectResource(FileSystem &fileSystem, FileSystemObject &fso, ArchiveObject &ao) {
+void TilemapEditor::inspectResource(FileSystem &fileSystem, FileSystemObject &fso, ArchiveObject &ao) {
 
 	if (ao.info.magicNumber == NCGR::getMagicNumber()) {
 
@@ -210,6 +241,16 @@ void TileEditor::inspectResource(FileSystem &fileSystem, FileSystemObject &fso, 
 
 		tile = &ncgr;
 		tileName = QString::fromStdString(fso.name);
+
+	} 
+	else if (ao.info.magicNumber == NSCR::getMagicNumber()) {
+
+		NSCR &nscr = fileSystem.get<NSCR>(ao);
+
+		setTilemap(Texture2D(nscr));
+
+		tilemap = &nscr;
+		tilemapName = QString::fromStdString(fso.name);
 
 	} else {
 
@@ -222,48 +263,56 @@ void TileEditor::inspectResource(FileSystem &fileSystem, FileSystemObject &fso, 
 	}
 }
 
-bool TileEditor::isPrimaryEditor(FileSystemObject&, ArchiveObject &ao) {
-	return ao.info.magicNumber == NCGR::getMagicNumber();
+bool TilemapEditor::isPrimaryEditor(FileSystemObject&, ArchiveObject &ao) {
+	return ao.info.magicNumber == NSCR::getMagicNumber();
 }
 
-void TileEditor::onSwap() {
+void TilemapEditor::onSwap() {
 	renderer->updateTexture();
 }
 
-void TileEditor::reset() {
+void TilemapEditor::reset() {
 	renderer->reset();
 	palette = nullptr;
 	tile = nullptr;
+	tilemap = nullptr;
 	paletteName = "";
+	tilemapName = "";
 	tileName = "";
 	repaint();
 }
 
 enum Property : u32 {
 
-	TILE_NAME,
+	NAME,
 	WIDTH,
 	HEIGHT,
-	TILING,
-	BIT_DEPTH,
-	ENCRYPTION,
-	UNDEFINED,
+	TILE_NAME,
+	TILE_WIDTH,
+	TILE_HEIGHT,
+	TILE_TILING,
+	TILE_BIT_DEPTH,
+	TILE_ENCRYPTION,
+	TILE_UNDEFINED,
 	PALETTE_NAME,
 	COLORS,
 	PALETTES,
 
 	END,
-	START = TILE_NAME
+	START = NAME
 };
 
 static const c8 *properties[] = {
-	"Tile name",
+	"Name",
 	"Width",
 	"Height",
-	"Tiling",
-	"Bit depth",
-	"Encryption",
-	"Undefined",
+	"Tile name",
+	"Tile width",
+	"Tile height",
+	"Tile tiling",
+	"Tile bit depth",
+	"Tile encryption",
+	"Tile undefined",
 	"Palette name",
 	"Colors",
 	"Palettes",
@@ -273,19 +322,26 @@ inline void set(InfoWindow *info, Property prop, const QString &str) {
 	info->setString(properties[prop], str);
 }
 
-void TileEditor::showInfo(InfoWindow *info) {
+void TilemapEditor::showInfo(InfoWindow *info) {
+
+	set(info, NAME, tilemapName);
+
+	if (tilemap != nullptr && renderer->getTilemap().getWidth() != 0) {
+		set(info, WIDTH, QString::number(renderer->getTilemap().getWidth()));
+		set(info, HEIGHT, QString::number(renderer->getTilemap().getHeight()));
+	}
 
 	set(info, TILE_NAME, tileName);
 
-	if (tile != nullptr && renderer->getTexture().getWidth() != 0) {
+	if (tile != nullptr && renderer->getTiles().getWidth() != 0) {
 
-		set(info, WIDTH, QString::number(renderer->getTexture().getWidth()));
-		set(info, HEIGHT, QString::number(renderer->getTexture().getHeight()));
-		set(info, TILING, QString::number(renderer->getTexture().getTiles()));
-		set(info, BIT_DEPTH, QString::number(renderer->getTexture().getBitsPerPixel()));
-		set(info, ENCRYPTION, tile->at<0>().isEncrypted ? "On" : "Off");
+		set(info, TILE_WIDTH, QString::number(renderer->getTiles().getWidth()));
+		set(info, TILE_HEIGHT, QString::number(renderer->getTiles().getHeight()));
+		set(info, TILE_TILING, QString::number(renderer->getTiles().getTiles()));
+		set(info, TILE_BIT_DEPTH, QString::number(renderer->getTiles().getBitsPerPixel()));
+		set(info, TILE_ENCRYPTION, tile->at<0>().isEncrypted ? "On" : "Off");
 
-		set(info, UNDEFINED,
+		set(info, TILE_UNDEFINED,
 			QString::number(tile->at<0>().sizeHint0) + " " + QString::number(tile->at<0>().sizeHint1) + " " +
 			QString::number(tile->at<0>().sizeHint2) + " " + QString::number(tile->at<0>().specialTiling)
 		);
@@ -306,7 +362,7 @@ void TileEditor::showInfo(InfoWindow *info) {
 		set(info, Property(i), "");
 }
 
-void TileEditor::hideInfo(InfoWindow *info) {
+void TilemapEditor::hideInfo(InfoWindow *info) {
 
 	for (u32 i = START; i != END; ++i)
 		info->clearString(properties[i]);

@@ -5,6 +5,7 @@
 //#include "model.hpp"
 #include "palette_editor.hpp"
 #include "tile_editor.hpp"
+#include "tilemap_editor.hpp"
 #include "game_editor.hpp"
 
 #pragma warning(push, 0)
@@ -28,74 +29,73 @@ Window::Window() {
 	setWindowTitle("File System Utilities");
 	setMinimumSize(QSize(1300, 750));
 
-	setStyleSheet(
+	setStyleSheet(R"(
 
-		"QWidget {"
-			"background: #303030;"
-			"background-color: #303030;"
-			"color: SkyBlue;"
-			"border: 0px;"
-			"selection-background-color: #404040;"
-			"alternate-background-color: #303030;"
-			"font: 14px;"
-		"}"
+		QWidget {
+			background: #303030;
+			background-color: #303030;
+			color: SkyBlue;
+			border: 0px;
+			selection-background-color: #404040;
+			alternate-background-color: #303030;
+			font: 14px;
+		}
 		
-		"QPushButton {"
-			"border: 1px solid #101010;"
-			"background: #202020;"
-		"}"
+		QPushButton {
+			border: 1px solid #101010;
+			background: #202020;
+		}
 
-		"QMenu {"
-			"border: 1px solid #202020;"
-			"background: #404040;"
-		"}"
+		QMenu {
+			border: 1px solid #202020;
+			background: #404040;
+		}
 
-		"QTreeView::item:hover, QAbstractItemView::item:hover, QMenuBar::item:hover, QMenu::item:hover, QTabBar::tab:hover {"
-			"color: DeepSkyBlue;"
-		"}"
+		QTreeView::item:hover, QAbstractItemView::item:hover, QMenuBar::item:hover, QMenu::item:hover, QTabBar::tab:hover {
+			color: DeepSkyBlue;
+		}
 
-		"QTreeView::item:selected, QAbstractItemView::item:selected, QMenuBar::item:selected, QMenu::item:selected, QTabBar::tab:selected {"
-			"color: DeepSkyBlue;"
-			"background: #505050;"
-		"}"
+		QTreeView::item:selected, QAbstractItemView::item:selected, QMenuBar::item:selected, QMenu::item:selected, QTabBar::tab:selected {
+			color: DeepSkyBlue;
+			background: #505050;
+		}
 
-		"QTabWidget::pane {"
-			"border: 2px solid #101010;"
-		"}"
+		QTabWidget::pane {
+			border: 2px solid #101010;
+		}
 
-		"QTabBar::tab, QTabBar::tab:selected {"
-			"background: #202020;"
-			"margin-right: 5px;"
-			"padding-top: 2px;"
-			"padding-bottom: 2px;"
-			"padding-left: 2px;"
-		"}"
+		QTabBar::tab, QTabBar::tab:selected {
+			background: #202020;
+			margin-right: 5px;
+			padding-top: 2px;
+			padding-bottom: 2px;
+			padding-left: 2px;
+		}
 
-		"QTabBar::tab:selected {"
-			"background: #505050;"
-			"color: DeepSkyBlue;"
-		"}"
+		QTabBar::tab:selected {
+			background: #505050;
+			color: DeepSkyBlue;
+		}
 
-		"QHeaderView::section {"
-			"background-color: #303030;"
-			"border: 0px #101010;"
-		"}"
+		QHeaderView::section {
+			background-color: #303030;
+			border: 0px #101010;
+		}
 
-		"QTreeView, QTableView, QMenuBar {"
-			"border: 1px solid #101010;"
-		"}"
+		QTreeView, QTableView, QMenuBar {
+			border: 1px solid #101010;
+		}
 
-		"QScrollBar {"
-			"border: 2px solid #404040;"
-			"background: #303030;"
-			"color: SkyBlue;"
-		"}"
+		QScrollBar {
+			border: 2px solid #404040;
+			background: #303030;
+			color: SkyBlue;
+		}
 
-		"QScrollBar::add-page, QScrollBar::sub-page {"
-			"background: none;"
-		"}"
-
-	);
+		QScrollBar::add-page, QScrollBar::sub-page {
+			background: none;
+		}
+	)");
 
 	setupUI();
 }
@@ -262,11 +262,14 @@ void Window::setupTabs(QLayout*) {
 	TileEditor *tileEditor = new TileEditor;
 	editors[2] = tileEditor;
 
+	TilemapEditor *tilemapEditor = new TilemapEditor;
+	editors[3] = tilemapEditor;
+
 	tabs = new QTabWidget;
 	tabs->addTab(gameEditor, QIcon("resources/folder.png"), "Game editor");			//TODO: Edit game
 	tabs->addTab(paletteEditor, QIcon("resources/palette.png"), "Palette editor");
 	tabs->addTab(tileEditor, QIcon("resources/tilemap.png"), "Tile editor");
-	tabs->addTab(new QWidget, QIcon("resources/map.png"), "Tilemap editor");			//TODO: Edit tilemap
+	tabs->addTab(tilemapEditor, QIcon("resources/map.png"), "Tilemap editor");
 	tabs->addTab(new QWidget, QIcon("resources/model.png"), "Model editor");			//TODO: Edit model
 	tabs->addTab(new QWidget, QIcon("resources/binary.png"), "File editor");			//TODO: Edit binary or text
 

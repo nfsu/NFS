@@ -3,6 +3,7 @@
 
 #pragma warning(push, 0)
 	#include <QtGui/qevent.h>
+	#include <QtGui/qopenglfunctions_3_3_core.h>
 	#include <QtCore/qtimer.h>
 	#include <QtWidgets/qapplication.h>
 	#include <QtGui/qopengltexture.h>
@@ -45,13 +46,7 @@ void TileRenderer::paintGL() {
 		(magicTexture != nullptr ? 4 : 0)
 	);
 
-	quad.bind();
-
-	int pos = shader.attributeLocation("pos");
-	shader.enableAttributeArray(pos);
-	shader.setAttributeBuffer(pos, GL_FLOAT, 0, 2);
-
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	if (tiledTexture)
 		tiledTexture->release(0);
@@ -72,139 +67,147 @@ TileRenderer::TileRenderer() {
 
 void TileRenderer::initializeGL() {
 
-	//Setup quad
+	auto *ctx = context();
 
-	quad = QGLBuffer(QGLBuffer::VertexBuffer);
-	quad.create();
-	quad.bind();
-	quad.allocate(PaletteRenderer::quadData, sizeof(PaletteRenderer::quadData));
+	if (!ctx->versionFunctions<QOpenGLFunctions_3_3_Core>())
+		EXCEPTION("Invalid GL version");
 
 	//Setup shader
 
-	char const *vertShader = 
+	const c8 *vertShader = R"(#version 330 core
 
-		"#version 330 core\r\n"
+		out vec2 uv;
 
-		"layout(location=0) in vec2 pos;"
+		void main() {
+			uv = vec2(ivec2(gl_VertexID << 1, gl_VertexID) & 2);
+			gl_Position = vec4(uv * 2 - 1, 0, 1);
+			uv.y = 1 - uv.y;
+		}
+	)";
 
-		"out vec2 uv;"
+	const c8 *fragShader = R"(#version 330 core
 
-		"void main() {"
-			"uv = vec2(pos.x, 1 - pos.y);"
-			"gl_Position = vec4(pos * 2 - 1, 0, 1);"
-		"}";
+		in vec2 uv;
 
-	char const *fragShader =
+		uniform int width;
+		uniform int height;
+		uniform int size;
+		uniform int tiled;
+		uniform int flags;
+		uniform int paletteY;
+		uniform int gridColor;
+		uniform float distToPix;
 
-		"#version 330 core\r\n"
+		uniform vec2 offset;
+		uniform vec2 scale;
 
-		"in vec2 uv;"
+		uniform usampler2D tiledTexture;
+		uniform usampler2D paletteTexture;
+		uniform usampler2D magicTexture;
 
-		"uniform int width;"
-		"uniform int height;"
-		"uniform int size;"
-		"uniform int tiled;"
-		"uniform int flags;"
-		"uniform int paletteY;"
-		"uniform int gridColor;"
-		"uniform float distToPix;"
+		out vec4 color;
 
-		"uniform vec2 offset;"
-		"uniform vec2 scale;"
-
-		"uniform usampler2D tiledTexture;"
-		"uniform usampler2D paletteTexture;"
-		"uniform usampler2D magicTexture;"
-
-		"out vec4 color;"
-
-		"void main() {"
+		void main() {
 
 			//Convert from pixel to tiled pixel space
 
-			"vec2 pos = uv * scale + offset;"
+			vec2 pos = uv * scale + offset;
 
-			"ivec2 px = ivec2(pos * vec2(width, height));"
-			"ivec2 pixx = px;"
-			"ivec2 size = ivec2(width, height);"
+			ivec2 px = ivec2(pos * vec2(width, height));
+			ivec2 pixx = px;
+			ivec2 size = ivec2(width, height);
 
-			"px = px - ivec2(floor(vec2(px) / size) * size);"
+			px = px - ivec2(floor(vec2(px) / size) * size);
 
-			"int val = 0, mod2x4 = 0;"
+			int val = 0, mod2x4 = 0;
 
-			"if(tiled != 1) {"
+			if(tiled == 8) {
 
-				"ivec2 tile = px % tiled;"
-				"ivec2 tiles = px / tiled;"
-				"int pos = (tiles.x + tiles.y * width / tiled) * tiled * tiled + tile.y * tiled + tile.x;"
+				ivec2 tile = px & 7;
+				ivec2 tiles = px >> 3;
+				int pos = ((tiles.x + tiles.y * (width >> 3)) << 6) + (tile.y << 3) + tile.x;
 
 				//Convert from pixel index to buffer index
 
-				"mod2x4 = (pos % 2) * 4;"
-				"int texWidth = width;"
+				mod2x4 = (pos % 2) * 4;
+				int texWidth = width;
 
-				"if((flags & 1) != 0) {"
-					"pos /= 2;"
-					"texWidth /= 2;"
-				"}"
+				if((flags & 1) != 0) {
+					pos /= 2;
+					texWidth /= 2;
+				}
 
-				"px = ivec2(pos % texWidth, pos / texWidth);"
+				px = ivec2(pos % texWidth, pos / texWidth);
 
-			"} else {"
+			} else {
 
-				"mod2x4 = (px.x % 2) * 4;"
+				mod2x4 = (px.x % 2) * 4;
 
-				"if((flags & 1) != 0)"
-					"px.x /= 2;"
+				if((flags & 1) != 0)
+					px.x /= 2;
+			}
 
-			"}"
+			val = int(texelFetch(tiledTexture, px, 0).r);
 
-			"val = int(texelFetch(tiledTexture, px, 0).r);"
+			if((flags & 4) != 0)
+				val ^= int(texelFetch(magicTexture, px, 0).r);
 
-			"if((flags & 4) != 0)"
-				"val ^= int(texelFetch(magicTexture, px, 0).r);"
-
-			"if((flags & 1) != 0)"
-				"val = (val & (0xF << mod2x4)) >> mod2x4;"
+			if((flags & 1) != 0)
+				val = (val & (0xF << mod2x4)) >> mod2x4;
 
 			//Convert from palette index to color
 
-			"vec3 output;"
+			vec3 output;
 
-			"if((flags & 2) != 0) {"
+			if((flags & 2) != 0) {
 
 				//Palette offset
-				"if((flags & 1) != 0) val |= paletteY << 4;"
+
+				if((flags & 1) != 0) 
+					val |= paletteY << 4;
 
 				//Get palette color
-				"vec2 coord = vec2(val & 0xF, (val & 0xF0) >> 4) / vec2(16, 16);"
-				"uint value = texture(paletteTexture, coord).r;"
 
-				"uint r = value & 0x1FU;"
-				"uint g = (value & 0x3E0U) >> 5U;"
-				"uint b = (value & 0x7C00U) >> 10U;"
+				vec2 coord = vec2((ivec2(val) >> ivec2(0, 4)) & 0xF) / vec2(16);
+				uint value = texture(paletteTexture, coord).r;
+
+				uvec3 rgb = (uvec3(value) >> uvec3(0u, 5u, 10u)) & 0x1Fu;
 
 				//Sample from texture
-				"output = vec3(r / 31.0f, g / 31.0f, b / 31.0f);"
 
-			"} else if((flags & 1) == 0) "
-				"output = vec3(val / 255.f, 0, 0);"
+				output = vec3(rgb) / 31.0f;
+			}
 
-			"else output = vec3(val / 15.f, 0, 0);"
+			else if((flags & 1) == 0) 
+				output = vec3(val / 255.f, 0, 0);
 
-			"vec2 delta = abs(fract(pixx / vec2(8)));"
+			else output = vec3(val / 15.f, 0, 0);
 
-			"float minDelta = min(delta.x, delta.y);"
+			//Overlay
 
-			"vec3 sideColor = vec3(gridColor >> 16, (gridColor >> 8) & 0xFF, gridColor & 0xFF) / 255.f * 0.5f;"
+			vec2 delta = abs(fract(pixx / vec2(8)));
 
-			"float overlay = 1 - floor(min(minDelta / 0.5, distToPix) / distToPix);"
+			float minDelta = min(delta.x, delta.y);
 
-			"if(distToPix > 0)"
-				"output = mix(output, sideColor, overlay);"
+			uvec3 gridColorRgb = (uvec3(gridColor) >> uvec3(16u, 8u, 0u)) & 0xFFu;
+			vec3 sideColor = vec3(gridColorRgb) / 255.f * 0.5f;
 
-			"color = vec4(mix(output, vec3(0), float(any(lessThan(px, ivec2(0))) || any(greaterThanEqual(px, ivec2(width, height))))), 1);"
-		"}";
+			float overlay = 1 - floor(min(minDelta / 0.5, distToPix) / distToPix);
+
+			if(distToPix > 0)
+				output = mix(output, sideColor, overlay);
+
+			color = vec4(
+				mix(
+					output, vec3(0), 
+					float(
+						any(lessThan(px, ivec2(0))) || 
+						any(greaterThanEqual(px, ivec2(width, height)))
+					)
+				)
+				, 1
+			);
+		})";
 
 	if(!shader.addShaderFromSourceCode(QGLShader::Vertex, vertShader))
 		EXCEPTION("Couldn't compile vertex shader");
@@ -216,13 +219,11 @@ void TileRenderer::initializeGL() {
 		EXCEPTION("Couldn't link shader");
 
 	//TODO: Smaller images are annoying to edit; maybe use a scrollbar if smallest < 128? Or allow resizing width?
-
 }
 
 //Clean up resources
 
 TileRenderer::~TileRenderer() {
-	quad.destroy();
 	shader.deleteLater();
 	destroyGTexture();
 }

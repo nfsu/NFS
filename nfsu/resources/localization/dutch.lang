@@ -34,7 +34,7 @@
 	"TYPE": "Type",
 	"OFFSET": "Offset",
 	"LENGTH": "Lengte",
-	
+
 	"VIEW_RESOURCE": "Bekijk bron",
 	"VIEW_DATA": "Bekijk data",
 	"EXPORT_RESOURCE": "Exporteer bron",
@@ -74,13 +74,21 @@
 	"COLORS": "Kleuren",
 	"PALETTES": "Paletten",
 
-	"TILE_NAME": "Titelnaam",
+	"NAME": "Naam",
+	"TILE_NAME": "Tegelnaam",
 	"WIDTH": "Breedte",
 	"HEIGHT": "Hoogte",
 	"TILING": "Tegels",
 	"BIT_DEPTH": "Kleurdiepte",
 	"ENCRYPTION": "Encryptie",
 	"UNDEFINED": "Ongedefinieerd ",
+
+	"TILE_WIDTH": "Tegel breedte",
+	"TILE_HEIGHT": "Tegel hoogte",
+	"TILE_TILING": "Tegel tiling",
+	"TILE_BIT_DEPTH": "Tegel kleurdiepte",
+	"TILE_ENCRYPTION": "Tegel encryptie",
+	"TILE_UNDEFINED": "Tegel ongedefinieerd",
 
 	"LOAD_ROM": "ROM laden",
 	"RELOAD_ROM": "ROM herladen",
@@ -102,7 +110,7 @@
 	"IMPORT_PATCH_INVALID_NFSP": "Selecteer een geschikt .NFSP bestand via Bestand->Patch aanbrengen",
 	"IMPORT_PATCH_INVALID_ROM": "Om een patch aan te brengen, selecteer een geschikt patch en ROM bestand",
 	"EXPORT_RESOURCE_PLEASE_SELECT_VALID": "Selecteer een geschikt .$1 bestand om op te slaan",
-	"EXPORT_RESOURCE_COULDNT_WRITE": "Kon de bron niet exporteren"
+	"EXPORT_RESOURCE_COULDNT_WRITE": "Kon de bron niet exporteren",
 	"IMPORT_RESOURCE_PLEASE_SELECT_VALID": "Selecteer een geschikt .$1 bestand om te laden",
 	"IMPORT_RESOURCE_CANT_CHANGE_SIZE": "Resources can't change size"
 }

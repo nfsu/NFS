@@ -38,7 +38,7 @@ namespace nfs {
 		Texture2D(const Texture2D &tilemap, const Texture2D &palette, bool is16Bit = false, bool airIsPalette0 = false, u8 paletteOffsetY = 0);
 
 		//Allocate a new Texture2D from palette, tilemap and map
-		Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit = false, bool airIsPalette0 = false);
+		Texture2D(const Texture2D &map, const Texture2D &tilemap, const Texture2D &palette, bool is16Bit = false, bool airIsPalette0 = false);
 
 		//Allocate new texture
 		static Texture2D alloc(u32 w, u32 h, u16 stride, TextureType tt = TextureType::ARGB8, TextureTiles tti = TextureTiles::NONE);

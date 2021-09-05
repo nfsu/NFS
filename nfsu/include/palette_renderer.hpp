@@ -16,11 +16,6 @@ namespace nfsu {
 
 	public:
 
-		static constexpr f32 quadData[] = {
-			0,0, 0,1, 1,1,
-			1,1, 1,0, 0,0
-		};
-
 		PaletteRenderer();
 		~PaletteRenderer();
 
@@ -28,7 +23,6 @@ namespace nfsu {
 		nfs::Texture2D getTexture();
 
 		QOpenGLTexture *getGPUTexture();
-		QGLBuffer getQuad();
 
 		void setShowGrid(bool b);
 		void setGridColor(QColor color);
@@ -74,7 +68,6 @@ namespace nfsu {
 		f32 gridSize = 0.2222f;
 
 		QGLShaderProgram shader;
-		QGLBuffer quad;
 
 		QOpenGLTexture *paletteTexture = nullptr;
 	};

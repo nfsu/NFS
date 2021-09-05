@@ -74,6 +74,7 @@
 	"COLORS": "Colors",
 	"PALETTES": "Palettes",
 
+	"NAME": "Name",
 	"TILE_NAME": "Tile name",
 	"WIDTH": "Width",
 	"HEIGHT": "Height",
@@ -81,6 +82,13 @@
 	"BIT_DEPTH": "Bit depth",
 	"ENCRYPTION": "Encryption",
 	"UNDEFINED": "Undefined",
+
+	"TILE_WIDTH": "Tile width",
+	"TILE_HEIGHT": "Tile height",
+	"TILE_TILING": "Tile tiling",
+	"TILE_BIT_DEPTH": "Tile bit depth",
+	"TILE_ENCRYPTION": "Tile encryption",
+	"TILE_UNDEFINED": "Tile undefined",
 
 	"LOAD_ROM": "Load ROM",
 	"RELOAD_ROM": "Reload ROM",

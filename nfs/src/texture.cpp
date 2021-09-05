@@ -580,9 +580,7 @@ struct PTT2Du16 {
 	}
 };
 
-Texture2D::Texture2D(NSCR &map, NCGR &tilemap, NCLR &palette, bool is16Bit, bool airIsPalette0) {
-
-	Texture2D m = map, tm = tilemap, pl = palette;
+Texture2D::Texture2D(const Texture2D &m, const Texture2D &tm, const Texture2D &pl, bool is16Bit, bool airIsPalette0) {
 
 	if (is16Bit) {
 
